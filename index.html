@@ -235,6 +235,24 @@
     color: var(--primary);
   }
 
+  .side-action {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    width: 22px;
+    height: 22px;
+    border-radius: 3px;
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.1s;
+    margin-left: 4px;
+    flex-shrink: 0;
+  }
+
+  .side-item:hover .side-action { opacity: 1; }
+  .side-action:hover { background: rgba(9,30,66,0.08); color: var(--bug); }
+
   .side-nav-item {
     display: flex;
     align-items: center;
@@ -1757,10 +1775,11 @@ function renderSidebar() {
     const colors = ['#0052cc', '#36b37e', '#8777d9', '#ff8b00', '#e5493a', '#4bade8'];
     const color = colors[state.clients.indexOf(c) % colors.length];
     return `
-      <div class="side-item ${c.id === state.activeClientId ? 'active' : ''}" onclick="switchClient('${c.id}')">
+      <div class="side-item ${c.id === state.activeClientId ? 'active' : ''}" data-client-id="${c.id}" onclick="switchClient('${c.id}')">
         <div class="ico" style="background:${color}">${escapeHtml(initial)}</div>
         <span>${escapeHtml(c.name)}</span>
         <span class="count">${open}</span>
+        <button class="side-action" onclick="event.stopPropagation();confirmDeleteClient('${c.id}')" title="Supprimer ce projet">×</button>
       </div>
     `;
   }).join('');
@@ -2118,6 +2137,20 @@ function confirmDeleteItem(itemId) {
   document.getElementById('confirmOk').onclick = doDelete;
 }
 
+function confirmDeleteClient(clientId) {
+  const client = state.clients.find(c => c.id === clientId);
+  if (!client) return;
+  if (client.items.length > 0 || client.sprints.length > 0) {
+    showToast(`⚠ Impossible de supprimer « ${client.name} » : ${client.items.length} item(s), ${client.sprints.length} sprint(s). Vide-le d'abord.`);
+    return;
+  }
+  pendingDelete = { type: 'client', id: clientId };
+  document.getElementById('confirmTitle').textContent = 'Supprimer ce projet ?';
+  document.getElementById('confirmMessage').textContent = `« ${client.name} » sera supprimé définitivement.`;
+  document.getElementById('confirmModal').classList.add('show');
+  document.getElementById('confirmOk').onclick = doDelete;
+}
+
 function closeConfirm() {
   document.getElementById('confirmModal').classList.remove('show');
   pendingDelete = null;
@@ -2125,12 +2158,19 @@ function closeConfirm() {
 
 async function doDelete() {
   if (!pendingDelete) return;
-  const client = getActiveClient();
-  if (pendingDelete.type === 'item') {
-    client.items = client.items.filter(i => i.id !== pendingDelete.id);
-  } else if (pendingDelete.type === 'sprint') {
-    client.sprints = client.sprints.filter(s => s.id !== pendingDelete.id);
-    client.items.forEach(i => { if (i.sprintId === pendingDelete.id) i.sprintId = null; });
+  if (pendingDelete.type === 'client') {
+    state.clients = state.clients.filter(c => c.id !== pendingDelete.id);
+    if (state.activeClientId === pendingDelete.id) {
+      state.activeClientId = state.clients.length > 0 ? state.clients[0].id : null;
+    }
+  } else {
+    const client = getActiveClient();
+    if (pendingDelete.type === 'item') {
+      client.items = client.items.filter(i => i.id !== pendingDelete.id);
+    } else if (pendingDelete.type === 'sprint') {
+      client.sprints = client.sprints.filter(s => s.id !== pendingDelete.id);
+      client.items.forEach(i => { if (i.sprintId === pendingDelete.id) i.sprintId = null; });
+    }
   }
   await saveState();
   closeConfirm();
