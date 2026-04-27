@@ -1,0 +1,2520 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Backlog & Sprints</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --bg-app: #ffffff;
+    --bg-hover: #f4f5f7;
+    --bg-selected: #deebff;
+    --bg-nav: #ffffff;
+    --bg-sidebar: #f4f5f7;
+    --bg-board: #f4f5f7;
+    --bg-col: #f1f2f4;
+    --bg-card: #ffffff;
+    --bg-input: #ffffff;
+    --bg-input-hover: #f4f5f7;
+
+    --border: #dfe1e6;
+    --border-strong: #c1c7d0;
+    --border-focus: #4c9aff;
+
+    --text: #172b4d;
+    --text-mute: #5e6c84;
+    --text-faint: #8993a4;
+    --text-link: #0052cc;
+    --text-on-primary: #ffffff;
+
+    --primary: #0052cc;
+    --primary-hover: #0747a6;
+    --primary-soft: #deebff;
+
+    /* Issue types */
+    --story: #36b37e;
+    --task: #4bade8;
+    --bug: #e5493a;
+    --epic: #8777d9;
+
+    /* Priorities */
+    --p-highest: #cd1f1f;
+    --p-high: #e5493a;
+    --p-medium: #e9a83a;
+    --p-low: #2684ff;
+    --p-lowest: #57a55a;
+
+    /* Status */
+    --status-todo-bg: #dfe1e6;
+    --status-todo-fg: #42526e;
+    --status-progress-bg: #deebff;
+    --status-progress-fg: #0747a6;
+    --status-done-bg: #e3fcef;
+    --status-done-fg: #006644;
+
+    --shadow-sm: 0 1px 1px rgba(9,30,66,0.13), 0 0 1px rgba(9,30,66,0.13);
+    --shadow-md: 0 4px 8px -2px rgba(9,30,66,0.1), 0 0 1px rgba(9,30,66,0.13);
+    --shadow-lg: 0 12px 24px -6px rgba(9,30,66,0.15), 0 0 1px rgba(9,30,66,0.13);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.43;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; }
+
+  /* === LAYOUT === */
+  .app {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    grid-template-rows: 56px 1fr;
+    grid-template-areas:
+      "topbar topbar"
+      "sidebar main";
+    height: 100vh;
+  }
+
+  /* === TOPBAR === */
+  .topbar {
+    grid-area: topbar;
+    background: var(--bg-app);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 24px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--text);
+  }
+
+  .logo-mark {
+    width: 24px;
+    height: 24px;
+    background: var(--primary);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .topbar-search {
+    flex: 0 1 360px;
+    margin-left: auto;
+  }
+
+  .topbar-search input {
+    width: 100%;
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-size: 13px;
+    background: var(--bg);
+  }
+
+  .topbar-search input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    background: white;
+    box-shadow: 0 0 0 2px rgba(76,154,255,0.2);
+  }
+
+  .topbar-stats {
+    font-size: 12px;
+    color: var(--text-mute);
+    margin-left: auto;
+  }
+
+  .topbar-stats strong { color: var(--text); font-weight: 600; }
+
+  /* === SIDEBAR === */
+  .sidebar {
+    grid-area: sidebar;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px 0;
+  }
+
+  .side-section {
+    margin-bottom: 20px;
+  }
+
+  .side-label {
+    padding: 4px 20px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    color: var(--text-mute);
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .side-label .add-btn {
+    background: none;
+    border: none;
+    color: var(--text-mute);
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 4px;
+    border-radius: 3px;
+  }
+
+  .side-label .add-btn:hover { background: var(--border); color: var(--text); }
+
+  .side-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text);
+    border-left: 3px solid transparent;
+    user-select: none;
+  }
+
+  .side-item:hover { background: rgba(9,30,66,0.04); }
+
+  .side-item.active {
+    background: var(--bg-selected);
+    color: var(--primary);
+    font-weight: 600;
+    border-left-color: var(--primary);
+  }
+
+  .side-item .ico {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .side-item .count {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text-faint);
+    background: var(--border);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+
+  .side-item.active .count {
+    background: white;
+    color: var(--primary);
+  }
+
+  .side-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text);
+    border-left: 3px solid transparent;
+    user-select: none;
+  }
+
+  .side-nav-item:hover { background: rgba(9,30,66,0.04); }
+
+  .side-nav-item.active {
+    background: var(--bg-selected);
+    color: var(--primary);
+    font-weight: 600;
+    border-left-color: var(--primary);
+  }
+
+  .side-nav-item .nav-ico {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+  }
+
+  /* === MAIN === */
+  .main {
+    grid-area: main;
+    overflow-y: auto;
+    background: var(--bg-app);
+  }
+
+  .breadcrumb {
+    padding: 16px 32px 0;
+    font-size: 12px;
+    color: var(--text-mute);
+  }
+
+  .breadcrumb a { color: var(--text-mute); text-decoration: none; }
+  .breadcrumb a:hover { color: var(--text-link); text-decoration: underline; }
+
+  .page-header {
+    padding: 8px 32px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .page-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .page-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* === BUTTONS === */
+  .btn {
+    border: none;
+    border-radius: 3px;
+    padding: 7px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.1s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+  }
+
+  .btn-primary:hover { background: var(--primary-hover); }
+
+  .btn-secondary {
+    background: rgba(9,30,66,0.04);
+    color: var(--text);
+  }
+
+  .btn-secondary:hover { background: rgba(9,30,66,0.08); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-mute);
+  }
+
+  .btn-ghost:hover { background: rgba(9,30,66,0.06); color: var(--text); }
+
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+  /* === FILTERS BAR === */
+  .filters-bar {
+    padding: 0 32px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .filter-select {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: white;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .filter-select:hover { border-color: var(--border-strong); }
+
+  .filter-chip {
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: white;
+    font-size: 12px;
+    color: var(--text-mute);
+    cursor: pointer;
+  }
+
+  .filter-chip:hover { border-color: var(--border-strong); color: var(--text); }
+  .filter-chip.active {
+    background: var(--primary-soft);
+    border-color: var(--primary);
+    color: var(--primary-hover);
+    font-weight: 500;
+  }
+
+  /* === BOARD VIEW === */
+  .board {
+    padding: 0 32px 32px;
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    align-items: flex-start;
+  }
+
+  .board-col {
+    background: var(--bg-col);
+    border-radius: 3px;
+    min-width: 280px;
+    flex: 1;
+    max-height: calc(100vh - 220px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .board-col-head {
+    padding: 12px 14px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-mute);
+  }
+
+  .board-col-head .num {
+    background: rgba(9,30,66,0.08);
+    color: var(--text-mute);
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+  }
+
+  .board-col-body {
+    padding: 4px 8px 8px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .card {
+    background: white;
+    border-radius: 3px;
+    padding: 10px 12px;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: border-color 0.1s, box-shadow 0.1s;
+  }
+
+  .card:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+  }
+
+  .card[draggable="true"] { cursor: grab; }
+  .card[draggable="true"]:active { cursor: grabbing; }
+
+  .card.dragging {
+    opacity: 0.4;
+    transform: rotate(2deg);
+  }
+
+  .board-col.drag-over {
+    background: var(--primary-soft);
+    box-shadow: inset 0 0 0 2px var(--primary);
+  }
+
+  .board-col.drag-over .board-col-head {
+    color: var(--primary);
+  }
+
+  .drop-placeholder {
+    height: 2px;
+    background: var(--primary);
+    border-radius: 1px;
+    margin: 2px 0;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+
+  .drop-placeholder.show {
+    opacity: 1;
+    height: 32px;
+    background: var(--primary-soft);
+    border: 2px dashed var(--primary);
+  }
+
+  .card-title {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.4;
+    margin-bottom: 10px;
+    word-break: break-word;
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .card-meta .key {
+    font-size: 12px;
+    color: var(--text-faint);
+    font-weight: 500;
+  }
+
+  .card-meta .spacer { flex: 1; }
+
+  /* === ISSUE TYPE ICON === */
+  .type-ico {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .type-story { background: var(--story); }
+  .type-task { background: var(--task); }
+  .type-bug { background: var(--bug); }
+
+  /* === PRIORITY ICON === */
+  .prio-ico {
+    width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .prio-1 { color: var(--p-highest); }
+  .prio-2 { color: var(--p-medium); }
+  .prio-3 { color: var(--p-lowest); }
+
+  /* === DUE DATE === */
+  .due-pill {
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 3px;
+    background: rgba(9,30,66,0.06);
+    color: var(--text-mute);
+    font-weight: 500;
+  }
+
+  .due-pill.overdue {
+    background: #ffebe6;
+    color: #bf2600;
+  }
+
+  .due-pill.soon {
+    background: #fffae6;
+    color: #974f0c;
+  }
+
+  /* === ESTIMATE BADGE === */
+  .est-badge {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(9,30,66,0.06);
+    color: var(--text-mute);
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* === BACKLOG VIEW === */
+  .backlog-section {
+    background: var(--bg-app);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    margin: 0 32px 16px;
+  }
+
+  /* Sprint actif : mise en valeur */
+  .backlog-section.sprint-active-section {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary), 0 2px 8px -2px rgba(0,82,204,0.15);
+  }
+
+  .backlog-section.sprint-active-section .backlog-section-head {
+    background: linear-gradient(to right, var(--primary-soft), white 80%);
+    border-bottom-color: var(--primary-soft);
+  }
+
+  .backlog-section.sprint-active-section .sprint-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--story);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  .backlog-section.sprint-active-section .sprint-badge::before {
+    content: '●';
+    font-size: 8px;
+  }
+
+  .backlog-section-head {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg);
+  }
+
+  .backlog-section-head .toggle {
+    background: none;
+    border: none;
+    color: var(--text-mute);
+    font-size: 10px;
+    width: 16px;
+  }
+
+  .backlog-section-head .name {
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .backlog-section-head .meta {
+    font-size: 12px;
+    color: var(--text-mute);
+  }
+
+  .backlog-section-head .actions {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .backlog-section-stats {
+    display: flex;
+    gap: 6px;
+  }
+
+  .stat-pill {
+    background: var(--status-todo-bg);
+    color: var(--status-todo-fg);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    min-width: 24px;
+    text-align: center;
+  }
+
+  .stat-pill.progress { background: var(--status-progress-bg); color: var(--status-progress-fg); }
+  .stat-pill.done { background: var(--status-done-bg); color: var(--status-done-fg); }
+
+  .backlog-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .backlog-row {
+    padding: 8px 16px;
+    display: grid;
+    grid-template-columns: 20px auto 70px 1fr auto auto auto auto auto;
+    gap: 12px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.08s;
+  }
+
+  .backlog-row:hover { background: var(--bg-hover); }
+  .backlog-row:last-child { border-bottom: none; }
+
+  .backlog-row.done .row-title { color: var(--text-faint); text-decoration: line-through; }
+
+  .row-key {
+    font-size: 12px;
+    color: var(--text-link);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .row-title {
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .status-badge {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .status-todo { background: var(--status-todo-bg); color: var(--status-todo-fg); }
+  .status-doing { background: var(--status-progress-bg); color: var(--status-progress-fg); }
+  .status-done { background: var(--status-done-bg); color: var(--status-done-fg); }
+
+  .row-action {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    width: 24px;
+    height: 24px;
+    border-radius: 3px;
+    font-size: 16px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+
+  .backlog-row:hover .row-action { opacity: 1; }
+  .row-action:hover { background: rgba(9,30,66,0.08); color: var(--bug); }
+
+  .add-row {
+    padding: 10px 16px;
+    color: var(--text-mute);
+    font-size: 13px;
+    cursor: pointer;
+    background: white;
+    border: none;
+    width: 100%;
+    text-align: left;
+    border-top: 1px solid var(--border);
+  }
+
+  .add-row:hover { background: var(--bg-hover); color: var(--text); }
+
+  .inline-form {
+    padding: 10px 16px;
+    background: white;
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: auto auto 1fr auto auto auto auto;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .inline-form input, .inline-form select {
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-size: 13px;
+    background: white;
+  }
+
+  .inline-form input:focus, .inline-form select:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 2px rgba(76,154,255,0.2);
+  }
+
+  .inline-form input[type="text"] { width: 100%; }
+
+  /* === EMPTY === */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-mute);
+  }
+
+  .empty-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+  .empty-desc { font-size: 13px; }
+
+  /* === MODAL === */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(9,30,66,0.54);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 100;
+    padding-top: 80px;
+  }
+
+  .modal-overlay.show { display: flex; }
+
+  .modal {
+    background: white;
+    border-radius: 3px;
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 720px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
+
+  .modal-head {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .modal-head .key {
+    font-size: 13px;
+    color: var(--text-mute);
+    font-weight: 500;
+  }
+
+  .modal-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--text-mute);
+    width: 32px;
+    height: 32px;
+    border-radius: 3px;
+  }
+
+  .modal-close:hover { background: rgba(9,30,66,0.08); }
+
+  .modal-body {
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 24px;
+  }
+
+  .modal-body-narrow {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-body h2 {
+    font-size: 20px;
+    font-weight: 500;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .modal-body input.title-input {
+    width: 100%;
+    border: 1px solid transparent;
+    padding: 6px 8px;
+    font-size: 20px;
+    font-weight: 500;
+    border-radius: 3px;
+    background: transparent;
+    margin-bottom: 16px;
+  }
+
+  .modal-body input.title-input:hover { background: var(--bg); }
+  .modal-body input.title-input:focus { background: white; border-color: var(--border-focus); outline: none; }
+
+  .field-group {
+    margin-bottom: 14px;
+  }
+
+  .field-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-mute);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .field-group input, .field-group select, .field-group textarea {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-size: 14px;
+    background: white;
+    color: var(--text);
+  }
+
+  .field-group input:focus, .field-group select:focus, .field-group textarea:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 2px rgba(76,154,255,0.2);
+  }
+
+  .modal-side {
+    background: var(--bg);
+    padding: 16px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+  }
+
+  .modal-side h3 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    margin-bottom: 12px;
+    letter-spacing: 0.04em;
+  }
+
+  .modal-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+
+  /* === TABS === */
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .tab {
+    padding: 8px 16px;
+    background: none;
+    border: none;
+    font-size: 14px;
+    color: var(--text-mute);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    font-weight: 500;
+  }
+
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 600;
+  }
+
+  /* === SPRINT === */
+  .sprint-header {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 12px 16px;
+    margin: 0 32px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .sprint-header .name {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .sprint-header .dates {
+    font-size: 12px;
+    color: var(--text-mute);
+  }
+
+  .progress-wrap {
+    flex: 1;
+    max-width: 300px;
+  }
+
+  .progress-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.3s;
+  }
+
+  .progress-text {
+    font-size: 11px;
+    color: var(--text-mute);
+    margin-top: 4px;
+  }
+
+  /* === CONFIRM DIALOG === */
+  .confirm-modal {
+    max-width: 400px;
+  }
+
+  .confirm-modal .modal-body {
+    grid-template-columns: 1fr;
+    padding: 20px 24px;
+  }
+
+  /* === SYNC INDICATOR === */
+  .sync-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-mute);
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid transparent;
+  }
+
+  .sync-indicator:hover { background: var(--bg-hover); border-color: var(--border); }
+
+  .sync-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    flex-shrink: 0;
+  }
+
+  .sync-dot.connected { background: var(--story); }
+  .sync-dot.syncing { background: var(--p-medium); animation: pulse 1s infinite; }
+  .sync-dot.error { background: var(--bug); }
+  .sync-dot.local { background: var(--text-faint); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* === SETTINGS MODAL === */
+  .settings-help {
+    background: var(--bg);
+    border-left: 3px solid var(--primary);
+    padding: 12px 14px;
+    border-radius: 3px;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  .settings-help code {
+    background: var(--border);
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+  }
+
+  .settings-help a { color: var(--primary); text-decoration: none; }
+  .settings-help a:hover { text-decoration: underline; }
+
+  .settings-help ol { margin: 8px 0 0 18px; }
+  .settings-help li { margin-bottom: 4px; }
+
+  /* === SCROLLBARS === */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+  /* === LOADING === */
+  .loading {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-mute);
+    font-size: 14px;
+  }
+
+  /* === RESPONSIVE === */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; grid-template-areas: "topbar" "main"; }
+    .sidebar { display: none; }
+    .modal-body { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-mark">A</div>
+      Atelier
+    </div>
+    <div class="topbar-search">
+      <input type="text" id="searchInput" placeholder="Rechercher un item…">
+    </div>
+    <div class="sync-indicator" id="syncIndicator" onclick="openSettingsModal()" title="Configurer la synchronisation">
+      <span class="sync-dot local" id="syncDot"></span>
+      <span id="syncLabel">Local</span>
+    </div>
+    <div class="topbar-stats" id="globalStats">— items ouverts</div>
+    <span id="saveIndicator" style="font-size:11px;color:var(--text-faint);opacity:0.3;transition:opacity 0.2s;white-space:nowrap;">✓ Sauvegardé</span>
+    <button class="btn btn-ghost btn-sm" onclick="exportData()" title="Télécharger une sauvegarde JSON">⬇ Export</button>
+    <button class="btn btn-ghost btn-sm" onclick="triggerImport()" title="Importer une sauvegarde JSON">⬆ Import</button>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="side-section">
+      <div class="side-label">
+        <span>Vues</span>
+      </div>
+      <div class="side-nav-item active" data-view="backlog" onclick="switchView('backlog')">
+        <span class="nav-ico">☰</span> Backlog
+      </div>
+      <div class="side-nav-item" data-view="board" onclick="switchView('board')">
+        <span class="nav-ico">▦</span> Sprint actif
+      </div>
+      <div class="side-nav-item" data-view="archive" onclick="switchView('archive')">
+        <span class="nav-ico">✓</span> Archive
+      </div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label">
+        <span>Projets</span>
+        <button class="add-btn" onclick="openClientModal()" title="Ajouter un projet">+</button>
+      </div>
+      <div id="clientList"></div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label">
+        <span>Sprints</span>
+        <button class="add-btn" onclick="openSprintModal()" title="Nouveau sprint">+</button>
+      </div>
+      <div id="sprintList"></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="breadcrumb">
+      Projets / <span id="bcClient">—</span>
+    </div>
+    <div class="page-header">
+      <h1 id="pageTitle">Backlog</h1>
+      <div class="page-actions">
+        <button class="btn btn-primary" onclick="quickAdd()">+ Créer un item</button>
+      </div>
+    </div>
+
+    <div class="filters-bar">
+      <select class="filter-select" id="prioFilter" onchange="renderView()">
+        <option value="">Toutes priorités</option>
+        <option value="1">P1 — Haute</option>
+        <option value="2">P2 — Moyenne</option>
+        <option value="3">P3 — Basse</option>
+      </select>
+      <button class="filter-chip active" data-type="" onclick="setTypeFilter('')">Tous</button>
+      <button class="filter-chip" data-type="story" onclick="setTypeFilter('story')">
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span class="type-ico type-story">U</span> Build</span>
+      </button>
+      <button class="filter-chip" data-type="task" onclick="setTypeFilter('task')">
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span class="type-ico type-task">T</span> TMA</span>
+      </button>
+      <button class="filter-chip" data-type="bug" onclick="setTypeFilter('bug')">
+        <span style="display:inline-flex;align-items:center;gap:5px;"><span class="type-ico type-bug">B</span> Bug</span>
+      </button>
+    </div>
+
+    <div id="viewContent">
+      <div class="loading">Chargement…</div>
+    </div>
+  </main>
+</div>
+
+<!-- ITEM MODAL -->
+<div class="modal-overlay" id="itemModal">
+  <div class="modal" id="itemModalContent"></div>
+</div>
+
+<!-- SPRINT MODAL -->
+<div class="modal-overlay" id="sprintModal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <h2 style="margin:0;font-size:16px;font-weight:600;">Nouveau sprint</h2>
+      <button class="modal-close" onclick="closeSprintModal()">×</button>
+    </div>
+    <div class="modal-body modal-body-narrow">
+      <div class="field-group">
+        <label>Nom du sprint</label>
+        <input type="text" id="sprintName" placeholder="Ex: Sprint 12 — Val d'Orbieu">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="field-group">
+          <label>Date début</label>
+          <input type="date" id="sprintStart">
+        </div>
+        <div class="field-group">
+          <label>Date fin</label>
+          <input type="date" id="sprintEnd">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeSprintModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="createSprint()">Créer le sprint</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CLIENT MODAL -->
+<div class="modal-overlay" id="clientModal">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head">
+      <h2 style="margin:0;font-size:16px;font-weight:600;">Nouveau projet</h2>
+      <button class="modal-close" onclick="closeClientModal()">×</button>
+    </div>
+    <div class="modal-body modal-body-narrow">
+      <div class="field-group">
+        <label>Nom du projet / client</label>
+        <input type="text" id="clientName" placeholder="Ex: Actimat" autofocus>
+      </div>
+      <div class="field-group">
+        <label>Clé (3-5 lettres)</label>
+        <input type="text" id="clientKey" placeholder="Ex: ACT" maxlength="5">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeClientModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="createClient()">Créer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-head">
+      <h2 style="margin:0;font-size:16px;font-weight:600;">Synchronisation GitHub Gist</h2>
+      <button class="modal-close" onclick="closeSettingsModal()">×</button>
+    </div>
+    <div class="modal-body modal-body-narrow">
+      <div class="settings-help">
+        Tes données sont sauvegardées dans un <strong>Gist privé GitHub</strong> de ton compte. Aucun serveur tiers, aucun coût.
+        <ol>
+          <li>Crée un PAT sur <a href="https://github.com/settings/tokens?type=beta" target="_blank">github.com/settings/tokens</a> (Fine-grained, scope <code>Gists: Read and write</code>)</li>
+          <li>Crée un Gist privé sur <a href="https://gist.github.com" target="_blank">gist.github.com</a> avec un fichier nommé <code>atelier-data.json</code> contenant <code>{}</code></li>
+          <li>Copie son ID (la longue chaîne dans l'URL) et ton PAT ici</li>
+        </ol>
+      </div>
+
+      <div class="field-group">
+        <label>Personal Access Token (PAT)</label>
+        <input type="password" id="cfgToken" placeholder="github_pat_…" autocomplete="off">
+      </div>
+
+      <div class="field-group">
+        <label>ID du Gist</label>
+        <input type="text" id="cfgGistId" placeholder="ex: 8a7b3c4d5e6f…" autocomplete="off">
+      </div>
+
+      <div id="settingsStatus" style="font-size:12px;color:var(--text-mute);margin-bottom:12px;min-height:18px;"></div>
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="disconnectGist()" id="disconnectBtn" style="margin-right:auto;color:var(--bug);display:none;">Déconnecter</button>
+        <button class="btn btn-secondary" onclick="closeSettingsModal()">Fermer</button>
+        <button class="btn btn-primary" onclick="connectGist()" id="connectBtn">Connecter & synchroniser</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal confirm-modal">
+    <div class="modal-head">
+      <h2 style="margin:0;font-size:16px;font-weight:600;" id="confirmTitle">Confirmer</h2>
+    </div>
+    <div class="modal-body">
+      <p id="confirmMessage" style="font-size:14px;color:var(--text);margin-bottom:8px;"></p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeConfirm()">Annuler</button>
+        <button class="btn btn-primary" id="confirmOk" style="background:var(--bug);">Supprimer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const STORAGE_KEY = 'atelier-data-v2';
+const DB_NAME = 'atelier-db';
+const DB_STORE = 'kv';
+
+let state = {
+  clients: [],
+  activeClientId: null,
+  activeView: 'backlog',
+  filterType: '',
+  filterPrio: '',
+  search: ''
+};
+
+const TYPE_LABELS = { story: 'Build', task: 'TMA', bug: 'Bug' };
+const TYPE_LETTERS = { story: 'U', task: 'T', bug: 'B' };
+const STATUS_LABELS = { todo: 'À faire', doing: 'En cours', done: 'Terminé' };
+
+// === STORAGE LAYER (IndexedDB + fallback localStorage) ===
+let _db = null;
+let _saveTimer = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    if (_db) return resolve(_db);
+    if (!window.indexedDB) return reject(new Error('No IndexedDB'));
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(DB_STORE)) {
+        db.createObjectStore(DB_STORE);
+      }
+    };
+    req.onsuccess = (e) => { _db = e.target.result; resolve(_db); };
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
+
+async function dbGet(key) {
+  try {
+    const db = await openDB();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readonly');
+      const store = tx.objectStore(DB_STORE);
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) {
+    // Fallback localStorage
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  }
+}
+
+async function dbSet(key, value) {
+  try {
+    const db = await openDB();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      const store = tx.objectStore(DB_STORE);
+      const req = store.put(value, key);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) {
+    // Fallback localStorage
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (err) {
+      console.error('Storage failed:', err);
+      showToast('⚠ Impossible de sauvegarder — vérifiez l\'espace disponible');
+    }
+  }
+}
+
+// === SYNC LAYER (GitHub Gist par dessus IndexedDB) ===
+const CONFIG_KEY = 'atelier-config-v1';
+const GIST_FILENAME = 'atelier-data.json';
+
+let syncConfig = {
+  token: null,
+  gistId: null,
+  connected: false
+};
+
+let _gistPushTimer = null;
+
+function loadConfig() {
+  try {
+    const raw = localStorage.getItem(CONFIG_KEY);
+    if (raw) syncConfig = { ...syncConfig, ...JSON.parse(raw) };
+  } catch (e) {}
+}
+
+function saveConfig() {
+  try {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(syncConfig));
+  } catch (e) {}
+}
+
+function setSyncStatus(status, label) {
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  if (!dot || !lbl) return;
+  dot.className = 'sync-dot ' + status;
+  lbl.textContent = label;
+}
+
+async function fetchGist() {
+  if (!syncConfig.token || !syncConfig.gistId) return null;
+  const res = await fetch(`https://api.github.com/gists/${syncConfig.gistId}`, {
+    headers: {
+      'Authorization': `Bearer ${syncConfig.token}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    }
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`HTTP ${res.status}: ${txt.substring(0, 150)}`);
+  }
+  const data = await res.json();
+  const file = data.files && data.files[GIST_FILENAME];
+  if (!file || !file.content) return null;
+  const trimmed = file.content.trim();
+  if (!trimmed || trimmed === '{}') return null;
+  return JSON.parse(file.content);
+}
+
+async function pushGist(payload) {
+  if (!syncConfig.token || !syncConfig.gistId) return false;
+  setSyncStatus('syncing', 'Envoi…');
+  try {
+    const res = await fetch(`https://api.github.com/gists/${syncConfig.gistId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${syncConfig.token}`,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        'X-GitHub-Api-Version': '2022-11-28'
+      },
+      body: JSON.stringify({
+        files: { [GIST_FILENAME]: { content: JSON.stringify(payload, null, 2) } }
+      })
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`HTTP ${res.status}: ${txt.substring(0, 150)}`);
+    }
+    setSyncStatus('connected', 'Sync OK');
+    setTimeout(() => {
+      if (syncConfig.connected) setSyncStatus('connected', 'GitHub');
+    }, 1500);
+    return true;
+  } catch (e) {
+    console.error('Gist push error:', e);
+    setSyncStatus('error', 'Erreur sync');
+    showToast('⚠ Erreur sync GitHub : ' + e.message);
+    return false;
+  }
+}
+
+function scheduleGistPush() {
+  if (!syncConfig.connected) return;
+  if (_gistPushTimer) clearTimeout(_gistPushTimer);
+  setSyncStatus('syncing', 'En attente…');
+  _gistPushTimer = setTimeout(async () => {
+    await pushGist({
+      clients: state.clients,
+      activeClientId: state.activeClientId,
+      lastSavedAt: Date.now()
+    });
+  }, 2500);
+}
+
+// Push avant fermeture de page si push en attente
+window.addEventListener('beforeunload', () => {
+  if (_gistPushTimer && syncConfig.connected) {
+    try {
+      fetch(`https://api.github.com/gists/${syncConfig.gistId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${syncConfig.token}`,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          files: { [GIST_FILENAME]: { content: JSON.stringify({
+            clients: state.clients,
+            activeClientId: state.activeClientId,
+            lastSavedAt: Date.now()
+          }, null, 2) } }
+        }),
+        keepalive: true
+      });
+    } catch (e) {}
+  }
+});
+
+async function loadState() {
+  loadConfig();
+
+  // 1. Charger d'abord depuis IndexedDB (rapide)
+  try {
+    const data = await dbGet(STORAGE_KEY);
+    if (data && data.clients) {
+      state = { ...state, ...data };
+    }
+  } catch (e) {
+    console.warn('Load failed:', e);
+  }
+
+  // 2. Si Gist configuré, comparer avec la version distante
+  if (syncConfig.token && syncConfig.gistId) {
+    setSyncStatus('syncing', 'Chargement…');
+    try {
+      const remote = await fetchGist();
+      if (remote && remote.clients) {
+        const localTs = (await dbGet(STORAGE_KEY))?.lastSavedAt || 0;
+        const remoteTs = remote.lastSavedAt || 0;
+        // Si distant plus récent (ou si on n'a rien en local), prendre distant
+        if (remoteTs > localTs || !state.clients || state.clients.length === 0) {
+          state = { ...state, clients: remote.clients, activeClientId: remote.activeClientId };
+          await dbSet(STORAGE_KEY, {
+            clients: state.clients,
+            activeClientId: state.activeClientId,
+            lastSavedAt: remoteTs
+          });
+        }
+      }
+      syncConfig.connected = true;
+      saveConfig();
+      setSyncStatus('connected', 'GitHub');
+    } catch (e) {
+      console.warn('Gist load error:', e);
+      syncConfig.connected = false;
+      setSyncStatus('error', 'Erreur connexion');
+    }
+  } else {
+    setSyncStatus('local', 'Local');
+  }
+
+  // 3. Seed si vide
+  if (!state.clients || state.clients.length === 0) {
+    state.clients = [
+      { id: 'c1', name: 'Actimat', key: 'ACT', counter: 0, items: [], sprints: [] },
+      { id: 'c2', name: "Val d'Orbieu", key: 'VVO', counter: 0, items: [], sprints: [] }
+    ];
+    state.activeClientId = 'c1';
+    await saveState();
+  }
+
+  if (!state.activeClientId && state.clients.length > 0) {
+    state.activeClientId = state.clients[0].id;
+  }
+}
+
+async function saveState() {
+  // Debounce : évite d'écrire 10 fois pendant un cycle de render
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(async () => {
+    try {
+      await dbSet(STORAGE_KEY, {
+        clients: state.clients,
+        activeClientId: state.activeClientId,
+        lastSavedAt: Date.now()
+      });
+      updateSaveIndicator();
+      // Push vers Gist en arrière-plan (debounced plus longuement)
+      scheduleGistPush();
+    } catch (e) {
+      console.error('Save error:', e);
+      showToast('⚠ Erreur de sauvegarde');
+    }
+  }, 50);
+}
+
+// ============================================================
+// SETTINGS MODAL (sync GitHub Gist)
+// ============================================================
+function openSettingsModal() {
+  document.getElementById('cfgToken').value = syncConfig.token || '';
+  document.getElementById('cfgGistId').value = syncConfig.gistId || '';
+  const status = document.getElementById('settingsStatus');
+  if (syncConfig.connected) {
+    status.innerHTML = '<span style="color:var(--story);">● Connecté à GitHub</span>';
+    document.getElementById('connectBtn').textContent = 'Tester & resynchroniser';
+    document.getElementById('disconnectBtn').style.display = 'inline-flex';
+  } else {
+    status.textContent = '';
+    document.getElementById('connectBtn').textContent = 'Connecter';
+    document.getElementById('disconnectBtn').style.display = 'none';
+  }
+  document.getElementById('settingsModal').classList.add('show');
+}
+
+function closeSettingsModal() {
+  document.getElementById('settingsModal').classList.remove('show');
+}
+
+async function connectGist() {
+  const token = document.getElementById('cfgToken').value.trim();
+  const gistId = document.getElementById('cfgGistId').value.trim();
+  const status = document.getElementById('settingsStatus');
+
+  if (!token || !gistId) {
+    status.innerHTML = '<span style="color:var(--bug);">Token et Gist ID requis</span>';
+    return;
+  }
+
+  syncConfig.token = token;
+  syncConfig.gistId = gistId;
+  status.innerHTML = '<span style="color:var(--text-mute);">Connexion…</span>';
+
+  try {
+    const remote = await fetchGist();
+    syncConfig.connected = true;
+    saveConfig();
+
+    const localCount = state.clients.reduce((s, c) => s + (c.items?.length || 0), 0);
+    const remoteCount = remote && remote.clients ? remote.clients.reduce((s, c) => s + (c.items?.length || 0), 0) : 0;
+
+    if (remote && remote.clients && remoteCount > 0) {
+      if (localCount > 0 && localCount !== remoteCount) {
+        const useRemote = confirm(
+          `Conflit de données détecté :\n\n` +
+          `• Local : ${localCount} items\n` +
+          `• Distant : ${remoteCount} items\n\n` +
+          `OK = Charger les données distantes (écrase le local)\n` +
+          `Annuler = Pousser le local vers le Gist (écrase le distant)`
+        );
+        if (useRemote) {
+          state.clients = remote.clients;
+          state.activeClientId = remote.activeClientId || remote.clients[0]?.id;
+          await dbSet(STORAGE_KEY, { clients: state.clients, activeClientId: state.activeClientId, lastSavedAt: Date.now() });
+          status.innerHTML = '<span style="color:var(--story);">● Données distantes chargées</span>';
+        } else {
+          await pushGist({ clients: state.clients, activeClientId: state.activeClientId, lastSavedAt: Date.now() });
+          status.innerHTML = '<span style="color:var(--story);">● Données locales poussées</span>';
+        }
+      } else if (localCount === 0) {
+        state.clients = remote.clients;
+        state.activeClientId = remote.activeClientId || remote.clients[0]?.id;
+        await dbSet(STORAGE_KEY, { clients: state.clients, activeClientId: state.activeClientId, lastSavedAt: Date.now() });
+        status.innerHTML = '<span style="color:var(--story);">● Données distantes chargées</span>';
+      } else {
+        status.innerHTML = '<span style="color:var(--story);">● Synchronisé</span>';
+      }
+    } else {
+      // Gist vide : on pousse
+      await pushGist({ clients: state.clients, activeClientId: state.activeClientId, lastSavedAt: Date.now() });
+      status.innerHTML = '<span style="color:var(--story);">● Données initiales poussées</span>';
+    }
+
+    setSyncStatus('connected', 'GitHub');
+    setTimeout(() => {
+      closeSettingsModal();
+      render();
+    }, 1200);
+  } catch (e) {
+    syncConfig.connected = false;
+    saveConfig();
+    setSyncStatus('error', 'Erreur');
+    status.innerHTML = `<span style="color:var(--bug);">Erreur : ${escapeHtml(e.message)}</span>`;
+  }
+}
+
+function disconnectGist() {
+  if (!confirm('Déconnecter la sync GitHub ? Les données locales (IndexedDB) sont conservées.')) return;
+  syncConfig.token = null;
+  syncConfig.gistId = null;
+  syncConfig.connected = false;
+  saveConfig();
+  setSyncStatus('local', 'Local');
+  closeSettingsModal();
+  showToast('Sync GitHub déconnectée');
+}
+
+// Indicateur visuel discret de sauvegarde
+function updateSaveIndicator() {
+  const ind = document.getElementById('saveIndicator');
+  if (!ind) return;
+  ind.textContent = '✓ Sauvegardé';
+  ind.style.opacity = '1';
+  clearTimeout(updateSaveIndicator._t);
+  updateSaveIndicator._t = setTimeout(() => { ind.style.opacity = '0.3'; }, 1500);
+}
+
+// Toast léger pour les erreurs
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#172b4d;color:white;padding:10px 18px;border-radius:4px;font-size:13px;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,0.2);transition:opacity 0.3s;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+}
+
+// === EXPORT / IMPORT ===
+function exportData() {
+  const blob = new Blob([JSON.stringify({
+    clients: state.clients,
+    activeClientId: state.activeClientId,
+    exportedAt: new Date().toISOString(),
+    version: 2
+  }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `atelier-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Export téléchargé');
+}
+
+function triggerImport() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/json,.json';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.clients || !Array.isArray(data.clients)) {
+        showToast('⚠ Fichier invalide');
+        return;
+      }
+      if (!confirm(`Importer ${data.clients.length} projet(s) et écraser les données actuelles ?`)) return;
+      state.clients = data.clients;
+      state.activeClientId = data.activeClientId || data.clients[0]?.id;
+      await saveState();
+      render();
+      showToast('✓ Données importées');
+    } catch (err) {
+      showToast('⚠ Erreur lors de l\'import');
+      console.error(err);
+    }
+  };
+  input.click();
+}
+
+function getActiveClient() {
+  return state.clients.find(c => c.id === state.activeClientId);
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  renderSidebar();
+  renderStats();
+  renderBreadcrumb();
+  renderView();
+}
+
+function renderSidebar() {
+  // Clients
+  const list = document.getElementById('clientList');
+  list.innerHTML = state.clients.map(c => {
+    const open = c.items.filter(i => i.status !== 'done').length;
+    const initial = (c.key || c.name.substring(0,2)).substring(0,2).toUpperCase();
+    const colors = ['#0052cc', '#36b37e', '#8777d9', '#ff8b00', '#e5493a', '#4bade8'];
+    const color = colors[state.clients.indexOf(c) % colors.length];
+    return `
+      <div class="side-item ${c.id === state.activeClientId ? 'active' : ''}" onclick="switchClient('${c.id}')">
+        <div class="ico" style="background:${color}">${escapeHtml(initial)}</div>
+        <span>${escapeHtml(c.name)}</span>
+        <span class="count">${open}</span>
+      </div>
+    `;
+  }).join('');
+
+  // Sprints
+  const sprintList = document.getElementById('sprintList');
+  const client = getActiveClient();
+  if (!client || client.sprints.length === 0) {
+    sprintList.innerHTML = '<div style="padding:6px 20px;font-size:12px;color:var(--text-faint);font-style:italic;">Aucun sprint</div>';
+  } else {
+    sprintList.innerHTML = client.sprints.map(s => {
+      const items = client.items.filter(i => i.sprintId === s.id);
+      const total = items.length;
+      const done = items.filter(i => i.status === 'done').length;
+      return `
+        <div class="side-item" onclick="setActiveSprint('${s.id}')" style="font-size:12px;">
+          <span style="width:6px;height:6px;border-radius:50%;background:${s.active ? 'var(--story)' : 'var(--text-faint)'};"></span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(s.name)}</span>
+          <span class="count">${done}/${total}</span>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+function renderStats() {
+  const total = state.clients.reduce((s, c) => s + c.items.filter(i => i.status !== 'done').length, 0);
+  const days = state.clients.reduce((s, c) => s + c.items.filter(i => i.status !== 'done').reduce((a, i) => a + (parseFloat(i.estimate) || 0), 0), 0);
+  document.getElementById('globalStats').innerHTML = `<strong>${total}</strong> items · <strong>${days.toFixed(1)}</strong> j estimés`;
+}
+
+function renderBreadcrumb() {
+  const c = getActiveClient();
+  document.getElementById('bcClient').textContent = c ? c.name : '—';
+  const titles = { backlog: 'Backlog', board: 'Sprint actif', archive: 'Archive' };
+  document.getElementById('pageTitle').textContent = titles[state.activeView] || 'Backlog';
+}
+
+function renderView() {
+  document.querySelectorAll('.side-nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.view === state.activeView);
+  });
+  document.querySelectorAll('.filter-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.type === state.filterType);
+  });
+
+  const container = document.getElementById('viewContent');
+  const client = getActiveClient();
+
+  if (!client) {
+    container.innerHTML = '<div class="empty"><div class="empty-title">Aucun projet</div><div class="empty-desc">Créez un projet dans la barre latérale.</div></div>';
+    return;
+  }
+
+  if (state.activeView === 'backlog') renderBacklog(container, client);
+  else if (state.activeView === 'board') renderBoard(container, client);
+  else if (state.activeView === 'archive') renderArchive(container, client);
+}
+
+function filterItems(items) {
+  return items.filter(i => {
+    if (state.filterType && i.type !== state.filterType) return false;
+    if (state.filterPrio && i.priority !== parseInt(state.filterPrio)) return false;
+    if (state.search && !i.title.toLowerCase().includes(state.search.toLowerCase())) return false;
+    return true;
+  });
+}
+
+function renderBacklog(container, client) {
+  const allOpen = client.items.filter(i => i.status !== 'done');
+  const filtered = filterItems(allOpen);
+
+  // Group: items dans sprint actif, items orphelins (backlog), items dans sprints non-actifs
+  const activeSprint = client.sprints.find(s => s.active);
+
+  let html = '';
+
+  // SECTION: Sprint actif
+  if (activeSprint) {
+    const sItems = filterItems(client.items.filter(i => i.sprintId === activeSprint.id));
+    html += renderBacklogSection({
+      id: 'sprint-active',
+      name: activeSprint.name,
+      meta: `${activeSprint.startDate || '—'} → ${activeSprint.endDate || '—'}`,
+      items: sItems,
+      sprintId: activeSprint.id,
+      isSprint: true,
+      isActiveSprint: true
+    }, client);
+  }
+
+  // SECTION: Backlog orphelin
+  const orphan = filterItems(client.items.filter(i => i.status !== 'done' && !i.sprintId));
+  html += renderBacklogSection({
+    id: 'backlog',
+    name: 'Backlog',
+    meta: `${orphan.length} items`,
+    items: orphan,
+    sprintId: null,
+    showInlineForm: true
+  }, client);
+
+  // SECTION: Autres sprints (non actifs)
+  client.sprints.filter(s => !s.active).forEach(s => {
+    const sItems = filterItems(client.items.filter(i => i.sprintId === s.id && i.status !== 'done'));
+    if (sItems.length > 0) {
+      html += renderBacklogSection({
+        id: 's-' + s.id,
+        name: s.name,
+        meta: `${s.startDate || '—'} → ${s.endDate || '—'}`,
+        items: sItems,
+        sprintId: s.id,
+        isSprint: true,
+        canActivate: true
+      }, client);
+    }
+  });
+
+  container.innerHTML = html;
+  attachInlineFormHandlers(client);
+}
+
+function renderBacklogSection(section, client) {
+  const todo = section.items.filter(i => i.status === 'todo').length;
+  const doing = section.items.filter(i => i.status === 'doing').length;
+  const done = section.items.filter(i => i.status === 'done').length;
+  const totalEst = section.items.reduce((s, i) => s + (parseFloat(i.estimate) || 0), 0);
+
+  let rows = section.items.map(i => renderBacklogRow(i, client)).join('');
+
+  if (section.items.length === 0) {
+    rows = `<div style="padding:24px;text-align:center;color:var(--text-faint);font-size:13px;">${section.isActiveSprint ? 'Aucun item dans ce sprint. Glisse-en depuis le backlog ci-dessous.' : 'Aucun item dans cette section'}</div>`;
+  }
+
+  // Inline form disponible pour : backlog ET sprint actif
+  const showInlineForm = section.id === 'backlog' || section.isActiveSprint;
+  const formSprintId = section.isActiveSprint ? section.sprintId : '';
+
+  const sectionClass = section.isActiveSprint ? 'backlog-section sprint-active-section' : 'backlog-section';
+  const badge = section.isActiveSprint ? '<span class="sprint-badge">Sprint actif</span>' : '';
+  const goToBoard = section.isActiveSprint ? `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();switchView('board')" title="Voir le board">Voir le board ▦</button>` : '';
+
+  return `
+    <div class="${sectionClass}" data-section="${section.id}">
+      <div class="backlog-section-head">
+        <span class="name">${escapeHtml(section.name)}</span>
+        ${badge}
+        <span class="meta">${escapeHtml(section.meta)} · ${totalEst.toFixed(1)}j</span>
+        <div class="actions">
+          <div class="backlog-section-stats">
+            <span class="stat-pill" title="À faire">${todo}</span>
+            <span class="stat-pill progress" title="En cours">${doing}</span>
+            <span class="stat-pill done" title="Terminé">${done}</span>
+          </div>
+          ${goToBoard}
+          ${section.canActivate ? `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();activateSprint('${section.sprintId}')">Activer</button>` : ''}
+        </div>
+      </div>
+      <div class="backlog-list">
+        ${rows}
+        ${showInlineForm ? `
+          <button class="add-row" onclick="showInlineForm('${section.id}')">+ Créer un item${section.isActiveSprint ? ' dans ce sprint' : ''}</button>
+          <div class="inline-form" id="form-${section.id}" style="display:none;">
+            <select class="if-type">
+              <option value="story">Build</option>
+              <option value="task">TMA</option>
+              <option value="bug">Bug</option>
+            </select>
+            <select class="if-prio">
+              <option value="1">P1</option>
+              <option value="2" selected>P2</option>
+              <option value="3">P3</option>
+            </select>
+            <input type="text" class="if-title" placeholder="Titre de l'item…" />
+            <input type="number" class="if-est" placeholder="0.5" step="0.25" min="0" style="width:70px;" />
+            <input type="date" class="if-due" />
+            <button class="btn btn-primary btn-sm" onclick="submitInlineForm('${section.id}', '${formSprintId}')">Créer</button>
+            <button class="btn btn-ghost btn-sm" onclick="hideInlineForm('${section.id}')">Annuler</button>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderBacklogRow(item, client) {
+  const dueInfo = formatDue(item.dueDate);
+  const key = `${client.key}-${item.num}`;
+  return `
+    <div class="backlog-row ${item.status === 'done' ? 'done' : ''}" onclick="openItemDetail('${item.id}')">
+      <span class="type-ico type-${item.type}" title="${TYPE_LABELS[item.type]}">${TYPE_LETTERS[item.type]}</span>
+      <span class="prio-ico prio-${item.priority}" title="P${item.priority}">${item.priority === 1 ? '↑' : item.priority === 2 ? '=' : '↓'}</span>
+      <span class="row-key">${escapeHtml(key)}</span>
+      <span class="row-title">${escapeHtml(item.title)}</span>
+      ${dueInfo.text !== '—' ? `<span class="due-pill ${dueInfo.cls}">${dueInfo.text}</span>` : '<span></span>'}
+      <span class="est-badge" title="Estimation">${item.estimate || 0}</span>
+      <button class="status-badge status-${item.status}" onclick="event.stopPropagation();cycleStatus('${item.id}')">${STATUS_LABELS[item.status]}</button>
+      <button class="row-action" onclick="event.stopPropagation();confirmDeleteItem('${item.id}')" title="Supprimer">×</button>
+    </div>
+  `;
+}
+
+function renderBoard(container, client) {
+  const sprint = client.sprints.find(s => s.active);
+  if (!sprint) {
+    container.innerHTML = `
+      <div class="empty">
+        <div class="empty-title">Aucun sprint actif</div>
+        <div class="empty-desc">Créez ou activez un sprint depuis la barre latérale.</div>
+      </div>
+    `;
+    return;
+  }
+
+  const items = filterItems(client.items.filter(i => i.sprintId === sprint.id));
+  const todo = items.filter(i => i.status === 'todo');
+  const doing = items.filter(i => i.status === 'doing');
+  const done = items.filter(i => i.status === 'done');
+
+  const totalEst = items.reduce((s, i) => s + (parseFloat(i.estimate) || 0), 0);
+  const doneEst = done.reduce((s, i) => s + (parseFloat(i.estimate) || 0), 0);
+  const pct = totalEst > 0 ? Math.round((doneEst / totalEst) * 100) : 0;
+
+  container.innerHTML = `
+    <div class="sprint-header">
+      <div>
+        <div class="name">${escapeHtml(sprint.name)}</div>
+        <div class="dates">${sprint.startDate || '—'} → ${sprint.endDate || '—'}</div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="progress-text">${doneEst.toFixed(1)} / ${totalEst.toFixed(1)} j · ${pct}% terminé</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="completeSprint('${sprint.id}')">Terminer le sprint</button>
+    </div>
+
+    <div class="board" id="kanbanBoard">
+      <div class="board-col" data-status="todo">
+        <div class="board-col-head">
+          <span>À faire</span>
+          <span class="num">${todo.length}</span>
+        </div>
+        <div class="board-col-body">
+          ${todo.map(i => renderCard(i, client)).join('') || '<div style="text-align:center;color:var(--text-faint);font-size:12px;padding:24px;">Vide</div>'}
+        </div>
+      </div>
+      <div class="board-col" data-status="doing">
+        <div class="board-col-head">
+          <span>En cours</span>
+          <span class="num">${doing.length}</span>
+        </div>
+        <div class="board-col-body">
+          ${doing.map(i => renderCard(i, client)).join('') || '<div style="text-align:center;color:var(--text-faint);font-size:12px;padding:24px;">Vide</div>'}
+        </div>
+      </div>
+      <div class="board-col" data-status="done">
+        <div class="board-col-head">
+          <span>Terminé</span>
+          <span class="num">${done.length}</span>
+        </div>
+        <div class="board-col-body">
+          ${done.map(i => renderCard(i, client)).join('') || '<div style="text-align:center;color:var(--text-faint);font-size:12px;padding:24px;">Vide</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Activer le drag & drop après rendu
+  setTimeout(attachDragDrop, 0);
+}
+
+function renderCard(item, client) {
+  const key = `${client.key}-${item.num}`;
+  const dueInfo = formatDue(item.dueDate);
+  return `
+    <div class="card" draggable="true" data-id="${item.id}" onclick="openItemDetail('${item.id}')">
+      <div class="card-title">${escapeHtml(item.title)}</div>
+      <div class="card-meta">
+        <span class="type-ico type-${item.type}">${TYPE_LETTERS[item.type]}</span>
+        <span class="key">${escapeHtml(key)}</span>
+        ${dueInfo.text !== '—' ? `<span class="due-pill ${dueInfo.cls}">${dueInfo.text}</span>` : ''}
+        <span class="spacer"></span>
+        <span class="prio-ico prio-${item.priority}">${item.priority === 1 ? '↑' : item.priority === 2 ? '=' : '↓'}</span>
+        <span class="est-badge">${item.estimate || 0}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderArchive(container, client) {
+  const items = filterItems(client.items.filter(i => i.status === 'done')).sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+
+  if (items.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="empty-title">Archive vide</div><div class="empty-desc">Les items terminés apparaîtront ici.</div></div>';
+    return;
+  }
+
+  let html = `
+    <div class="backlog-section">
+      <div class="backlog-section-head">
+        <span class="name">Items terminés</span>
+        <span class="meta">${items.length} items · ${items.reduce((s,i)=>s+(parseFloat(i.estimate)||0),0).toFixed(1)}j livrés</span>
+      </div>
+      <div class="backlog-list">
+        ${items.map(i => renderBacklogRow(i, client)).join('')}
+      </div>
+    </div>
+  `;
+  container.innerHTML = html;
+}
+
+// ============================================================
+// ACTIONS
+// ============================================================
+function switchClient(id) {
+  state.activeClientId = id;
+  saveState();
+  render();
+}
+
+function switchView(view) {
+  state.activeView = view;
+  render();
+}
+
+function setTypeFilter(type) {
+  state.filterType = type;
+  renderView();
+}
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  state.search = e.target.value;
+  renderView();
+});
+
+async function cycleStatus(itemId) {
+  const client = getActiveClient();
+  const item = client.items.find(i => i.id === itemId);
+  if (!item) return;
+  const order = ['todo', 'doing', 'done'];
+  item.status = order[(order.indexOf(item.status) + 1) % 3];
+  if (item.status === 'done') item.completedAt = Date.now();
+  await saveState();
+  render();
+}
+
+let pendingDelete = null;
+function confirmDeleteItem(itemId) {
+  pendingDelete = { type: 'item', id: itemId };
+  const client = getActiveClient();
+  const item = client.items.find(i => i.id === itemId);
+  document.getElementById('confirmTitle').textContent = 'Supprimer cet item ?';
+  document.getElementById('confirmMessage').textContent = item ? `« ${item.title} » sera supprimé définitivement.` : '';
+  document.getElementById('confirmModal').classList.add('show');
+  document.getElementById('confirmOk').onclick = doDelete;
+}
+
+function closeConfirm() {
+  document.getElementById('confirmModal').classList.remove('show');
+  pendingDelete = null;
+}
+
+async function doDelete() {
+  if (!pendingDelete) return;
+  const client = getActiveClient();
+  if (pendingDelete.type === 'item') {
+    client.items = client.items.filter(i => i.id !== pendingDelete.id);
+  } else if (pendingDelete.type === 'sprint') {
+    client.sprints = client.sprints.filter(s => s.id !== pendingDelete.id);
+    client.items.forEach(i => { if (i.sprintId === pendingDelete.id) i.sprintId = null; });
+  }
+  await saveState();
+  closeConfirm();
+  render();
+}
+
+// === INLINE FORM ===
+function showInlineForm(sectionId) {
+  const form = document.getElementById('form-' + sectionId);
+  if (!form) return;
+  form.style.display = 'grid';
+  form.querySelector('.if-title').focus();
+}
+
+function hideInlineForm(sectionId) {
+  const form = document.getElementById('form-' + sectionId);
+  if (!form) return;
+  form.style.display = 'none';
+  form.querySelector('.if-title').value = '';
+}
+
+function attachInlineFormHandlers(client) {
+  document.querySelectorAll('.inline-form').forEach(f => {
+    const titleInput = f.querySelector('.if-title');
+    if (titleInput) {
+      titleInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const sectionId = f.id.replace('form-', '');
+          submitInlineForm(sectionId, '');
+        }
+      });
+    }
+  });
+}
+
+async function submitInlineForm(sectionId, sprintId) {
+  const form = document.getElementById('form-' + sectionId);
+  if (!form) return;
+  const title = form.querySelector('.if-title').value.trim();
+  if (!title) {
+    form.querySelector('.if-title').focus();
+    return;
+  }
+  const client = getActiveClient();
+  client.counter = (client.counter || 0) + 1;
+  client.items.push({
+    id: 'i' + Date.now(),
+    num: client.counter,
+    title,
+    type: form.querySelector('.if-type').value,
+    priority: parseInt(form.querySelector('.if-prio').value),
+    estimate: parseFloat(form.querySelector('.if-est').value) || 0,
+    dueDate: form.querySelector('.if-due').value || null,
+    status: 'todo',
+    sprintId: sprintId || null,
+    createdAt: Date.now()
+  });
+  await saveState();
+  render();
+}
+
+// === QUICK ADD ===
+function quickAdd() {
+  if (state.activeView === 'backlog') {
+    showInlineForm('backlog');
+  } else {
+    state.activeView = 'backlog';
+    render();
+    setTimeout(() => showInlineForm('backlog'), 100);
+  }
+}
+
+// === DRAG & DROP (BOARD) ===
+let dragItemId = null;
+let dragJustHappened = false;
+
+function attachDragDrop() {
+  const board = document.getElementById('kanbanBoard');
+  if (!board) return;
+
+  // Cartes
+  board.querySelectorAll('.card[draggable="true"]').forEach(card => {
+    card.addEventListener('dragstart', (e) => {
+      dragItemId = card.dataset.id;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', dragItemId);
+    });
+
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      dragItemId = null;
+      document.querySelectorAll('.board-col').forEach(c => c.classList.remove('drag-over'));
+      // Empêche le clic post-drop d'ouvrir le modal
+      dragJustHappened = true;
+      setTimeout(() => { dragJustHappened = false; }, 100);
+    });
+
+    // Bloque l'ouverture du modal si on vient de drag
+    card.addEventListener('click', (e) => {
+      if (dragJustHappened) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }, true);
+  });
+
+  // Colonnes
+  board.querySelectorAll('.board-col').forEach(col => {
+    col.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      col.classList.add('drag-over');
+    });
+
+    col.addEventListener('dragleave', (e) => {
+      // Ne retire la classe que si on quitte vraiment la colonne (pas un enfant)
+      if (!col.contains(e.relatedTarget)) {
+        col.classList.remove('drag-over');
+      }
+    });
+
+    col.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      col.classList.remove('drag-over');
+      const itemId = e.dataTransfer.getData('text/plain') || dragItemId;
+      const newStatus = col.dataset.status;
+      if (!itemId || !newStatus) return;
+
+      const client = getActiveClient();
+      const item = client.items.find(i => i.id === itemId);
+      if (!item || item.status === newStatus) return;
+
+      item.status = newStatus;
+      if (newStatus === 'done') item.completedAt = Date.now();
+      await saveState();
+      render();
+    });
+  });
+}
+
+
+function openItemDetail(itemId) {
+  const client = getActiveClient();
+  const item = client.items.find(i => i.id === itemId);
+  if (!item) return;
+
+  const key = `${client.key}-${item.num}`;
+  const sprintOptions = ['<option value="">— Pas de sprint —</option>']
+    .concat(client.sprints.map(s => `<option value="${s.id}" ${item.sprintId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`))
+    .join('');
+
+  document.getElementById('itemModalContent').innerHTML = `
+    <div class="modal-head">
+      <span class="type-ico type-${item.type}">${TYPE_LETTERS[item.type]}</span>
+      <span class="key">${escapeHtml(key)}</span>
+      <button class="modal-close" onclick="closeItemModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <input type="text" id="ed_title" class="title-input" value="${escapeHtml(item.title)}">
+        <div class="field-group">
+          <label>Description</label>
+          <textarea id="ed_desc" rows="5" placeholder="Ajouter une description, des critères d'acceptation, des notes…">${escapeHtml(item.description || '')}</textarea>
+        </div>
+      </div>
+      <div class="modal-side">
+        <h3>Détails</h3>
+        <div class="field-group">
+          <label>Statut</label>
+          <select id="ed_status">
+            <option value="todo" ${item.status==='todo'?'selected':''}>À faire</option>
+            <option value="doing" ${item.status==='doing'?'selected':''}>En cours</option>
+            <option value="done" ${item.status==='done'?'selected':''}>Terminé</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Type</label>
+          <select id="ed_type">
+            <option value="story" ${item.type==='story'?'selected':''}>Build</option>
+            <option value="task" ${item.type==='task'?'selected':''}>TMA</option>
+            <option value="bug" ${item.type==='bug'?'selected':''}>Bug</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Priorité</label>
+          <select id="ed_prio">
+            <option value="1" ${item.priority===1?'selected':''}>P1 — Haute</option>
+            <option value="2" ${item.priority===2?'selected':''}>P2 — Moyenne</option>
+            <option value="3" ${item.priority===3?'selected':''}>P3 — Basse</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Estimation (jours)</label>
+          <input type="number" id="ed_est" step="0.25" min="0" value="${item.estimate || 0}">
+        </div>
+        <div class="field-group">
+          <label>Échéance</label>
+          <input type="date" id="ed_due" value="${item.dueDate || ''}">
+        </div>
+        <div class="field-group">
+          <label>Sprint</label>
+          <select id="ed_sprint">${sprintOptions}</select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="confirmDeleteItem('${item.id}');closeItemModal();" style="margin-right:auto;color:var(--bug);">Supprimer</button>
+        <button class="btn btn-secondary" onclick="closeItemModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="saveItemEdit('${item.id}')">Enregistrer</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('itemModal').classList.add('show');
+}
+
+function closeItemModal() {
+  document.getElementById('itemModal').classList.remove('show');
+}
+
+async function saveItemEdit(itemId) {
+  const client = getActiveClient();
+  const item = client.items.find(i => i.id === itemId);
+  if (!item) return;
+
+  const newStatus = document.getElementById('ed_status').value;
+  if (newStatus === 'done' && item.status !== 'done') item.completedAt = Date.now();
+
+  item.title = document.getElementById('ed_title').value.trim() || item.title;
+  item.description = document.getElementById('ed_desc').value;
+  item.type = document.getElementById('ed_type').value;
+  item.priority = parseInt(document.getElementById('ed_prio').value);
+  item.estimate = parseFloat(document.getElementById('ed_est').value) || 0;
+  item.dueDate = document.getElementById('ed_due').value || null;
+  item.status = newStatus;
+  item.sprintId = document.getElementById('ed_sprint').value || null;
+
+  await saveState();
+  closeItemModal();
+  render();
+}
+
+// === SPRINT ACTIONS ===
+function openSprintModal() {
+  const today = new Date().toISOString().split('T')[0];
+  const in2weeks = new Date(Date.now() + 14*24*3600*1000).toISOString().split('T')[0];
+  document.getElementById('sprintName').value = '';
+  document.getElementById('sprintStart').value = today;
+  document.getElementById('sprintEnd').value = in2weeks;
+  document.getElementById('sprintModal').classList.add('show');
+  setTimeout(() => document.getElementById('sprintName').focus(), 50);
+}
+
+function closeSprintModal() {
+  document.getElementById('sprintModal').classList.remove('show');
+}
+
+async function createSprint() {
+  const name = document.getElementById('sprintName').value.trim();
+  if (!name) { document.getElementById('sprintName').focus(); return; }
+  const client = getActiveClient();
+  client.sprints.forEach(s => s.active = false);
+  client.sprints.push({
+    id: 's' + Date.now(),
+    name,
+    startDate: document.getElementById('sprintStart').value,
+    endDate: document.getElementById('sprintEnd').value,
+    active: true
+  });
+  await saveState();
+  closeSprintModal();
+  render();
+}
+
+async function activateSprint(sprintId) {
+  const client = getActiveClient();
+  client.sprints.forEach(s => s.active = (s.id === sprintId));
+  await saveState();
+  render();
+}
+
+async function setActiveSprint(sprintId) {
+  await activateSprint(sprintId);
+  state.activeView = 'board';
+  render();
+}
+
+async function completeSprint(sprintId) {
+  const client = getActiveClient();
+  const sprint = client.sprints.find(s => s.id === sprintId);
+  if (!sprint) return;
+  if (!confirm(`Terminer le sprint "${sprint.name}" ? Les items non terminés retourneront au backlog.`)) return;
+  sprint.active = false;
+  sprint.completed = true;
+  client.items.forEach(i => {
+    if (i.sprintId === sprintId && i.status !== 'done') {
+      i.sprintId = null;
+    }
+  });
+  await saveState();
+  state.activeView = 'backlog';
+  render();
+}
+
+// === CLIENT ACTIONS ===
+function openClientModal() {
+  document.getElementById('clientName').value = '';
+  document.getElementById('clientKey').value = '';
+  document.getElementById('clientModal').classList.add('show');
+  setTimeout(() => document.getElementById('clientName').focus(), 50);
+}
+
+function closeClientModal() {
+  document.getElementById('clientModal').classList.remove('show');
+}
+
+document.getElementById('clientName').addEventListener('input', (e) => {
+  const keyInput = document.getElementById('clientKey');
+  if (!keyInput.value || keyInput.dataset.auto === '1') {
+    keyInput.value = e.target.value.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
+    keyInput.dataset.auto = '1';
+  }
+});
+
+document.getElementById('clientKey').addEventListener('input', (e) => {
+  e.target.dataset.auto = '0';
+  e.target.value = e.target.value.toUpperCase();
+});
+
+async function createClient() {
+  const name = document.getElementById('clientName').value.trim();
+  const key = document.getElementById('clientKey').value.trim().toUpperCase() || name.substring(0,3).toUpperCase();
+  if (!name) { document.getElementById('clientName').focus(); return; }
+  const newClient = { id: 'c' + Date.now(), name, key, counter: 0, items: [], sprints: [] };
+  state.clients.push(newClient);
+  state.activeClientId = newClient.id;
+  await saveState();
+  closeClientModal();
+  render();
+}
+
+// === HELPERS ===
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function formatDue(due) {
+  if (!due) return { text: '—', cls: '' };
+  const d = new Date(due);
+  const now = new Date(); now.setHours(0,0,0,0);
+  const diff = Math.round((d - now) / (24*3600*1000));
+  let text = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+  let cls = '';
+  if (diff < 0) { cls = 'overdue'; text = `${text} · J+${Math.abs(diff)}`; }
+  else if (diff === 0) { cls = 'overdue'; text = "Aujourd'hui"; }
+  else if (diff <= 3) { cls = 'soon'; text = `${text} · J-${diff}`; }
+  return { text, cls };
+}
+
+// Filter prio sync
+document.getElementById('prioFilter').addEventListener('change', (e) => {
+  state.filterPrio = e.target.value;
+  renderView();
+});
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', (e) => {
+    if (e.target === o) o.classList.remove('show');
+  });
+});
+
+// Keyboard shortcut
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.show').forEach(o => o.classList.remove('show'));
+  }
+  if (e.key === 'c' && e.ctrlKey) { e.preventDefault(); quickAdd(); }
+});
+
+// === INIT ===
+(async () => {
+  await loadState();
+  render();
+})();
+</script>
+
+</body>
+</html>

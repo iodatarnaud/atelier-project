@@ -1,0 +1,22 @@
+# Système
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Backups locaux temporaires (utilise plutôt l'export JSON depuis l'app)
+*.backup
+*.bak
+backups/
+
+# Fichiers locaux de test
+test-data.json
+local.json
