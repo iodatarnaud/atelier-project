@@ -1,172 +1,98 @@
 # Atelier — Backlog & Sprints
 
-Application web statique de gestion de backlog/sprints multi-clients pour consultant Salesforce. Pas de backend, données dans un GitHub Gist privé, hébergement gratuit sur GitHub Pages.
+Application web mono-utilisateur de gestion de backlog et de sprints, pensée pour un consultant qui jongle entre plusieurs clients.
 
-## Workflow VS Code
+Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fichier HTML et tourne entièrement dans le navigateur. Les données peuvent rester en local (IndexedDB) ou se synchroniser entre machines via un Gist GitHub privé que vous contrôlez.
 
-```
-[VS Code local] ──→ commit/push (UI) ──→ [GitHub repo]
-                                              │
-                                              ↓ auto-deploy
-                                         [GitHub Pages]
-                                              │
-                                              ↓
-                              [Tes machines via URL https]
-                                              │
-                                              ↓ sync API
-                                       [Gist privé = données]
-```
+## Aperçu des fonctionnalités
 
-## Setup initial (à faire une fois, ~15 min)
+- Multi-clients (un workspace par client)
+- Items typés (Build / TMA / Bug) et priorisés (P1 / P2 / P3)
+- Vues Backlog, Kanban (drag & drop) et Archive
+- Sprints : création, activation, clôture (les items non terminés retournent au backlog)
+- Recherche plein-texte et filtres (type, priorité)
+- Persistance offline (IndexedDB)
+- Synchronisation multi-machines optionnelle via Gist GitHub privé
+- Export / import JSON manuel (sauvegarde de secours)
+- Raccourcis : `Ctrl+C` pour créer un item, `Échap` pour fermer un modal
 
-### 1. Mettre le projet sous git dans VS Code
+## Stack
 
-1. Ouvre le dossier `atelier-project/` dans VS Code (**File → Open Folder**)
-2. Onglet **Source Control** dans la barre latérale gauche (icône branche)
-3. Clique sur **Initialize Repository**
-4. Tous les fichiers apparaissent en "Changes" → bouton **+** à côté de "Changes" pour les stager tous
-5. Tape un message de commit : `Initial commit` → bouton **Commit**
+- HTML / CSS / JavaScript vanilla, ~2500 lignes dans un seul `index.html`
+- Aucune dépendance runtime (juste la police Inter via CDN)
+- IndexedDB pour le cache local, fallback `localStorage`
+- API REST GitHub pour la synchronisation Gist (optionnelle)
+- Playwright pour les tests end-to-end (29 specs)
 
-### 2. Publier sur GitHub depuis VS Code
+## Lancer en local
 
-1. Dans le panneau Source Control, après le commit, bouton **Publish Branch**
-2. VS Code te demande si tu veux publier en repo **public ou privé** → choisis **privé** (le code peut rester privé, GitHub Pages fonctionne quand même sur les repos privés avec un compte gratuit)
-3. Le repo est créé automatiquement sur ton compte GitHub
-
-### 3. Activer GitHub Pages
-
-1. Va sur ton repo dans le navigateur : `github.com/<toi>/atelier-project`
-2. **Settings → Pages** (menu latéral)
-3. **Source** : `Deploy from a branch`
-4. **Branch** : `main` / `(root)` → **Save**
-5. Attends 1-2 min, l'URL apparaît en haut de la page : `https://<toi>.github.io/atelier-project/`
-
-### 4. Créer le Gist privé pour stocker tes données
-
-1. Va sur [gist.github.com](https://gist.github.com)
-2. **Filename** : `atelier-data.json`
-3. **Content** : `{}`
-4. Clique sur **Create secret gist** (bouton de droite, **PAS** "public")
-5. Copie l'ID du Gist depuis l'URL :
-   `https://gist.github.com/<toi>/`**`a1b2c3d4e5f6...`**
-
-### 5. Créer un Personal Access Token (PAT)
-
-1. [github.com/settings/tokens?type=beta](https://github.com/settings/tokens?type=beta)
-2. **Generate new token**
-3. **Token name** : `atelier-sync`
-4. **Expiration** : 1 an
-5. **Repository access** : `Public Repositories (read-only)` (le Gist est indépendant)
-6. **Permissions → Account permissions → Gists** : `Read and write`
-7. **Generate token** → **copie-le immédiatement** (visible une seule fois)
-
-### 6. Connecter l'app
-
-1. Ouvre `https://<toi>.github.io/atelier-project/`
-2. Clique sur **"Local"** en haut à droite (à côté de la recherche)
-3. Colle ton **PAT** et l'**ID du Gist** → **Connecter**
-4. L'indicateur passe à **"GitHub" en vert** ✓
-
-Sur les autres machines : mêmes credentials → tes données apparaissent.
-
-## Développement local
-
-### Preview avec Live Server
-
-1. Installe l'extension **Live Server** (Ritwick Dey) — recommandée automatiquement à l'ouverture du projet
-2. Clique-droit sur `index.html` → **Open with Live Server**
-3. L'app s'ouvre sur `http://localhost:5500/` et se recharge automatiquement à chaque modification du fichier
-
-### Modifier l'app
-
-L'app est un seul fichier `index.html` qui contient :
-- Le HTML (≈ lignes 1-1280)
-- Le CSS dans `<style>` (≈ lignes 8-1080)
-- Le JS dans `<script>` (≈ lignes 1280 à la fin)
-
-Sections CSS principales (chercher `=== NOM ===` en commentaire) :
-- LAYOUT, TOPBAR, SIDEBAR, MAIN
-- BUTTONS, FILTERS BAR
-- BOARD VIEW, BACKLOG VIEW
-- MODAL, SETTINGS MODAL
-- SYNC INDICATOR
-
-Sections JS principales :
-- `STATE` — variables d'état globales
-- `SYNC LAYER` — sauvegarde IndexedDB + push Gist
-- `SETTINGS MODAL` — config sync GitHub
-- `RENDER` — fonctions de rendu de chaque vue
-- `ACTIONS` — handlers d'événements
-- `DRAG & DROP` — kanban interactions
-
-### Workflow de modification
-
-1. Modifie `index.html` dans VS Code
-2. Live Server recharge automatiquement → tu vois le résultat
-3. Tu testes en local (les données locales restent en IndexedDB du browser)
-4. Quand c'est OK, dans Source Control :
-   - Stage les changements (bouton **+**)
-   - Tape un message de commit
-   - **Commit** puis **Sync Changes** (push)
-5. GitHub Pages se met à jour en 1-2 min, accessible sur l'URL publique
-
-### Tests automatisés (Playwright)
-
-Une suite E2E vérifie les fonctionnalités principales (clients, backlog, sprints, board, persistance, raccourcis). À lancer **avant chaque commit qui touche `index.html`** pour détecter les régressions.
+L'app étant un fichier HTML statique, n'importe quel serveur HTTP local fait l'affaire :
 
 ```bash
-npm install                # une seule fois (installe Playwright + http-server)
-npx playwright install     # une seule fois (installe le browser Chromium headless)
-npm test                   # lance les 29 tests (~30s)
-npm run test:headed        # lance en voyant le navigateur
+npm install        # installe les devDeps (Playwright, http-server)
+npm run serve      # http-server sur http://localhost:5500/
+```
+
+Alternative : extension VS Code **Live Server** (recommandée via `.vscode/extensions.json`), clic droit sur `index.html` → *Open with Live Server*.
+
+## Tests
+
+Suite end-to-end Playwright qui valide les fonctionnalités principales avant chaque modification de l'app.
+
+```bash
+npm install
+npx playwright install     # installe Chromium headless (une seule fois)
+npm test                   # 29 tests, ~30s
+npm run test:headed        # voir le navigateur pendant les tests
 npm run test:ui            # mode interactif avec replay
-npm run test:report        # ouvre le dernier rapport HTML
 ```
 
-Tests dans `tests/` (un fichier par feature). Si un test casse après une modif d'`index.html`, lis l'erreur et la trace : c'est probablement une vraie régression à corriger, pas un faux positif.
+Les specs vivent dans [`tests/`](tests/), un fichier par feature.
 
-## Données et sauvegardes
+## Auto-hébergement (fork)
 
-- **Source de vérité** : ton Gist privé GitHub
-- **Cache local** : IndexedDB de chaque navigateur (l'app marche offline)
-- **Sync** : à chaque modification, sauvegarde IndexedDB instantanée + push Gist en debounce 2,5s
-- **Conflits** : last-write-wins (timestamp `lastSavedAt`). Ne saisis pas en parallèle sur deux machines.
-- **Export JSON** : bouton dans la topbar — fais-en de temps en temps comme filet de sécurité supplémentaire.
+Pour faire tourner sa propre instance gratuitement :
 
-## Sécurité du PAT
+1. **Fork** ce repo sur son compte GitHub.
+2. Repo cible **public** (GitHub Pages gratuit nécessite un repo public — un compte GitHub Pro permet aussi les repos privés, ~4 $/mois).
+3. **Settings → Pages → Source: Deploy from a branch → Branch: `main` / `(root)` → Save**.
+4. Patienter 1–2 min : l'URL apparaît en haut de la page Settings → Pages, sous la forme `https://<utilisateur>.github.io/atelier-project/`.
+5. (Optionnel) Configurer la sync Gist pour partager ses données entre plusieurs machines — voir ci-dessous.
 
-- Stocké dans `localStorage` du navigateur. Configure-le seulement sur tes machines de confiance.
-- Si tu perds une machine : révoque le token sur [github.com/settings/tokens](https://github.com/settings/tokens). Les autres machines gardent leur copie.
-- L'app n'appelle que `api.github.com`. Aucune donnée ne quitte ton navigateur ailleurs.
+### Synchroniser entre plusieurs machines (optionnel)
 
-## Architecture du projet
+Sans cette étape, les données restent dans l'IndexedDB du navigateur local — l'app fonctionne très bien comme ça sur une seule machine.
 
-```
-atelier-project/
-├── .vscode/
-│   ├── extensions.json    # Recommande Live Server à l'ouverture
-│   └── settings.json      # Config Live Server (port 5500)
-├── tests/                 # Suite Playwright E2E (clients, backlog, sprints, etc.)
-│   ├── helpers.js         # Fixtures + utilitaires partagés
-│   └── *.spec.js          # Un fichier par feature
-├── .gitignore             # Exclut .DS_Store, node_modules, test-results, etc.
-├── playwright.config.js   # Config Playwright (port 5501, http-server)
-├── package.json           # Scripts npm test + devDeps Playwright/http-server
-├── index.html             # L'app complète (HTML + CSS + JS)
-└── README.md              # Ce fichier
-```
+1. Créer un Gist **privé** sur [gist.github.com](https://gist.github.com) avec un fichier `atelier-data.json` contenant `{}`. Récupérer l'ID dans l'URL du Gist.
+2. Créer un **Personal Access Token** sur [github.com/settings/tokens?type=beta](https://github.com/settings/tokens?type=beta) :
+   - Type **Fine-grained**
+   - Permission **Account → Gists: Read and write**
+   - Aucune autre permission n'est nécessaire
+3. Ouvrir l'app, cliquer sur l'indicateur **Local** en haut à droite, coller le PAT et l'ID du Gist, **Connecter**.
 
-## Limites assumées
+## Sécurité et confidentialité
 
-- Single-user (pas de multi-utilisateur, pas de partage)
-- Last-write-wins en cas de modification simultanée sur deux machines
-- PAT à reconfigurer sur chaque navigateur (par sécurité)
-- Limite API GitHub : 5000 requêtes/heure par PAT — largement au-dessus de tout usage perso réaliste
+L'app est conçue pour fonctionner sans serveur tiers. Quelques choix conscients à connaître :
 
-## Mises à jour de l'app
+- **Aucun backend, aucune télémétrie, aucun tracking.** Le seul appel réseau possible est vers `https://api.github.com` (et uniquement si la sync Gist est activée).
+- **Le PAT GitHub est stocké en clair dans le `localStorage`** du navigateur. C'est un compromis assumé pour un usage perso sur des machines de confiance. À ne configurer que sur ses propres machines.
+- **En cas de perte d'un appareil**, révoquer le token sur [github.com/settings/tokens](https://github.com/settings/tokens) — les autres appareils gardent leur copie locale du PAT.
+- **Le PAT a un scope strictement minimal** (Gists Read/Write). Il ne donne accès ni au code, ni aux repos, ni à l'identité GitHub.
+- **Les données vivent dans un Gist privé** dont le propriétaire est seul à avoir l'accès en lecture.
 
-Quand tu reçois une nouvelle version de `index.html` :
-1. Remplace le fichier dans VS Code
-2. Source Control → Commit → Sync Changes
-3. GitHub Pages redéploie automatiquement
-4. Recharge la page sur tes machines — tes données dans le Gist restent intactes
+## Limitations connues
+
+- Mono-utilisateur : pas de partage ni de collaboration.
+- Politique de conflit *last-write-wins* basée sur un timestamp local — éviter d'éditer simultanément depuis deux machines.
+- Le PAT doit être reconfiguré sur chaque navigateur (par sécurité, pas synchronisé).
+- Limite de l'API GitHub : 5 000 requêtes/heure par PAT — largement au-dessus de tout usage réaliste.
+
+## Architecture
+
+Voir [`CLAUDE.md`](CLAUDE.md) pour le détail des couches de stockage, du flow de synchronisation et des conventions.
+
+En résumé : `index.html` contient le HTML, le CSS (dans `<style>`) et le JS (dans `<script>`), navigables via les commentaires `=== NOM ===`. Trois couches de persistance : mémoire → IndexedDB → Gist (last-write-wins).
+
+## Licence
+
+MIT.
