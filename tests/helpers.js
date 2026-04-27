@@ -2,8 +2,8 @@ const { test: base, expect } = require('@playwright/test');
 
 // Fixture override : force un nouveau BrowserContext par test (isolation IndexedDB
 // stricte, que la fixture par défaut Playwright ne suffit pas à garantir dans notre
-// setup) et set `window.__SKIP_SEED__` pour empêcher l'app de seed 2 clients démo
-// dans une DB vide — ce qui polluerait les assertions de count.
+// setup) et set `window.__SKIP_SEED__` pour empêcher l'app de seed les 2 clients
+// démo dans une DB vide — ce qui polluerait les assertions de count.
 const test = base.extend({
   page: async ({ browser }, use) => {
     const context = await browser.newContext();

@@ -54,6 +54,7 @@ Les mutations suivent ce schéma : le handler met à jour `state.clients[...].it
 Suite E2E Playwright dans `tests/` (un fichier par feature : clients, backlog, sprints, board, persistance, raccourcis). Helpers partagés dans `tests/helpers.js`.
 
 Spécificités à connaître quand on touche aux tests ou à `index.html` :
-- **`window.__SKIP_SEED__`** : flag opt-in que les tests setent via `addInitScript` pour empêcher l'app de seed les 2 clients démo "Actimat"/"Val d'Orbieu" dans une DB vide. Préserver ce flag (ligne du seed dans `loadState()`) si tu touches au boot.
+- **Seed démo** : 2 clients placeholder (`Acme`, `Globex`) sont créés au premier boot d'une DB vide. **Ne jamais y mettre de vrais noms de clients** — le repo est public. Pareil pour les `placeholder=` des inputs.
+- **`window.__SKIP_SEED__`** : flag opt-in que les tests setent via `addInitScript` pour empêcher le seed (sinon les assertions de count seraient polluées). Préserver ce flag (ligne du seed dans `loadState()`) si tu touches au boot.
 - **Isolation IndexedDB** : Playwright ne l'isole pas correctement entre tests par défaut. `helpers.js` override la fixture `page` pour créer un `BrowserContext` neuf à chaque test.
 - **Sélecteurs robustes** : préférer `data-section`, `data-status`, `data-view`, `data-id`, `#id`, classes `.if-*` du formulaire inline. Éviter les sélecteurs de texte traduits sauf assertions.

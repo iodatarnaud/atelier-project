@@ -1182,7 +1182,7 @@
     <div class="modal-body modal-body-narrow">
       <div class="field-group">
         <label>Nom du sprint</label>
-        <input type="text" id="sprintName" placeholder="Ex: Sprint 12 — Val d'Orbieu">
+        <input type="text" id="sprintName" placeholder="Ex: Sprint 12 — Refonte UI">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="field-group">
@@ -1212,11 +1212,11 @@
     <div class="modal-body modal-body-narrow">
       <div class="field-group">
         <label>Nom du projet / client</label>
-        <input type="text" id="clientName" placeholder="Ex: Actimat" autofocus>
+        <input type="text" id="clientName" placeholder="Ex: Acme" autofocus>
       </div>
       <div class="field-group">
         <label>Clé (3-5 lettres)</label>
-        <input type="text" id="clientKey" placeholder="Ex: ACT" maxlength="5">
+        <input type="text" id="clientKey" placeholder="Ex: ACM" maxlength="5">
       </div>
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeClientModal()">Annuler</button>
@@ -1526,11 +1526,13 @@ async function loadState() {
     setSyncStatus('local', 'Local');
   }
 
-  // 3. Seed si vide (sauf en environnement de test qui set window.__SKIP_SEED__)
+  // 3. Seed démo pour un nouvel utilisateur (sauf en test : window.__SKIP_SEED__).
+  // Noms volontairement bidons (placeholders culture dev) — ne JAMAIS y mettre de
+  // vrais noms de clients : le repo est public.
   if (!window.__SKIP_SEED__ && (!state.clients || state.clients.length === 0)) {
     state.clients = [
-      { id: 'c1', name: 'Actimat', key: 'ACT', counter: 0, items: [], sprints: [] },
-      { id: 'c2', name: "Val d'Orbieu", key: 'VVO', counter: 0, items: [], sprints: [] }
+      { id: 'c1', name: 'Acme', key: 'ACM', counter: 0, items: [], sprints: [] },
+      { id: 'c2', name: 'Globex', key: 'GLB', counter: 0, items: [], sprints: [] }
     ];
     state.activeClientId = 'c1';
     await saveState();
