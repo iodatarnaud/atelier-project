@@ -1794,11 +1794,15 @@ function renderSidebar() {
       const items = client.items.filter(i => i.sprintId === s.id);
       const total = items.length;
       const done = items.filter(i => i.status === 'done').length;
+      const dotColor = s.active ? 'var(--story)' : (s.completed ? 'var(--text-faint)' : 'var(--text-mute)');
+      const nameStyle = s.completed ? 'opacity:0.55;text-decoration:line-through;' : '';
+      const suffix = s.completed ? ' <span style="color:var(--text-faint);font-style:italic;">(terminé)</span>' : '';
       return `
-        <div class="side-item" onclick="setActiveSprint('${s.id}')" style="font-size:12px;">
-          <span style="width:6px;height:6px;border-radius:50%;background:${s.active ? 'var(--story)' : 'var(--text-faint)'};"></span>
-          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(s.name)}</span>
+        <div class="side-item" data-sprint-id="${s.id}" onclick="setActiveSprint('${s.id}')" style="font-size:12px;">
+          <span style="width:6px;height:6px;border-radius:50%;background:${dotColor};"></span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${nameStyle}">${escapeHtml(s.name)}${suffix}</span>
           <span class="count">${done}/${total}</span>
+          <button class="side-action" onclick="event.stopPropagation();confirmDeleteSprint('${s.id}')" title="Supprimer ce sprint">×</button>
         </div>
       `;
     }).join('');
@@ -2133,6 +2137,42 @@ function confirmDeleteItem(itemId) {
   const item = client.items.find(i => i.id === itemId);
   document.getElementById('confirmTitle').textContent = 'Supprimer cet item ?';
   document.getElementById('confirmMessage').textContent = item ? `« ${item.title} » sera supprimé définitivement.` : '';
+  document.getElementById('confirmModal').classList.add('show');
+  document.getElementById('confirmOk').onclick = doDelete;
+}
+
+function confirmDeleteSprint(sprintId) {
+  const client = getActiveClient();
+  if (!client) return;
+  const sprint = client.sprints.find(s => s.id === sprintId);
+  if (!sprint) return;
+
+  // Sprint actif : refus, il faut le clôturer d'abord
+  if (sprint.active) {
+    showToast(`⚠ « ${sprint.name} » est actif. Termine-le d'abord depuis le board.`);
+    return;
+  }
+
+  const itemsInSprint = client.items.filter(i => i.sprintId === sprintId);
+  const doneCount = itemsInSprint.filter(i => i.status === 'done').length;
+
+  // Sprint future (non actif, non complété) avec items : on bloque pour éviter les pertes accidentelles
+  if (!sprint.completed && itemsInSprint.length > 0) {
+    showToast(`⚠ « ${sprint.name} » contient ${itemsInSprint.length} item(s). Vide-le ou clôture-le d'abord.`);
+    return;
+  }
+
+  pendingDelete = { type: 'sprint', id: sprintId };
+  document.getElementById('confirmTitle').textContent = 'Supprimer ce sprint ?';
+
+  // Sprint complété avec items done : warning fort (perte de l'historique de rattachement)
+  if (sprint.completed && doneCount > 0) {
+    document.getElementById('confirmMessage').textContent =
+      `« ${sprint.name} » contient ${doneCount} item(s) livré(s). Ils resteront dans l'Archive mais ne sauront plus à quel sprint ils appartenaient.`;
+  } else {
+    document.getElementById('confirmMessage').textContent = `« ${sprint.name} » sera supprimé définitivement.`;
+  }
+
   document.getElementById('confirmModal').classList.add('show');
   document.getElementById('confirmOk').onclick = doDelete;
 }
