@@ -110,6 +110,21 @@ Sections JS principales :
    - **Commit** puis **Sync Changes** (push)
 5. GitHub Pages se met à jour en 1-2 min, accessible sur l'URL publique
 
+### Tests automatisés (Playwright)
+
+Une suite E2E vérifie les fonctionnalités principales (clients, backlog, sprints, board, persistance, raccourcis). À lancer **avant chaque commit qui touche `index.html`** pour détecter les régressions.
+
+```bash
+npm install                # une seule fois (installe Playwright + http-server)
+npx playwright install     # une seule fois (installe le browser Chromium headless)
+npm test                   # lance les 29 tests (~30s)
+npm run test:headed        # lance en voyant le navigateur
+npm run test:ui            # mode interactif avec replay
+npm run test:report        # ouvre le dernier rapport HTML
+```
+
+Tests dans `tests/` (un fichier par feature). Si un test casse après une modif d'`index.html`, lis l'erreur et la trace : c'est probablement une vraie régression à corriger, pas un faux positif.
+
 ## Données et sauvegardes
 
 - **Source de vérité** : ton Gist privé GitHub
@@ -131,7 +146,12 @@ atelier-project/
 ├── .vscode/
 │   ├── extensions.json    # Recommande Live Server à l'ouverture
 │   └── settings.json      # Config Live Server (port 5500)
-├── .gitignore             # Exclut .DS_Store, fichiers temp, etc.
+├── tests/                 # Suite Playwright E2E (clients, backlog, sprints, etc.)
+│   ├── helpers.js         # Fixtures + utilitaires partagés
+│   └── *.spec.js          # Un fichier par feature
+├── .gitignore             # Exclut .DS_Store, node_modules, test-results, etc.
+├── playwright.config.js   # Config Playwright (port 5501, http-server)
+├── package.json           # Scripts npm test + devDeps Playwright/http-server
 ├── index.html             # L'app complète (HTML + CSS + JS)
 └── README.md              # Ce fichier
 ```

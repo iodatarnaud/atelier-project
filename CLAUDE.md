@@ -4,15 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Projet
 
-Atelier — SPA mono-utilisateur de gestion de backlog/sprints pour un consultant Salesforce gérant plusieurs clients. UI en français. Pas de backend, pas d'étape de build, pas de gestionnaire de paquets. Hébergé sur GitHub Pages, données persistées dans un Gist GitHub privé.
+Atelier — SPA mono-utilisateur de gestion de backlog/sprints pour un consultant Salesforce gérant plusieurs clients. UI en français. Pas de backend ni d'étape de build pour l'app elle-même. Hébergé sur GitHub Pages, données persistées dans un Gist GitHub privé.
 
 `atelier-project.zip` est une copie packagée de l'app pour distribution/handoff ; la source vivante est `index.html`.
 
 ## Commandes
 
-Pas de toolchain de build, lint ou test. Le développement se résume à :
+Pas de toolchain de build/lint pour l'app : `index.html` reste autonome et drop-in. La seule toolchain présente est **Playwright** pour les tests E2E (devDeps uniquement, jamais embarqué dans la page).
 
-- **Lancer en local** : ouvrir `index.html` avec l'extension VS Code **Live Server** (Ritwick Dey) — recommandée via `.vscode/extensions.json`. Port 5500 par défaut.
+- **Lancer en local** : ouvrir `index.html` avec l'extension VS Code **Live Server** (Ritwick Dey) — recommandée via `.vscode/extensions.json`. Port 5500 par défaut. Alternative : `npm run serve`.
+- **Tester** : `npm test` (ou `npm run test:headed` pour voir le navigateur, `npm run test:ui` pour le mode interactif). Les tests servent l'app via `http-server` sur le port 5501 (séparé de Live Server).
 - **Déployer** : commit + push sur `main`. GitHub Pages redéploie automatiquement (1–2 min).
 
 ## Architecture
@@ -46,4 +47,13 @@ Les mutations suivent ce schéma : le handler met à jour `state.clients[...].it
 - **Langue** : strings UI, commentaires et messages de commit sont en français. À respecter en éditant.
 - **Échappement HTML** : `escapeHtml()` est le seul chemin sûr pour injecter une string contrôlée par l'utilisateur dans `innerHTML`. Toujours l'utiliser.
 - **IDs** : les IDs clients sont `c<timestamp>` ; les IDs d'items sont générés par client avec le préfixe `key` et le `counter` qui s'incrémente.
-- **Pas de nouveaux fichiers sauf nécessité** : la structure single-file est délibérée (mises à jour drop-in : remplacer `index.html`, push, terminé — voir README "Mises à jour de l'app"). Ne pas découper en modules sans raison forte.
+- **Pas de nouveaux fichiers sauf nécessité** : la structure single-file est délibérée (mises à jour drop-in : remplacer `index.html`, push, terminé — voir README "Mises à jour de l'app"). Ne pas découper en modules sans raison forte. La toolchain Playwright vit à part dans `tests/` + `package.json` — l'app elle-même reste sans dépendance.
+
+## Tests
+
+Suite E2E Playwright dans `tests/` (un fichier par feature : clients, backlog, sprints, board, persistance, raccourcis). Helpers partagés dans `tests/helpers.js`.
+
+Spécificités à connaître quand on touche aux tests ou à `index.html` :
+- **`window.__SKIP_SEED__`** : flag opt-in que les tests setent via `addInitScript` pour empêcher l'app de seed les 2 clients démo "Actimat"/"Val d'Orbieu" dans une DB vide. Préserver ce flag (ligne du seed dans `loadState()`) si tu touches au boot.
+- **Isolation IndexedDB** : Playwright ne l'isole pas correctement entre tests par défaut. `helpers.js` override la fixture `page` pour créer un `BrowserContext` neuf à chaque test.
+- **Sélecteurs robustes** : préférer `data-section`, `data-status`, `data-view`, `data-id`, `#id`, classes `.if-*` du formulaire inline. Éviter les sélecteurs de texte traduits sauf assertions.

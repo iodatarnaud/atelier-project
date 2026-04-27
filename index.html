@@ -1526,8 +1526,8 @@ async function loadState() {
     setSyncStatus('local', 'Local');
   }
 
-  // 3. Seed si vide
-  if (!state.clients || state.clients.length === 0) {
+  // 3. Seed si vide (sauf en environnement de test qui set window.__SKIP_SEED__)
+  if (!window.__SKIP_SEED__ && (!state.clients || state.clients.length === 0)) {
     state.clients = [
       { id: 'c1', name: 'Actimat', key: 'ACT', counter: 0, items: [], sprints: [] },
       { id: 'c2', name: "Val d'Orbieu", key: 'VVO', counter: 0, items: [], sprints: [] }

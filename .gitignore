@@ -20,3 +20,9 @@ backups/
 # Fichiers locaux de test
 test-data.json
 local.json
+
+# Node / Playwright (tests E2E)
+node_modules/
+test-results/
+playwright-report/
+playwright/.cache/

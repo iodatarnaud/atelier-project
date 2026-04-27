@@ -1,0 +1,27 @@
+{
+  "name": "atelier-project",
+  "version": "1.0.0",
+  "description": "SPA mono-utilisateur de gestion de backlog/sprints pour consultant Salesforce. Pas de backend, données dans un GitHub Gist privé, hébergement GitHub Pages.",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report",
+    "serve": "http-server . -p 5500 -c-1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iodatarnaud/atelier-project.git"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/iodatarnaud/atelier-project/issues"
+  },
+  "homepage": "https://github.com/iodatarnaud/atelier-project#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "http-server": "^14.1.1"
+  }
+}
