@@ -1,4 +1,4 @@
-const { test, expect, resetApp, createClient, createSprint, createItemInline, openItemDetailByTitle } = require('./helpers');
+const { test, expect, resetApp, createClient, createSprint, createItemInline, openItemDetailByTitle, openSidebarItemAction } = require('./helpers');
 
 test.beforeEach(async ({ page }) => {
   await resetApp(page);
@@ -109,8 +109,7 @@ test.describe('Sprints — suppression', () => {
     // Sprint vient d'être créé, donc actif
 
     const row = page.locator('#sprintList .side-item', { hasText: 'Sprint actif' });
-    await row.hover();
-    await row.locator('.side-action').click({ force: true });
+    await openSidebarItemAction(page, row, 'Supprimer');
 
     await expect(page.locator('#confirmModal')).not.toHaveClass(/show/);
     await expect(page.locator('#toast')).toContainText('actif');
@@ -127,8 +126,7 @@ test.describe('Sprints — suppression', () => {
     await createSprint(page, { name: 'Sprint 2' });
 
     const row = page.locator('#sprintList .side-item', { hasText: 'Sprint future' });
-    await row.hover();
-    await row.locator('.side-action').click({ force: true });
+    await openSidebarItemAction(page, row, 'Supprimer');
 
     await expect(page.locator('#confirmModal')).not.toHaveClass(/show/);
     await expect(page.locator('#toast')).toContainText('item');
@@ -141,8 +139,7 @@ test.describe('Sprints — suppression', () => {
     await createSprint(page, { name: 'Nouveau actif' });
 
     const row = page.locator('#sprintList .side-item', { hasText: 'À supprimer' });
-    await row.hover();
-    await row.locator('.side-action').click({ force: true });
+    await openSidebarItemAction(page, row, 'Supprimer');
 
     await expect(page.locator('#confirmModal')).toHaveClass(/show/);
     await expect(page.locator('#confirmTitle')).toHaveText('Supprimer ce sprint ?');
@@ -161,8 +158,7 @@ test.describe('Sprints — suppression', () => {
     // Sprint est maintenant completed (et vide d'items)
     const row = page.locator('#sprintList .side-item', { hasText: 'Sprint à clôturer' });
     await expect(row).toContainText('terminé');
-    await row.hover();
-    await row.locator('.side-action').click({ force: true });
+    await openSidebarItemAction(page, row, 'Supprimer');
 
     await expect(page.locator('#confirmModal')).toHaveClass(/show/);
     // Pas de mention d'items livrés (sprint vide)
@@ -192,8 +188,7 @@ test.describe('Sprints — suppression', () => {
 
     // Sprint completed avec 2 items done dedans → tente la suppression
     const row = page.locator('#sprintList .side-item', { hasText: 'Sprint avec done' });
-    await row.hover();
-    await row.locator('.side-action').click({ force: true });
+    await openSidebarItemAction(page, row, 'Supprimer');
 
     await expect(page.locator('#confirmModal')).toHaveClass(/show/);
     // Warning fort : mention des items livrés

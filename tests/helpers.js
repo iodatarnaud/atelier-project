@@ -68,6 +68,16 @@ async function closeItemDetail(page) {
   await expect(page.locator('#itemModal')).not.toHaveClass(/show/);
 }
 
+// Ouvre le menu kebab d'une ligne sidebar (projet/sprint/epic) et clique une action
+// (ex: 'Modifier', 'Supprimer'). Le menu est rendu dans document.body.
+async function openSidebarItemAction(page, row, action) {
+  await row.hover();
+  await row.locator('.side-action.menu').click({ force: true });
+  await expect(page.locator('#actionMenu')).toBeVisible();
+  await page.locator('#actionMenu .action-menu-item', { hasText: action }).click();
+  await expect(page.locator('#actionMenu')).not.toBeVisible();
+}
+
 module.exports = {
   test,
   expect,
@@ -77,4 +87,5 @@ module.exports = {
   createItemInline,
   openItemDetailByTitle,
   closeItemDetail,
+  openSidebarItemAction,
 };

@@ -1,4 +1,4 @@
-const { test, expect, resetApp, createClient, createSprint, createItemInline } = require('./helpers');
+const { test, expect, resetApp, createClient, createSprint, createItemInline, openSidebarItemAction } = require('./helpers');
 
 test.beforeEach(async ({ page }) => {
   await resetApp(page);
@@ -52,8 +52,7 @@ test.describe('Clients — suppression', () => {
     await expect(page.locator('#clientList .side-item')).toHaveCount(2);
 
     const acmeRow = page.locator('#clientList .side-item', { hasText: 'Acme' });
-    await acmeRow.hover();
-    await acmeRow.locator('.side-action').click({ force: true });
+    await openSidebarItemAction(page, acmeRow, 'Supprimer');
 
     await expect(page.locator('#confirmModal')).toHaveClass(/show/);
     await expect(page.locator('#confirmTitle')).toHaveText('Supprimer ce projet ?');
@@ -70,8 +69,7 @@ test.describe('Clients — suppression', () => {
     await createItemInline(page, { title: 'Item bloquant' });
 
     const acmeRow = page.locator('#clientList .side-item', { hasText: 'Acme' });
-    await acmeRow.hover();
-    await acmeRow.locator('.side-action').click({ force: true });
+    await openSidebarItemAction(page, acmeRow, 'Supprimer');
 
     // La modal de confirmation NE doit PAS s'ouvrir
     await expect(page.locator('#confirmModal')).not.toHaveClass(/show/);
@@ -86,10 +84,10 @@ test.describe('Clients — suppression', () => {
     await createSprint(page, { name: 'Sprint 1' });
 
     const acmeRow = page.locator('#clientList .side-item', { hasText: 'Acme' });
-    await acmeRow.hover();
-    await acmeRow.locator('.side-action').click({ force: true });
+    await openSidebarItemAction(page, acmeRow, 'Supprimer');
 
     await expect(page.locator('#confirmModal')).not.toHaveClass(/show/);
+    await expect(page.locator('#toast')).toContainText('Impossible de supprimer');
     await expect(page.locator('#clientList .side-item')).toHaveCount(1);
   });
 
@@ -100,8 +98,7 @@ test.describe('Clients — suppression', () => {
     await expect(page.locator('#clientList .side-item.active')).toContainText('Beta');
 
     const betaRow = page.locator('#clientList .side-item', { hasText: 'Beta' });
-    await betaRow.hover();
-    await betaRow.locator('.side-action').click({ force: true });
+    await openSidebarItemAction(page, betaRow, 'Supprimer');
     await page.locator('#confirmOk').click();
 
     // Bascule automatique sur Acme (le seul restant)
@@ -114,11 +111,41 @@ test.describe('Clients — suppression', () => {
     await createClient(page, { name: 'Acme', key: 'ACM' });
 
     const acmeRow = page.locator('#clientList .side-item', { hasText: 'Acme' });
-    await acmeRow.hover();
-    await acmeRow.locator('.side-action').click({ force: true });
+    await openSidebarItemAction(page, acmeRow, 'Supprimer');
     await page.locator('#confirmOk').click();
 
     await expect(page.locator('#clientList .side-item')).toHaveCount(0);
     await expect(page.locator('#viewContent')).toContainText('Aucun projet');
+  });
+});
+
+test.describe('Sidebar — compteurs par projet', () => {
+  // Régression : la pastille "En cours" filtrait sur status === 'progress' alors
+  // que la valeur réelle des items est 'doing'. Le compteur restait à 0.
+  test('les pastilles todo/progress/done reflètent le statut réel des items', async ({ page }) => {
+    await createClient(page, { name: 'Acme', key: 'ACM' });
+    await createItemInline(page, { title: 'Item à suivre' });
+
+    const todo = page.locator('#clientList .side-item [data-stat-key="todo"]');
+    const progress = page.locator('#clientList .side-item [data-stat-key="progress"]');
+    const done = page.locator('#clientList .side-item [data-stat-key="done"]');
+
+    // À la création, status = todo
+    await expect(todo).toHaveText('1');
+    await expect(progress).toHaveText('0');
+    await expect(done).toHaveText('0');
+
+    // 1er clic sur le badge : todo → doing → la pastille "En cours" passe à 1
+    const badge = page.locator('.backlog-row', { hasText: 'Item à suivre' }).locator('.status-badge');
+    await badge.click();
+    await expect(todo).toHaveText('0');
+    await expect(progress).toHaveText('1');
+    await expect(done).toHaveText('0');
+
+    // 2e clic : doing → done
+    await badge.click();
+    await expect(todo).toHaveText('0');
+    await expect(progress).toHaveText('0');
+    await expect(done).toHaveText('1');
   });
 });
