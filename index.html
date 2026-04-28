@@ -1284,6 +1284,11 @@
       <button class="filter-chip" data-type="bug" onclick="setTypeFilter('bug')">
         <span style="display:inline-flex;align-items:center;gap:5px;"><span class="type-ico type-bug">B</span> Bug</span>
       </button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-mute);">
+        Grouper par
+        <button class="filter-chip" data-group="sprint" onclick="setGroupBy('sprint')">Sprint</button>
+        <button class="filter-chip" data-group="epic" onclick="setGroupBy('epic')">Epic</button>
+      </div>
     </div>
 
     <div id="viewContent">
@@ -1444,6 +1449,7 @@ let state = {
   filterType: '',
   filterPrio: '',
   filterEpic: null,
+  groupBy: 'sprint',
   search: ''
 };
 
@@ -1981,8 +1987,11 @@ function renderView() {
   document.querySelectorAll('.side-nav-item').forEach(n => {
     n.classList.toggle('active', n.dataset.view === state.activeView);
   });
-  document.querySelectorAll('.filter-chip').forEach(c => {
+  document.querySelectorAll('.filter-chip[data-type]').forEach(c => {
     c.classList.toggle('active', c.dataset.type === state.filterType);
+  });
+  document.querySelectorAll('.filter-chip[data-group]').forEach(c => {
+    c.classList.toggle('active', c.dataset.group === state.groupBy);
   });
 
   const container = document.getElementById('viewContent');
@@ -2010,53 +2019,74 @@ function filterItems(items) {
 
 function renderBacklog(container, client) {
   const allOpen = client.items.filter(i => i.status !== 'done');
-  const filtered = filterItems(allOpen);
-
-  // Group: items dans sprint actif, items orphelins (backlog), items dans sprints non-actifs
-  const activeSprint = client.sprints.find(s => s.active);
 
   let html = '';
 
-  // SECTION: Sprint actif
-  if (activeSprint) {
-    const sItems = filterItems(client.items.filter(i => i.sprintId === activeSprint.id));
+  if (state.groupBy === 'epic') {
+    // Mode "Grouper par epic" : section Sans epic + une section par epic
+    const noEpic = filterItems(allOpen.filter(i => !i.epicId));
     html += renderBacklogSection({
-      id: 'sprint-active',
-      name: activeSprint.name,
-      meta: `${activeSprint.startDate || '—'} → ${activeSprint.endDate || '—'}`,
-      items: sItems,
-      sprintId: activeSprint.id,
-      isSprint: true,
-      isActiveSprint: true
+      id: 'e-none',
+      name: 'Sans epic',
+      meta: `${noEpic.length} items`,
+      items: noEpic,
+      epicId: null,
+      isEpic: true
     }, client);
-  }
 
-  // SECTION: Backlog orphelin
-  const orphan = filterItems(client.items.filter(i => i.status !== 'done' && !i.sprintId));
-  html += renderBacklogSection({
-    id: 'backlog',
-    name: 'Backlog',
-    meta: `${orphan.length} items`,
-    items: orphan,
-    sprintId: null,
-    showInlineForm: true
-  }, client);
-
-  // SECTION: Autres sprints (non actifs)
-  client.sprints.filter(s => !s.active).forEach(s => {
-    const sItems = filterItems(client.items.filter(i => i.sprintId === s.id && i.status !== 'done'));
-    if (sItems.length > 0) {
+    client.epics.forEach(e => {
+      const items = filterItems(allOpen.filter(i => i.epicId === e.id));
       html += renderBacklogSection({
-        id: 's-' + s.id,
-        name: s.name,
-        meta: `${s.startDate || '—'} → ${s.endDate || '—'}`,
+        id: 'e-' + e.id,
+        name: e.name,
+        meta: `${items.length} items`,
+        items,
+        epicId: e.id,
+        isEpic: true,
+        epicColor: e.color
+      }, client);
+    });
+  } else {
+    // Mode "Grouper par sprint" (par défaut)
+    const activeSprint = client.sprints.find(s => s.active);
+
+    if (activeSprint) {
+      const sItems = filterItems(client.items.filter(i => i.sprintId === activeSprint.id));
+      html += renderBacklogSection({
+        id: 'sprint-active',
+        name: activeSprint.name,
+        meta: `${activeSprint.startDate || '—'} → ${activeSprint.endDate || '—'}`,
         items: sItems,
-        sprintId: s.id,
+        sprintId: activeSprint.id,
         isSprint: true,
-        canActivate: true
+        isActiveSprint: true
       }, client);
     }
-  });
+
+    const orphan = filterItems(client.items.filter(i => i.status !== 'done' && !i.sprintId));
+    html += renderBacklogSection({
+      id: 'backlog',
+      name: 'Backlog',
+      meta: `${orphan.length} items`,
+      items: orphan,
+      sprintId: null
+    }, client);
+
+    client.sprints.filter(s => !s.active).forEach(s => {
+      const sItems = filterItems(client.items.filter(i => i.sprintId === s.id && i.status !== 'done'));
+      if (sItems.length > 0) {
+        html += renderBacklogSection({
+          id: 's-' + s.id,
+          name: s.name,
+          meta: `${s.startDate || '—'} → ${s.endDate || '—'}`,
+          items: sItems,
+          sprintId: s.id,
+          isSprint: true,
+          canActivate: true
+        }, client);
+      }
+    });
+  }
 
   container.innerHTML = html;
   attachInlineFormHandlers(client);
@@ -2074,10 +2104,12 @@ function renderBacklogSection(section, client) {
     rows = `<div style="padding:24px;text-align:center;color:var(--text-faint);font-size:13px;">${section.isActiveSprint ? 'Aucun item dans ce sprint. Glisse-en depuis le backlog ci-dessous.' : 'Aucun item dans cette section'}</div>`;
   }
 
-  // Inline form disponible pour : backlog ET sprint actif
-  const showInlineForm = section.id === 'backlog' || section.isActiveSprint;
+  // Inline form : backlog, sprint actif, ou toute section epic
+  const showInlineForm = section.id === 'backlog' || section.isActiveSprint || section.isEpic;
   const formSprintId = section.isActiveSprint ? section.sprintId : '';
-  const epicSelect = client.epics && client.epics.length > 0 ? `
+  const formEpicId = section.isEpic && section.epicId ? section.epicId : '';
+  // Le select epic est caché en mode epic (la section impose l'epic)
+  const epicSelect = !section.isEpic && client.epics && client.epics.length > 0 ? `
     <select class="if-epic">
       <option value="">Sans epic</option>
       ${client.epics.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('')}
@@ -2087,11 +2119,12 @@ function renderBacklogSection(section, client) {
   const sectionClass = section.isActiveSprint ? 'backlog-section sprint-active-section' : 'backlog-section';
   const badge = section.isActiveSprint ? '<span class="sprint-badge">Sprint actif</span>' : '';
   const goToBoard = section.isActiveSprint ? `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();switchView('board')" title="Voir le board">Voir le board ▦</button>` : '';
+  const epicDot = section.epicColor ? `<span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${section.epicColor};margin-right:6px;flex-shrink:0;vertical-align:middle;"></span>` : '';
 
   return `
     <div class="${sectionClass}" data-section="${section.id}">
       <div class="backlog-section-head">
-        <span class="name">${escapeHtml(section.name)}</span>
+        <span class="name">${epicDot}${escapeHtml(section.name)}</span>
         ${badge}
         <span class="meta">${escapeHtml(section.meta)} · ${totalEst.toFixed(1)}j</span>
         <div class="actions">
@@ -2107,7 +2140,7 @@ function renderBacklogSection(section, client) {
       <div class="backlog-list">
         ${rows}
         ${showInlineForm ? `
-          <button class="add-row" onclick="showInlineForm('${section.id}')">+ Créer un item${section.isActiveSprint ? ' dans ce sprint' : ''}</button>
+          <button class="add-row" onclick="showInlineForm('${section.id}')">+ Créer un item${section.isActiveSprint ? ' dans ce sprint' : section.isEpic && section.epicId ? ' dans cet epic' : ''}</button>
           <div class="inline-form" id="form-${section.id}" style="display:none;">
             <select class="if-type">
               <option value="story">Build</option>
@@ -2123,7 +2156,7 @@ function renderBacklogSection(section, client) {
             <input type="text" class="if-title" placeholder="Titre de l'item…" />
             <input type="number" class="if-est" placeholder="0.5" step="0.25" min="0" style="width:70px;" />
             <input type="date" class="if-due" />
-            <button class="btn btn-primary btn-sm" onclick="submitInlineForm('${section.id}', '${formSprintId}')">Créer</button>
+            <button class="btn btn-primary btn-sm" onclick="submitInlineForm('${section.id}', '${formSprintId}', '${formEpicId}')">Créer</button>
             <button class="btn btn-ghost btn-sm" onclick="hideInlineForm('${section.id}')">Annuler</button>
           </div>
         ` : ''}
@@ -2288,6 +2321,11 @@ function setTypeFilter(type) {
   renderView();
 }
 
+function setGroupBy(by) {
+  state.groupBy = by;
+  renderView();
+}
+
 document.getElementById('searchInput').addEventListener('input', (e) => {
   state.search = e.target.value;
   renderView();
@@ -2423,7 +2461,7 @@ function attachInlineFormHandlers(client) {
   });
 }
 
-async function submitInlineForm(sectionId, sprintId) {
+async function submitInlineForm(sectionId, sprintId, epicIdArg) {
   const form = document.getElementById('form-' + sectionId);
   if (!form) return;
   const title = form.querySelector('.if-title').value.trim();
@@ -2432,8 +2470,14 @@ async function submitInlineForm(sectionId, sprintId) {
     return;
   }
   const client = getActiveClient();
-  const epicSelect = form.querySelector('.if-epic');
-  const epicId = epicSelect ? (epicSelect.value || null) : null;
+  // Mode epic : epicId imposé par la section. Sinon : lu depuis le select (s'il existe).
+  let epicId;
+  if (epicIdArg) {
+    epicId = epicIdArg;
+  } else {
+    const epicSelect = form.querySelector('.if-epic');
+    epicId = epicSelect ? (epicSelect.value || null) : null;
+  }
   client.counter = (client.counter || 0) + 1;
   client.items.push({
     id: 'i' + Date.now(),
@@ -2454,12 +2498,13 @@ async function submitInlineForm(sectionId, sprintId) {
 
 // === QUICK ADD ===
 function quickAdd() {
+  const targetId = state.groupBy === 'epic' ? 'e-none' : 'backlog';
   if (state.activeView === 'backlog') {
-    showInlineForm('backlog');
+    showInlineForm(targetId);
   } else {
     state.activeView = 'backlog';
     render();
-    setTimeout(() => showInlineForm('backlog'), 100);
+    setTimeout(() => showInlineForm(targetId), 100);
   }
 }
 
