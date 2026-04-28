@@ -2186,7 +2186,7 @@ function renderSidebar() {
   state.clients.forEach(c => {
     currentStats[c.id] = {
       todo: c.items.filter(i => i.status === 'todo').length,
-      progress: c.items.filter(i => i.status === 'progress').length,
+      progress: c.items.filter(i => i.status === 'doing').length,
       done: c.items.filter(i => i.status === 'done').length,
     };
   });
