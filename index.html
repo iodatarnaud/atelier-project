@@ -1130,6 +1130,16 @@
   .settings-help ol { margin: 8px 0 0 18px; }
   .settings-help li { margin-bottom: 4px; }
 
+  /* === EPIC COLOR PICKER === */
+  .epic-colors { display: flex; gap: 10px; flex-wrap: wrap; }
+  .epic-color-swatch {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid transparent; cursor: pointer; padding: 0;
+    transition: transform 0.1s;
+  }
+  .epic-color-swatch:hover { transform: scale(1.1); }
+  .epic-color-swatch.selected { border-color: var(--text); }
+
   /* === SCROLLBARS === */
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -1207,6 +1217,14 @@
       </div>
       <div id="sprintList"></div>
     </div>
+
+    <div class="side-section">
+      <div class="side-label">
+        <span>Epics</span>
+        <button class="add-btn" onclick="openEpicModal()" title="Nouvel epic">+</button>
+      </div>
+      <div id="epicList"></div>
+    </div>
   </aside>
 
   <!-- MAIN -->
@@ -1276,6 +1294,30 @@
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeSprintModal()">Annuler</button>
         <button class="btn btn-primary" onclick="createSprint()">Créer le sprint</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EPIC MODAL -->
+<div class="modal-overlay" id="epicModal">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head">
+      <h2 style="margin:0;font-size:16px;font-weight:600;">Nouvel epic</h2>
+      <button class="modal-close" onclick="closeEpicModal()">×</button>
+    </div>
+    <div class="modal-body modal-body-narrow">
+      <div class="field-group">
+        <label>Nom de l'epic</label>
+        <input type="text" id="epicName" placeholder="Ex: Refonte UI">
+      </div>
+      <div class="field-group">
+        <label>Couleur</label>
+        <div class="epic-colors" id="epicColors"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeEpicModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="createEpic()">Créer l'epic</button>
       </div>
     </div>
   </div>
@@ -1610,8 +1652,8 @@ async function loadState() {
   // vrais noms de clients : le repo est public.
   if (!window.__SKIP_SEED__ && (!state.clients || state.clients.length === 0)) {
     state.clients = [
-      { id: 'c1', name: 'Acme', key: 'ACM', counter: 0, items: [], sprints: [] },
-      { id: 'c2', name: 'Globex', key: 'GLB', counter: 0, items: [], sprints: [] }
+      { id: 'c1', name: 'Acme', key: 'ACM', counter: 0, items: [], sprints: [], epics: [] },
+      { id: 'c2', name: 'Globex', key: 'GLB', counter: 0, items: [], sprints: [], epics: [] }
     ];
     state.activeClientId = 'c1';
     await saveState();
@@ -1620,6 +1662,9 @@ async function loadState() {
   if (!state.activeClientId && state.clients.length > 0) {
     state.activeClientId = state.clients[0].id;
   }
+
+  // Migration : garantir que chaque client a un tableau d'epics
+  state.clients.forEach(c => { if (!Array.isArray(c.epics)) c.epics = []; });
 }
 
 async function saveState() {
@@ -1864,6 +1909,24 @@ function renderSidebar() {
           <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${nameStyle}">${escapeHtml(s.name)}${suffix}</span>
           <span class="count">${done}/${total}</span>
           <button class="side-action" onclick="event.stopPropagation();confirmDeleteSprint('${s.id}')" title="Supprimer ce sprint">×</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Epics
+  const epicList = document.getElementById('epicList');
+  if (!client || !client.epics || client.epics.length === 0) {
+    epicList.innerHTML = '<div style="padding:6px 20px;font-size:12px;color:var(--text-faint);font-style:italic;">Aucun epic</div>';
+  } else {
+    epicList.innerHTML = client.epics.map(e => {
+      const count = client.items.filter(i => i.epicId === e.id && i.status !== 'done').length;
+      return `
+        <div class="side-item" data-epic-id="${e.id}" style="font-size:12px;">
+          <span style="width:10px;height:10px;border-radius:3px;background:${e.color};flex-shrink:0;"></span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(e.name)}</span>
+          <span class="count">${count}</span>
+          <button class="side-action" onclick="event.stopPropagation();confirmDeleteEpic('${e.id}')" title="Supprimer cet epic">×</button>
         </div>
       `;
     }).join('');
@@ -2271,6 +2334,9 @@ async function doDelete() {
     } else if (pendingDelete.type === 'sprint') {
       client.sprints = client.sprints.filter(s => s.id !== pendingDelete.id);
       client.items.forEach(i => { if (i.sprintId === pendingDelete.id) i.sprintId = null; });
+    } else if (pendingDelete.type === 'epic') {
+      client.epics = client.epics.filter(e => e.id !== pendingDelete.id);
+      client.items.forEach(i => { if (i.epicId === pendingDelete.id) i.epicId = null; });
     }
   }
   await saveState();
@@ -2583,6 +2649,58 @@ async function completeSprint(sprintId) {
   render();
 }
 
+// === EPIC ACTIONS ===
+const EPIC_COLORS = ['#0052cc', '#36b37e', '#8777d9', '#ff8b00', '#e5493a', '#4bade8'];
+
+function openEpicModal() {
+  if (!getActiveClient()) return;
+  document.getElementById('epicName').value = '';
+  document.getElementById('epicColors').innerHTML = EPIC_COLORS.map((c, i) =>
+    `<button type="button" class="epic-color-swatch${i === 0 ? ' selected' : ''}" data-color="${c}" style="background:${c}" onclick="selectEpicColor(this)"></button>`
+  ).join('');
+  document.getElementById('epicModal').classList.add('show');
+  setTimeout(() => document.getElementById('epicName').focus(), 50);
+}
+
+function closeEpicModal() {
+  document.getElementById('epicModal').classList.remove('show');
+}
+
+function selectEpicColor(btn) {
+  document.querySelectorAll('#epicColors .epic-color-swatch').forEach(s => s.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+async function createEpic() {
+  const name = document.getElementById('epicName').value.trim();
+  if (!name) { document.getElementById('epicName').focus(); return; }
+  const selected = document.querySelector('#epicColors .epic-color-swatch.selected');
+  const color = selected ? selected.dataset.color : EPIC_COLORS[0];
+  const client = getActiveClient();
+  client.epics.push({ id: 'e' + Date.now(), name, color });
+  await saveState();
+  closeEpicModal();
+  render();
+}
+
+function confirmDeleteEpic(epicId) {
+  const client = getActiveClient();
+  if (!client) return;
+  const epic = client.epics.find(e => e.id === epicId);
+  if (!epic) return;
+  const itemsInEpic = client.items.filter(i => i.epicId === epicId);
+  pendingDelete = { type: 'epic', id: epicId };
+  document.getElementById('confirmTitle').textContent = 'Supprimer cet epic ?';
+  if (itemsInEpic.length > 0) {
+    document.getElementById('confirmMessage').textContent =
+      `« ${epic.name} » est attribué à ${itemsInEpic.length} item(s). Ils perdront leur epic mais ne seront pas supprimés.`;
+  } else {
+    document.getElementById('confirmMessage').textContent = `« ${epic.name} » sera supprimé définitivement.`;
+  }
+  document.getElementById('confirmModal').classList.add('show');
+  document.getElementById('confirmOk').onclick = doDelete;
+}
+
 // === CLIENT ACTIONS ===
 function openClientModal() {
   document.getElementById('clientName').value = '';
@@ -2612,7 +2730,7 @@ async function createClient() {
   const name = document.getElementById('clientName').value.trim();
   const key = document.getElementById('clientKey').value.trim().toUpperCase() || name.substring(0,3).toUpperCase();
   if (!name) { document.getElementById('clientName').focus(); return; }
-  const newClient = { id: 'c' + Date.now(), name, key, counter: 0, items: [], sprints: [] };
+  const newClient = { id: 'c' + Date.now(), name, key, counter: 0, items: [], sprints: [], epics: [] };
   state.clients.push(newClient);
   state.activeClientId = newClient.id;
   await saveState();
