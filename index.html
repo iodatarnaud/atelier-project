@@ -487,6 +487,18 @@
     background: var(--primary-soft);
   }
 
+  .drop-zone-empty {
+    margin: 8px 16px;
+    padding: 18px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 12px;
+    font-style: italic;
+    border: 1px dashed var(--border-strong);
+    border-radius: 4px;
+    background: var(--bg);
+  }
+
   .drop-placeholder {
     height: 2px;
     background: var(--primary);
@@ -2080,19 +2092,17 @@ function renderBacklog(container, client) {
       sprintId: null
     }, client);
 
-    client.sprints.filter(s => !s.active).forEach(s => {
+    client.sprints.filter(s => !s.active && !s.completed).forEach(s => {
       const sItems = filterItems(client.items.filter(i => i.sprintId === s.id && i.status !== 'done'));
-      if (sItems.length > 0) {
-        html += renderBacklogSection({
-          id: 's-' + s.id,
-          name: s.name,
-          meta: `${s.startDate || '—'} → ${s.endDate || '—'}`,
-          items: sItems,
-          sprintId: s.id,
-          isSprint: true,
-          canActivate: true
-        }, client);
-      }
+      html += renderBacklogSection({
+        id: 's-' + s.id,
+        name: s.name,
+        meta: `${s.startDate || '—'} → ${s.endDate || '—'}`,
+        items: sItems,
+        sprintId: s.id,
+        isSprint: true,
+        canActivate: true
+      }, client);
     });
   }
 
@@ -2110,7 +2120,7 @@ function renderBacklogSection(section, client) {
   let rows = section.items.map(i => renderBacklogRow(i, client)).join('');
 
   if (section.items.length === 0) {
-    rows = `<div style="padding:24px;text-align:center;color:var(--text-faint);font-size:13px;">${section.isActiveSprint ? 'Aucun item dans ce sprint. Glisse-en depuis le backlog ci-dessous.' : 'Aucun item dans cette section'}</div>`;
+    rows = `<div class="drop-zone-empty">Glisse un item ici</div>`;
   }
 
   // Inline form : backlog, sprint actif, ou toute section epic
