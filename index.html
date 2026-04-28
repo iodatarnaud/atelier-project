@@ -2734,14 +2734,13 @@ function confirmDeleteEpic(epicId) {
   const epic = client.epics.find(e => e.id === epicId);
   if (!epic) return;
   const itemsInEpic = client.items.filter(i => i.epicId === epicId);
+  if (itemsInEpic.length > 0) {
+    showToast(`⚠ « ${epic.name} » est attribué à ${itemsInEpic.length} item(s). Retire l'epic des items d'abord.`);
+    return;
+  }
   pendingDelete = { type: 'epic', id: epicId };
   document.getElementById('confirmTitle').textContent = 'Supprimer cet epic ?';
-  if (itemsInEpic.length > 0) {
-    document.getElementById('confirmMessage').textContent =
-      `« ${epic.name} » est attribué à ${itemsInEpic.length} item(s). Ils perdront leur epic mais ne seront pas supprimés.`;
-  } else {
-    document.getElementById('confirmMessage').textContent = `« ${epic.name} » sera supprimé définitivement.`;
-  }
+  document.getElementById('confirmMessage').textContent = `« ${epic.name} » sera supprimé définitivement.`;
   document.getElementById('confirmModal').classList.add('show');
   document.getElementById('confirmOk').onclick = doDelete;
 }
