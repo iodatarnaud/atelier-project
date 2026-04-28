@@ -2454,7 +2454,7 @@ function renderBacklogSection(section, client) {
       <div class="backlog-section-head">
         <span class="name">${epicDot}${escapeHtml(section.name)}</span>
         ${badge}
-        <span class="meta" title="${formatDays(remainingEst)}j à faire sur ${formatDays(totalEst)}j total · ${formatDays(doneEst)}j livrés">${escapeHtml(section.meta)}${totalEst > 0 ? ` · ${formatDays(remainingEst)}/${formatDays(totalEst)}j à faire` : ''}</span>
+        <span class="meta" title="${formatDays(doneEst)}j livrés sur ${formatDays(totalEst)}j total">${escapeHtml(section.meta)}${totalEst > 0 ? ` · reste ${formatDays(remainingEst)} j sur ${formatDays(totalEst)}` : ''}</span>
         <div class="actions">
           <div class="backlog-section-stats">
             <span class="stat-pill" title="À faire">${todo}</span>
@@ -2542,7 +2542,7 @@ function renderBoard(container, client) {
       </div>
       <div class="progress-wrap">
         <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-        <div class="progress-text" title="${formatDays(remainingEst)}j à faire sur ${formatDays(totalEst)}j total · ${formatDays(doneEst)}j livrés">${formatDays(remainingEst)} / ${formatDays(totalEst)} j à faire · ${pct}% terminé</div>
+        <div class="progress-text" title="${formatDays(doneEst)}j livrés sur ${formatDays(totalEst)}j total">reste ${formatDays(remainingEst)} j sur ${formatDays(totalEst)} · ${pct}% terminé</div>
       </div>
       <button class="btn btn-secondary btn-sm" onclick="completeSprint('${sprint.id}')">Terminer le sprint</button>
     </div>
