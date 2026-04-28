@@ -65,6 +65,11 @@
     --shadow-sm: 0 1px 1px rgba(9,30,66,0.13), 0 0 1px rgba(9,30,66,0.13);
     --shadow-md: 0 4px 8px -2px rgba(9,30,66,0.1), 0 0 1px rgba(9,30,66,0.13);
     --shadow-lg: 0 12px 24px -6px rgba(9,30,66,0.15), 0 0 1px rgba(9,30,66,0.13);
+    --shadow-card-hover: 0 6px 16px -4px rgba(9,30,66,0.18);
+
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -120,6 +125,7 @@
       --shadow-sm: 0 1px 1px rgba(0,0,0,0.4), 0 0 1px rgba(0,0,0,0.4);
       --shadow-md: 0 4px 8px -2px rgba(0,0,0,0.4), 0 0 1px rgba(0,0,0,0.4);
       --shadow-lg: 0 12px 24px -6px rgba(0,0,0,0.5), 0 0 1px rgba(0,0,0,0.4);
+      --shadow-card-hover: 0 6px 16px -4px rgba(0,0,0,0.5);
     }
 
     .due-pill.overdue { background: #5d1f16; color: #ffb4ab; }
@@ -246,7 +252,22 @@
     border-right: 1px solid var(--border);
     overflow-y: auto;
     padding: 16px 0;
+    position: relative;
   }
+
+  /* Indicateur actif qui slide entre les projets */
+  #activeIndicator {
+    position: absolute;
+    left: 0;
+    width: 3px;
+    background: var(--primary);
+    border-radius: 0 2px 2px 0;
+    transition: top 0.32s var(--ease), height 0.32s var(--ease), opacity 0.2s var(--ease);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 1;
+  }
+  #activeIndicator.show { opacity: 1; }
 
   .side-section {
     margin-bottom: 20px;
@@ -287,6 +308,7 @@
     color: var(--text);
     border-left: 3px solid transparent;
     user-select: none;
+    transition: background 0.18s var(--ease);
   }
 
   .side-item:hover { background: var(--hover-soft); }
@@ -295,7 +317,6 @@
     background: var(--bg-selected);
     color: var(--primary);
     font-weight: 600;
-    border-left-color: var(--primary);
   }
 
   .side-item .ico {
@@ -309,7 +330,9 @@
     font-weight: 700;
     color: white;
     flex-shrink: 0;
+    transition: transform 0.25s var(--ease-spring);
   }
+  .side-item:hover .ico { transform: scale(1.06); }
 
   .side-item .count {
     margin-left: auto;
@@ -349,9 +372,16 @@
     min-width: 16px;
     text-align: center;
     font-weight: 600;
+    transition: background 0.2s var(--ease);
   }
   .side-stat.progress { background: var(--status-progress-bg); color: var(--status-progress-fg); }
   .side-stat.done { background: var(--status-done-bg); color: var(--status-done-fg); }
+  .side-stat.bump { animation: count-bump 0.5s var(--ease-spring); }
+  @keyframes count-bump {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.4); }
+    100% { transform: scale(1); }
+  }
 
   .side-item.active .count {
     background: var(--bg-app);
@@ -368,7 +398,7 @@
     font-size: 14px;
     line-height: 1;
     opacity: 0;
-    transition: opacity 0.1s;
+    transition: opacity 0.18s var(--ease), background 0.18s var(--ease), color 0.18s var(--ease);
     margin-left: 4px;
     flex-shrink: 0;
   }
@@ -414,6 +444,7 @@
     color: var(--text);
     border-left: 3px solid transparent;
     user-select: none;
+    transition: background 0.18s var(--ease), border-left-color 0.2s var(--ease), color 0.18s var(--ease);
   }
 
   .side-nav-item:hover { background: var(--hover-soft); }
@@ -597,12 +628,13 @@
     box-shadow: var(--shadow-sm);
     cursor: pointer;
     border: 1px solid transparent;
-    transition: border-color 0.1s, box-shadow 0.1s;
+    transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), border-color 0.2s var(--ease);
   }
 
   .card:hover {
     border-color: var(--primary);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
   }
 
   .card[draggable="true"] { cursor: grab; }
@@ -858,7 +890,7 @@
     border-bottom: 1px solid var(--border);
     cursor: pointer;
     font-size: 13px;
-    transition: background 0.08s;
+    transition: background 0.18s var(--ease);
   }
 
   .backlog-row:hover { background: var(--bg-hover); }
@@ -929,7 +961,7 @@
     font-size: 16px;
     line-height: 1;
     opacity: 0;
-    transition: opacity 0.1s;
+    transition: opacity 0.18s var(--ease), background 0.18s var(--ease), color 0.18s var(--ease);
   }
 
   .backlog-row:hover .row-action { opacity: 1; }
@@ -1349,6 +1381,50 @@
     font-size: 14px;
   }
 
+  /* === SAVE PILL === */
+  .save-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--text-faint);
+    background: transparent;
+    white-space: nowrap;
+    opacity: 0.5;
+    transition: opacity 0.25s var(--ease), background 0.25s var(--ease), color 0.25s var(--ease);
+  }
+  .save-pill.saving {
+    opacity: 1;
+    background: rgba(233, 168, 58, 0.12);
+    color: var(--p-medium);
+  }
+  .save-pill.saved {
+    opacity: 1;
+    background: rgba(54, 179, 126, 0.12);
+    color: var(--story);
+  }
+  .save-pill .save-icon { display: inline-block; width: 10px; text-align: center; }
+  .save-pill.saving .save-icon {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: save-pulse 1.2s ease-in-out infinite;
+  }
+  .save-pill.saved .save-icon {
+    animation: save-check 0.4s var(--ease-spring);
+  }
+  @keyframes save-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5); opacity: 0.6; }
+  }
+  @keyframes save-check {
+    0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+    60% { transform: scale(1.3) rotate(0); opacity: 1; }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+  }
+
   /* === RESPONSIVE === */
   @media (max-width: 900px) {
     .app { grid-template-columns: 1fr; grid-template-areas: "topbar" "main"; }
@@ -1375,13 +1451,17 @@
       <span id="syncLabel">Local</span>
     </div>
     <div class="topbar-stats" id="globalStats">— items ouverts</div>
-    <span id="saveIndicator" style="font-size:11px;color:var(--text-faint);opacity:0.3;transition:opacity 0.2s;white-space:nowrap;">✓ Sauvegardé</span>
+    <div class="save-pill" id="saveIndicator">
+      <span class="save-icon">✓</span>
+      <span class="save-label">Sauvegardé</span>
+    </div>
     <button class="btn btn-ghost btn-sm" onclick="exportData()" title="Télécharger une sauvegarde JSON">⬇ Export</button>
     <button class="btn btn-ghost btn-sm" onclick="triggerImport()" title="Importer une sauvegarde JSON">⬆ Import</button>
   </div>
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
+    <div id="activeIndicator"></div>
     <div class="side-section">
       <div class="side-label">
         <span>Vues</span>
@@ -1879,6 +1959,7 @@ async function loadState() {
 async function saveState() {
   // Debounce : évite d'écrire 10 fois pendant un cycle de render
   if (_saveTimer) clearTimeout(_saveTimer);
+  updateSaveIndicator('saving');
   _saveTimer = setTimeout(async () => {
     try {
       await dbSet(STORAGE_KEY, {
@@ -1886,11 +1967,12 @@ async function saveState() {
         activeClientId: state.activeClientId,
         lastSavedAt: Date.now()
       });
-      updateSaveIndicator();
+      updateSaveIndicator('saved');
       // Push vers Gist en arrière-plan (debounced plus longuement)
       scheduleGistPush();
     } catch (e) {
       console.error('Save error:', e);
+      updateSaveIndicator('idle');
       showToast('⚠ Erreur de sauvegarde');
     }
   }, 50);
@@ -1997,14 +2079,29 @@ function disconnectGist() {
   showToast('Sync GitHub déconnectée');
 }
 
-// Indicateur visuel discret de sauvegarde
-function updateSaveIndicator() {
+// Indicateur de sauvegarde — états : 'saving' | 'saved' | 'idle'
+function updateSaveIndicator(state = 'saved') {
   const ind = document.getElementById('saveIndicator');
   if (!ind) return;
-  ind.textContent = '✓ Sauvegardé';
-  ind.style.opacity = '1';
+  const icon = ind.querySelector('.save-icon');
+  const label = ind.querySelector('.save-label');
   clearTimeout(updateSaveIndicator._t);
-  updateSaveIndicator._t = setTimeout(() => { ind.style.opacity = '0.3'; }, 1500);
+  ind.classList.remove('saving', 'saved');
+  if (state === 'saving') {
+    ind.classList.add('saving');
+    if (icon) icon.textContent = '';
+    if (label) label.textContent = 'Sauvegarde…';
+  } else if (state === 'saved') {
+    ind.classList.add('saved');
+    if (icon) icon.textContent = '✓';
+    if (label) label.textContent = 'Sauvegardé';
+    updateSaveIndicator._t = setTimeout(() => {
+      ind.classList.remove('saved');
+    }, 1800);
+  } else {
+    if (icon) icon.textContent = '✓';
+    if (label) label.textContent = 'Sauvegardé';
+  }
 }
 
 // Toast léger pour les erreurs
@@ -2081,13 +2178,23 @@ function render() {
   renderView();
 }
 
+let _prevClientStats = {};
+
 function renderSidebar() {
+  // Snapshot des compteurs avant render — utilisé pour pulser les pastilles modifiées
+  const currentStats = {};
+  state.clients.forEach(c => {
+    currentStats[c.id] = {
+      todo: c.items.filter(i => i.status === 'todo').length,
+      progress: c.items.filter(i => i.status === 'progress').length,
+      done: c.items.filter(i => i.status === 'done').length,
+    };
+  });
+
   // Clients
   const list = document.getElementById('clientList');
   list.innerHTML = state.clients.map(c => {
-    const todo = c.items.filter(i => i.status === 'todo').length;
-    const progress = c.items.filter(i => i.status === 'progress').length;
-    const done = c.items.filter(i => i.status === 'done').length;
+    const { todo, progress, done } = currentStats[c.id];
     const open = todo + progress;
     const days = c.items.filter(i => i.status !== 'done').reduce((a, i) => a + (parseFloat(i.estimate) || 0), 0);
     const initial = (c.key || c.name.substring(0,2)).substring(0,2).toUpperCase();
@@ -2099,9 +2206,9 @@ function renderSidebar() {
         <div class="side-item-text">
           <span>${escapeHtml(c.name)}</span>
           <div class="side-stats" title="À faire / En cours / Terminés · jours estimés">
-            <span class="side-stat" title="À faire">${todo}</span>
-            <span class="side-stat progress" title="En cours">${progress}</span>
-            <span class="side-stat done" title="Terminés">${done}</span>
+            <span class="side-stat" data-stat-key="todo" title="À faire">${todo}</span>
+            <span class="side-stat progress" data-stat-key="progress" title="En cours">${progress}</span>
+            <span class="side-stat done" data-stat-key="done" title="Terminés">${done}</span>
             <span>· ${days.toFixed(1)}j</span>
           </div>
         </div>
@@ -2110,6 +2217,24 @@ function renderSidebar() {
       </div>
     `;
   }).join('');
+
+  // Bump les pastilles dont la valeur a changé depuis le dernier render
+  Object.keys(currentStats).forEach(cid => {
+    const prev = _prevClientStats[cid];
+    if (!prev) return;
+    ['todo', 'progress', 'done'].forEach(k => {
+      if (prev[k] !== currentStats[cid][k]) {
+        const el = list.querySelector(`[data-client-id="${cid}"] [data-stat-key="${k}"]`);
+        if (el) {
+          el.classList.remove('bump');
+          // reflow pour rejouer l'anim si la classe était déjà là
+          void el.offsetWidth;
+          el.classList.add('bump');
+        }
+      }
+    });
+  });
+  _prevClientStats = currentStats;
 
   // Sprints
   const sprintList = document.getElementById('sprintList');
@@ -2155,6 +2280,21 @@ function renderSidebar() {
   }
 
   attachSidebarDropTargets();
+  updateActiveIndicator();
+}
+
+// Slide la barre verticale vers le projet actif (animation top/height)
+function updateActiveIndicator() {
+  const ind = document.getElementById('activeIndicator');
+  if (!ind) return;
+  const sidebar = document.querySelector('.sidebar');
+  const active = sidebar.querySelector('#clientList .side-item.active');
+  if (!active) { ind.classList.remove('show'); return; }
+  const r = active.getBoundingClientRect();
+  const sr = sidebar.getBoundingClientRect();
+  ind.style.top = (r.top - sr.top + sidebar.scrollTop) + 'px';
+  ind.style.height = r.height + 'px';
+  ind.classList.add('show');
 }
 
 function renderStats() {
@@ -3413,6 +3553,11 @@ function initSidebarResize() {
   await loadState();
   render();
   initSidebarResize();
+  // Garde l'indicateur aligné quand la fenêtre/font change de taille
+  window.addEventListener('resize', updateActiveIndicator);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(updateActiveIndicator);
+  }
 })();
 </script>
 
