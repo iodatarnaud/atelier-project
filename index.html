@@ -705,11 +705,34 @@
     white-space: nowrap;
   }
 
+  .row-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
   .row-title {
     color: var(--text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .epic-chip {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
   }
 
   .status-badge {
@@ -762,8 +785,7 @@
     padding: 10px 16px;
     background: white;
     border-top: 1px solid var(--border);
-    display: grid;
-    grid-template-columns: auto auto 1fr auto auto auto auto;
+    display: flex;
     gap: 8px;
     align-items: center;
   }
@@ -782,7 +804,7 @@
     box-shadow: 0 0 0 2px rgba(76,154,255,0.2);
   }
 
-  .inline-form input[type="text"] { width: 100%; }
+  .inline-form input[type="text"] { flex: 1; min-width: 0; }
 
   /* === EMPTY === */
   .empty {
@@ -2045,6 +2067,12 @@ function renderBacklogSection(section, client) {
   // Inline form disponible pour : backlog ET sprint actif
   const showInlineForm = section.id === 'backlog' || section.isActiveSprint;
   const formSprintId = section.isActiveSprint ? section.sprintId : '';
+  const epicSelect = client.epics && client.epics.length > 0 ? `
+    <select class="if-epic">
+      <option value="">Sans epic</option>
+      ${client.epics.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('')}
+    </select>
+  ` : '';
 
   const sectionClass = section.isActiveSprint ? 'backlog-section sprint-active-section' : 'backlog-section';
   const badge = section.isActiveSprint ? '<span class="sprint-badge">Sprint actif</span>' : '';
@@ -2081,6 +2109,7 @@ function renderBacklogSection(section, client) {
               <option value="2" selected>P2</option>
               <option value="3">P3</option>
             </select>
+            ${epicSelect}
             <input type="text" class="if-title" placeholder="Titre de l'item…" />
             <input type="number" class="if-est" placeholder="0.5" step="0.25" min="0" style="width:70px;" />
             <input type="date" class="if-due" />
@@ -2096,12 +2125,14 @@ function renderBacklogSection(section, client) {
 function renderBacklogRow(item, client) {
   const dueInfo = formatDue(item.dueDate);
   const key = `${client.key}-${item.num}`;
+  const epic = item.epicId ? client.epics.find(e => e.id === item.epicId) : null;
+  const epicChip = epic ? `<span class="epic-chip" style="background:${epic.color}" title="${escapeHtml(epic.name)}">${escapeHtml(epic.name)}</span>` : '';
   return `
     <div class="backlog-row ${item.status === 'done' ? 'done' : ''}" onclick="openItemDetail('${item.id}')">
       <span class="type-ico type-${item.type}" title="${TYPE_LABELS[item.type]}">${TYPE_LETTERS[item.type]}</span>
       <span class="prio-ico prio-${item.priority}" title="P${item.priority}">${item.priority === 1 ? '↑' : item.priority === 2 ? '=' : '↓'}</span>
       <span class="row-key">${escapeHtml(key)}</span>
-      <span class="row-title">${escapeHtml(item.title)}</span>
+      <span class="row-title-wrap">${epicChip}<span class="row-title">${escapeHtml(item.title)}</span></span>
       ${dueInfo.text !== '—' ? `<span class="due-pill ${dueInfo.cls}">${dueInfo.text}</span>` : '<span></span>'}
       <span class="est-badge" title="Estimation">${item.estimate || 0}</span>
       <button class="status-badge status-${item.status}" onclick="event.stopPropagation();cycleStatus('${item.id}')">${STATUS_LABELS[item.status]}</button>
@@ -2182,8 +2213,11 @@ function renderBoard(container, client) {
 function renderCard(item, client) {
   const key = `${client.key}-${item.num}`;
   const dueInfo = formatDue(item.dueDate);
+  const epic = item.epicId ? client.epics.find(e => e.id === item.epicId) : null;
+  const epicChip = epic ? `<span class="epic-chip" style="background:${epic.color};margin-bottom:6px;display:inline-block;" title="${escapeHtml(epic.name)}">${escapeHtml(epic.name)}</span>` : '';
   return `
     <div class="card" draggable="true" data-id="${item.id}" onclick="openItemDetail('${item.id}')">
+      ${epicChip}
       <div class="card-title">${escapeHtml(item.title)}</div>
       <div class="card-meta">
         <span class="type-ico type-${item.type}">${TYPE_LETTERS[item.type]}</span>
@@ -2348,7 +2382,7 @@ async function doDelete() {
 function showInlineForm(sectionId) {
   const form = document.getElementById('form-' + sectionId);
   if (!form) return;
-  form.style.display = 'grid';
+  form.style.display = 'flex';
   form.querySelector('.if-title').focus();
 }
 
@@ -2382,6 +2416,8 @@ async function submitInlineForm(sectionId, sprintId) {
     return;
   }
   const client = getActiveClient();
+  const epicSelect = form.querySelector('.if-epic');
+  const epicId = epicSelect ? (epicSelect.value || null) : null;
   client.counter = (client.counter || 0) + 1;
   client.items.push({
     id: 'i' + Date.now(),
@@ -2393,6 +2429,7 @@ async function submitInlineForm(sectionId, sprintId) {
     dueDate: form.querySelector('.if-due').value || null,
     status: 'todo',
     sprintId: sprintId || null,
+    epicId,
     createdAt: Date.now()
   });
   await saveState();
@@ -2489,6 +2526,9 @@ function openItemDetail(itemId) {
   const sprintOptions = ['<option value="">— Pas de sprint —</option>']
     .concat(client.sprints.map(s => `<option value="${s.id}" ${item.sprintId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`))
     .join('');
+  const epicOptions = ['<option value="">— Pas d\'epic —</option>']
+    .concat((client.epics || []).map(e => `<option value="${e.id}" ${item.epicId===e.id?'selected':''}>${escapeHtml(e.name)}</option>`))
+    .join('');
 
   document.getElementById('itemModalContent').innerHTML = `
     <div class="modal-head">
@@ -2549,6 +2589,10 @@ function openItemDetail(itemId) {
           <label>Sprint</label>
           <select id="ed_sprint">${sprintOptions}</select>
         </div>
+        <div class="field-group">
+          <label>Epic</label>
+          <select id="ed_epic">${epicOptions}</select>
+        </div>
       </div>
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="confirmDeleteItem('${item.id}');closeItemModal();" style="margin-right:auto;color:var(--bug);">Supprimer</button>
@@ -2581,6 +2625,7 @@ async function saveItemEdit(itemId) {
   item.dueDate = document.getElementById('ed_due').value || null;
   item.status = newStatus;
   item.sprintId = document.getElementById('ed_sprint').value || null;
+  item.epicId = document.getElementById('ed_epic').value || null;
 
   await saveState();
   closeItemModal();
