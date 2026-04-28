@@ -1443,6 +1443,7 @@ let state = {
   activeView: 'backlog',
   filterType: '',
   filterPrio: '',
+  filterEpic: null,
   search: ''
 };
 
@@ -1949,8 +1950,9 @@ function renderSidebar() {
   } else {
     epicList.innerHTML = client.epics.map(e => {
       const count = client.items.filter(i => i.epicId === e.id && i.status !== 'done').length;
+      const isActive = state.filterEpic === e.id;
       return `
-        <div class="side-item" data-epic-id="${e.id}" style="font-size:12px;">
+        <div class="side-item ${isActive ? 'active' : ''}" data-epic-id="${e.id}" onclick="setEpicFilter('${e.id}')" style="font-size:12px;" title="${isActive ? 'Retirer le filtre' : 'Filtrer par cet epic'}">
           <span style="width:10px;height:10px;border-radius:3px;background:${e.color};flex-shrink:0;"></span>
           <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(e.name)}</span>
           <span class="count">${count}</span>
@@ -2000,6 +2002,7 @@ function filterItems(items) {
   return items.filter(i => {
     if (state.filterType && i.type !== state.filterType) return false;
     if (state.filterPrio && i.priority !== parseInt(state.filterPrio)) return false;
+    if (state.filterEpic && i.epicId !== state.filterEpic) return false;
     if (state.search && !i.title.toLowerCase().includes(state.search.toLowerCase())) return false;
     return true;
   });
@@ -2265,7 +2268,13 @@ function renderArchive(container, client) {
 // ============================================================
 function switchClient(id) {
   state.activeClientId = id;
+  state.filterEpic = null;
   saveState();
+  render();
+}
+
+function setEpicFilter(epicId) {
+  state.filterEpic = state.filterEpic === epicId ? null : epicId;
   render();
 }
 
