@@ -2209,7 +2209,7 @@ function renderSidebar() {
             <span class="side-stat" data-stat-key="todo" title="À faire">${todo}</span>
             <span class="side-stat progress" data-stat-key="progress" title="En cours">${progress}</span>
             <span class="side-stat done" data-stat-key="done" title="Terminés">${done}</span>
-            <span>· ${days.toFixed(1)}j</span>
+            <span>· ${formatDays(days)}j</span>
           </div>
         </div>
         <span class="count">${open}</span>
@@ -2300,7 +2300,7 @@ function updateActiveIndicator() {
 function renderStats() {
   const total = state.clients.reduce((s, c) => s + c.items.filter(i => i.status !== 'done').length, 0);
   const days = state.clients.reduce((s, c) => s + c.items.filter(i => i.status !== 'done').reduce((a, i) => a + (parseFloat(i.estimate) || 0), 0), 0);
-  document.getElementById('globalStats').innerHTML = `<strong>${total}</strong> items · <strong>${days.toFixed(1)}</strong> j estimés`;
+  document.getElementById('globalStats').innerHTML = `<strong>${total}</strong> items · <strong>${formatDays(days)}</strong> j à faire`;
 }
 
 function renderBreadcrumb() {
@@ -2454,7 +2454,7 @@ function renderBacklogSection(section, client) {
       <div class="backlog-section-head">
         <span class="name">${epicDot}${escapeHtml(section.name)}</span>
         ${badge}
-        <span class="meta" title="${remainingEst.toFixed(1)}j à faire sur ${totalEst.toFixed(1)}j total · ${doneEst.toFixed(1)}j livrés">${escapeHtml(section.meta)}${totalEst > 0 ? ` · ${remainingEst.toFixed(1)}/${totalEst.toFixed(1)}j` : ''}</span>
+        <span class="meta" title="${formatDays(remainingEst)}j à faire sur ${formatDays(totalEst)}j total · ${formatDays(doneEst)}j livrés">${escapeHtml(section.meta)}${totalEst > 0 ? ` · ${formatDays(remainingEst)}/${formatDays(totalEst)}j à faire` : ''}</span>
         <div class="actions">
           <div class="backlog-section-stats">
             <span class="stat-pill" title="À faire">${todo}</span>
@@ -2531,6 +2531,7 @@ function renderBoard(container, client) {
 
   const totalEst = items.reduce((s, i) => s + (parseFloat(i.estimate) || 0), 0);
   const doneEst = done.reduce((s, i) => s + (parseFloat(i.estimate) || 0), 0);
+  const remainingEst = totalEst - doneEst;
   const pct = totalEst > 0 ? Math.round((doneEst / totalEst) * 100) : 0;
 
   container.innerHTML = `
@@ -2541,7 +2542,7 @@ function renderBoard(container, client) {
       </div>
       <div class="progress-wrap">
         <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-        <div class="progress-text">${doneEst.toFixed(1)} / ${totalEst.toFixed(1)} j · ${pct}% terminé</div>
+        <div class="progress-text" title="${formatDays(remainingEst)}j à faire sur ${formatDays(totalEst)}j total · ${formatDays(doneEst)}j livrés">${formatDays(remainingEst)} / ${formatDays(totalEst)} j à faire · ${pct}% terminé</div>
       </div>
       <button class="btn btn-secondary btn-sm" onclick="completeSprint('${sprint.id}')">Terminer le sprint</button>
     </div>
@@ -2614,7 +2615,7 @@ function renderArchive(container, client) {
     <div class="backlog-section">
       <div class="backlog-section-head">
         <span class="name">Items terminés</span>
-        <span class="meta">${items.length} items · ${items.reduce((s,i)=>s+(parseFloat(i.estimate)||0),0).toFixed(1)}j livrés</span>
+        <span class="meta">${items.length} items · ${formatDays(items.reduce((s,i)=>s+(parseFloat(i.estimate)||0),0))}j livrés</span>
       </div>
       <div class="backlog-list">
         ${items.map(i => renderBacklogRow(i, client)).join('')}
@@ -3477,6 +3478,14 @@ function clientActionMenu(btn, clientId) {
 function escapeHtml(s) {
   if (s == null) return '';
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Affiche un nombre de jours sans zéros traînants : 0 → "0", 0.25 → "0.25",
+// 2 → "2", 2.2 → "2.2", 0.3 → "0.3". Évite l'arrondi de toFixed(1) qui
+// écrase 0.25 en "0.3".
+function formatDays(d) {
+  if (!d || d === 0) return '0';
+  return d.toFixed(2).replace(/\.?0+$/, '');
 }
 
 function formatDue(due) {
