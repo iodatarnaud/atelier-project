@@ -2423,6 +2423,8 @@ function renderBacklogSection(section, client) {
   const doing = section.items.filter(i => i.status === 'doing').length;
   const done = section.items.filter(i => i.status === 'done').length;
   const totalEst = section.items.reduce((s, i) => s + (parseFloat(i.estimate) || 0), 0);
+  const remainingEst = section.items.filter(i => i.status !== 'done').reduce((s, i) => s + (parseFloat(i.estimate) || 0), 0);
+  const doneEst = totalEst - remainingEst;
 
   let rows = section.items.map(i => renderBacklogRow(i, client)).join('');
 
@@ -2452,7 +2454,7 @@ function renderBacklogSection(section, client) {
       <div class="backlog-section-head">
         <span class="name">${epicDot}${escapeHtml(section.name)}</span>
         ${badge}
-        <span class="meta">${escapeHtml(section.meta)} · ${totalEst.toFixed(1)}j</span>
+        <span class="meta" title="${remainingEst.toFixed(1)}j à faire sur ${totalEst.toFixed(1)}j total · ${doneEst.toFixed(1)}j livrés">${escapeHtml(section.meta)}${totalEst > 0 ? ` · ${remainingEst.toFixed(1)}/${totalEst.toFixed(1)}j` : ''}</span>
         <div class="actions">
           <div class="backlog-section-stats">
             <span class="stat-pill" title="À faire">${todo}</span>
