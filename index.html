@@ -597,6 +597,10 @@
     box-shadow: inset 0 0 0 2px var(--primary);
     background: var(--primary-soft);
   }
+  .side-item.drag-over {
+    box-shadow: inset 0 0 0 2px var(--primary);
+    background: var(--primary-soft);
+  }
 
   .drop-zone-empty {
     margin: 8px 16px;
@@ -2105,6 +2109,8 @@ function renderSidebar() {
       `;
     }).join('');
   }
+
+  attachSidebarDropTargets();
 }
 
 function renderStats() {
@@ -2709,6 +2715,41 @@ function attachDragDrop() {
       if (newStatus === 'done') item.completedAt = Date.now();
       await saveState();
       render();
+    });
+  });
+}
+
+// === DRAG & DROP (SIDEBAR DROP TARGETS) ===
+function attachSidebarDropTargets() {
+  document.querySelectorAll('.sidebar .side-item[data-sprint-id], .sidebar .side-item[data-epic-id]').forEach(el => {
+    el.addEventListener('dragover', (e) => {
+      if (!dragItemId) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      el.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', (e) => {
+      if (!el.contains(e.relatedTarget)) el.classList.remove('drag-over');
+    });
+    el.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      el.classList.remove('drag-over');
+      const itemId = e.dataTransfer.getData('text/plain') || dragItemId;
+      if (!itemId) return;
+      const client = getActiveClient();
+      if (!client) return;
+      const item = client.items.find(i => i.id === itemId);
+      if (!item) return;
+      let changed = false;
+      if (el.dataset.sprintId && item.sprintId !== el.dataset.sprintId) {
+        item.sprintId = el.dataset.sprintId;
+        changed = true;
+      } else if (el.dataset.epicId && item.epicId !== el.dataset.epicId) {
+        item.epicId = el.dataset.epicId;
+        changed = true;
+      }
+      if (changed) { await saveState(); render(); }
     });
   });
 }
