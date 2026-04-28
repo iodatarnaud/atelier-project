@@ -1,0 +1,78 @@
+# Workflow Test & Deploy GitHub Pages
+#
+# À chaque push sur main : on lance les 45 tests Playwright. Si verts → déploie
+# vers GitHub Pages. Si rouges → pas de déploiement, la prod reste sur la
+# dernière version verte. Aucun moyen de balancer du code cassé en prod par
+# inadvertance.
+#
+# IMPORTANT : pour que ce workflow déploie effectivement, il faut basculer
+# Settings → Pages → Source de "Deploy from a branch" à "GitHub Actions" dans
+# l'UI GitHub. Sans ça, le workflow tourne mais le déploiement ne sort pas.
+
+name: Test & Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Évite les déploiements concurrents : si un push arrive pendant qu'un autre
+# tourne, on attend (sans annuler) — un déploiement Pages en cours est sacré.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Tests E2E Playwright
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run tests
+        run: npm test
+
+      - name: Upload Playwright report (en cas d'échec)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  deploy:
+    name: Déploiement GitHub Pages
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v4
+
+      - name: Upload artifact (le repo entier sauf node_modules / tests)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
