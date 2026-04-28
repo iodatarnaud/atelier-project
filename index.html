@@ -344,6 +344,33 @@
   .side-item:hover .side-action { opacity: 1; }
   .side-action:hover { background: var(--hover-strong); color: var(--bug); }
   .side-action.edit:hover { color: var(--primary); }
+  .side-action.menu:hover { color: var(--text); }
+
+  .action-menu {
+    position: fixed;
+    background: var(--bg-app);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: var(--shadow-md);
+    padding: 4px 0;
+    min-width: 140px;
+    z-index: 1000;
+    font-size: 13px;
+  }
+  .action-menu-item {
+    display: block;
+    width: 100%;
+    padding: 6px 14px;
+    border: none;
+    background: transparent;
+    text-align: left;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .action-menu-item:hover { background: var(--hover-soft); }
+  .action-menu-item.danger { color: var(--bug); }
+  .action-menu-item.danger:hover { background: var(--hover-strong); }
 
   .side-nav-item {
     display: flex;
@@ -1412,7 +1439,7 @@
 <div class="modal-overlay" id="sprintModal">
   <div class="modal" style="max-width:480px;">
     <div class="modal-head">
-      <h2 style="margin:0;font-size:16px;font-weight:600;">Nouveau sprint</h2>
+      <h2 id="sprintModalTitle" style="margin:0;font-size:16px;font-weight:600;">Nouveau sprint</h2>
       <button class="modal-close" onclick="closeSprintModal()">×</button>
     </div>
     <div class="modal-body modal-body-narrow">
@@ -1432,7 +1459,7 @@
       </div>
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeSprintModal()">Annuler</button>
-        <button class="btn btn-primary" onclick="createSprint()">Créer le sprint</button>
+        <button id="sprintModalSubmit" class="btn btn-primary" onclick="submitSprintForm()">Créer le sprint</button>
       </div>
     </div>
   </div>
@@ -1466,7 +1493,7 @@
 <div class="modal-overlay" id="clientModal">
   <div class="modal" style="max-width:420px;">
     <div class="modal-head">
-      <h2 style="margin:0;font-size:16px;font-weight:600;">Nouveau projet</h2>
+      <h2 id="clientModalTitle" style="margin:0;font-size:16px;font-weight:600;">Nouveau projet</h2>
       <button class="modal-close" onclick="closeClientModal()">×</button>
     </div>
     <div class="modal-body modal-body-narrow">
@@ -1477,10 +1504,15 @@
       <div class="field-group">
         <label>Clé (3-5 lettres)</label>
         <input type="text" id="clientKey" placeholder="Ex: ACM" maxlength="5">
+        <div id="clientKeyNote" style="display:none;font-size:11px;color:var(--text-faint);margin-top:4px;">La clé ne peut pas être modifiée (utilisée par les IDs des items existants).</div>
+      </div>
+      <div class="field-group">
+        <label>Couleur</label>
+        <div class="epic-colors" id="clientColors"></div>
       </div>
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeClientModal()">Annuler</button>
-        <button class="btn btn-primary" onclick="createClient()">Créer</button>
+        <button id="clientModalSubmit" class="btn btn-primary" onclick="submitClientForm()">Créer</button>
       </div>
     </div>
   </div>
@@ -2020,13 +2052,13 @@ function renderSidebar() {
     const open = c.items.filter(i => i.status !== 'done').length;
     const initial = (c.key || c.name.substring(0,2)).substring(0,2).toUpperCase();
     const colors = ['#0052cc', '#36b37e', '#8777d9', '#ff8b00', '#e5493a', '#4bade8'];
-    const color = colors[state.clients.indexOf(c) % colors.length];
+    const color = c.color || colors[state.clients.indexOf(c) % colors.length];
     return `
       <div class="side-item ${c.id === state.activeClientId ? 'active' : ''}" data-client-id="${c.id}" onclick="switchClient('${c.id}')">
         <div class="ico" style="background:${color}">${escapeHtml(initial)}</div>
         <span>${escapeHtml(c.name)}</span>
         <span class="count">${open}</span>
-        <button class="side-action" onclick="event.stopPropagation();confirmDeleteClient('${c.id}')" title="Supprimer ce projet">×</button>
+        <button class="side-action menu" onclick="event.stopPropagation();clientActionMenu(this, '${c.id}')" title="Options">⋯</button>
       </div>
     `;
   }).join('');
@@ -2049,7 +2081,7 @@ function renderSidebar() {
           <span style="width:6px;height:6px;border-radius:50%;background:${dotColor};"></span>
           <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${nameStyle}">${escapeHtml(s.name)}${suffix}</span>
           <span class="count">${done}/${total}</span>
-          <button class="side-action" onclick="event.stopPropagation();confirmDeleteSprint('${s.id}')" title="Supprimer ce sprint">×</button>
+          <button class="side-action menu" onclick="event.stopPropagation();sprintActionMenu(this, '${s.id}')" title="Options">⋯</button>
         </div>
       `;
     }).join('');
@@ -2068,8 +2100,7 @@ function renderSidebar() {
           <span style="width:10px;height:10px;border-radius:3px;background:${e.color};flex-shrink:0;"></span>
           <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(e.name)}</span>
           <span class="count">${count}</span>
-          <button class="side-action edit" onclick="event.stopPropagation();openEpicModal('${e.id}')" title="Modifier cet epic">✎</button>
-          <button class="side-action" onclick="event.stopPropagation();confirmDeleteEpic('${e.id}')" title="Supprimer cet epic">×</button>
+          <button class="side-action menu" onclick="event.stopPropagation();epicActionMenu(this, '${e.id}')" title="Options">⋯</button>
         </div>
       `;
     }).join('');
@@ -2879,32 +2910,43 @@ async function saveItemEdit(itemId) {
 }
 
 // === SPRINT ACTIONS ===
-function openSprintModal() {
+let _editingSprintId = null;
+function openSprintModal(sprintId) {
+  const client = getActiveClient();
+  const sprint = (sprintId && client) ? client.sprints.find(s => s.id === sprintId) : null;
+  _editingSprintId = sprint ? sprint.id : null;
+
+  document.getElementById('sprintModalTitle').textContent = sprint ? 'Modifier le sprint' : 'Nouveau sprint';
+  document.getElementById('sprintModalSubmit').textContent = sprint ? 'Enregistrer' : 'Créer le sprint';
+
   const today = new Date().toISOString().split('T')[0];
   const in2weeks = new Date(Date.now() + 14*24*3600*1000).toISOString().split('T')[0];
-  document.getElementById('sprintName').value = '';
-  document.getElementById('sprintStart').value = today;
-  document.getElementById('sprintEnd').value = in2weeks;
+  document.getElementById('sprintName').value = sprint ? sprint.name : '';
+  document.getElementById('sprintStart').value = sprint ? sprint.startDate : today;
+  document.getElementById('sprintEnd').value = sprint ? sprint.endDate : in2weeks;
+
   document.getElementById('sprintModal').classList.add('show');
   setTimeout(() => document.getElementById('sprintName').focus(), 50);
 }
 
 function closeSprintModal() {
   document.getElementById('sprintModal').classList.remove('show');
+  _editingSprintId = null;
 }
 
-async function createSprint() {
+async function submitSprintForm() {
   const name = document.getElementById('sprintName').value.trim();
   if (!name) { document.getElementById('sprintName').focus(); return; }
   const client = getActiveClient();
-  client.sprints.forEach(s => s.active = false);
-  client.sprints.push({
-    id: 's' + Date.now(),
-    name,
-    startDate: document.getElementById('sprintStart').value,
-    endDate: document.getElementById('sprintEnd').value,
-    active: true
-  });
+  const startDate = document.getElementById('sprintStart').value;
+  const endDate = document.getElementById('sprintEnd').value;
+  if (_editingSprintId) {
+    const sprint = client.sprints.find(s => s.id === _editingSprintId);
+    if (sprint) { sprint.name = name; sprint.startDate = startDate; sprint.endDate = endDate; }
+  } else {
+    client.sprints.forEach(s => s.active = false);
+    client.sprints.push({ id: 's' + Date.now(), name, startDate, endDate, active: true });
+  }
   await saveState();
   closeSprintModal();
   render();
@@ -2969,7 +3011,7 @@ function closeEpicModal() {
 }
 
 function selectEpicColor(btn) {
-  document.querySelectorAll('#epicColors .epic-color-swatch').forEach(s => s.classList.remove('selected'));
+  btn.parentElement.querySelectorAll('.epic-color-swatch').forEach(s => s.classList.remove('selected'));
   btn.classList.add('selected');
 }
 
@@ -3009,9 +3051,24 @@ function confirmDeleteEpic(epicId) {
 }
 
 // === CLIENT ACTIONS ===
-function openClientModal() {
-  document.getElementById('clientName').value = '';
-  document.getElementById('clientKey').value = '';
+let _editingClientId = null;
+function openClientModal(clientId) {
+  const client = clientId ? state.clients.find(c => c.id === clientId) : null;
+  _editingClientId = client ? client.id : null;
+
+  document.getElementById('clientModalTitle').textContent = client ? 'Modifier le projet' : 'Nouveau projet';
+  document.getElementById('clientModalSubmit').textContent = client ? 'Enregistrer' : 'Créer';
+  document.getElementById('clientName').value = client ? client.name : '';
+  document.getElementById('clientKey').value = client ? client.key : '';
+  document.getElementById('clientKey').disabled = !!client;
+  document.getElementById('clientKeyNote').style.display = client ? 'block' : 'none';
+
+  const defaultColor = EPIC_COLORS[state.clients.length % EPIC_COLORS.length];
+  const currentColor = client ? (client.color || defaultColor) : defaultColor;
+  document.getElementById('clientColors').innerHTML = EPIC_COLORS.map(c =>
+    `<button type="button" class="epic-color-swatch${c === currentColor ? ' selected' : ''}" data-color="${c}" style="background:${c}" onclick="selectEpicColor(this)"></button>`
+  ).join('');
+
   document.getElementById('clientModal').classList.add('show');
   setTimeout(() => document.getElementById('clientName').focus(), 50);
 }
@@ -3033,13 +3090,20 @@ document.getElementById('clientKey').addEventListener('input', (e) => {
   e.target.value = e.target.value.toUpperCase();
 });
 
-async function createClient() {
+async function submitClientForm() {
   const name = document.getElementById('clientName').value.trim();
-  const key = document.getElementById('clientKey').value.trim().toUpperCase() || name.substring(0,3).toUpperCase();
   if (!name) { document.getElementById('clientName').focus(); return; }
-  const newClient = { id: 'c' + Date.now(), name, key, counter: 0, items: [], sprints: [], epics: [] };
-  state.clients.push(newClient);
-  state.activeClientId = newClient.id;
+  const selected = document.querySelector('#clientColors .epic-color-swatch.selected');
+  const color = selected ? selected.dataset.color : EPIC_COLORS[0];
+  if (_editingClientId) {
+    const client = state.clients.find(c => c.id === _editingClientId);
+    if (client) { client.name = name; client.color = color; }
+  } else {
+    const key = document.getElementById('clientKey').value.trim().toUpperCase() || name.substring(0,3).toUpperCase();
+    const newClient = { id: 'c' + Date.now(), name, key, color, counter: 0, items: [], sprints: [], epics: [] };
+    state.clients.push(newClient);
+    state.activeClientId = newClient.id;
+  }
   await saveState();
   closeClientModal();
   render();
@@ -3080,6 +3144,70 @@ function descriptionToHtml(desc) {
   if (!desc) return '';
   if (/<\/?(b|strong|i|em|u|ul|ol|li|p|br|div|span)\b/i.test(desc)) return desc;
   return escapeHtml(desc).replace(/\n/g, '<br>');
+}
+
+// === ACTION MENU (kebab popover) ===
+let _actionMenuOutsideHandler = null;
+function _actionMenuEsc(e) { if (e.key === 'Escape') closeActionMenu(); }
+
+function openActionMenu(triggerEl, items) {
+  closeActionMenu();
+  const menu = document.createElement('div');
+  menu.className = 'action-menu';
+  menu.id = 'actionMenu';
+  menu.innerHTML = items.map((it, i) =>
+    `<button class="action-menu-item ${it.danger ? 'danger' : ''}" data-i="${i}">${escapeHtml(it.label)}</button>`
+  ).join('');
+  document.body.appendChild(menu);
+
+  const rect = triggerEl.getBoundingClientRect();
+  menu.style.top = (rect.bottom + 4) + 'px';
+  menu.style.left = Math.max(8, rect.right - menu.offsetWidth) + 'px';
+
+  menu.querySelectorAll('.action-menu-item').forEach((btn, i) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeActionMenu();
+      items[i].onClick();
+    });
+  });
+
+  setTimeout(() => {
+    _actionMenuOutsideHandler = (e) => { if (!menu.contains(e.target)) closeActionMenu(); };
+    document.addEventListener('click', _actionMenuOutsideHandler);
+    document.addEventListener('keydown', _actionMenuEsc);
+  }, 0);
+}
+
+function closeActionMenu() {
+  const m = document.getElementById('actionMenu');
+  if (m) m.remove();
+  if (_actionMenuOutsideHandler) {
+    document.removeEventListener('click', _actionMenuOutsideHandler);
+    _actionMenuOutsideHandler = null;
+  }
+  document.removeEventListener('keydown', _actionMenuEsc);
+}
+
+function sprintActionMenu(btn, sprintId) {
+  openActionMenu(btn, [
+    { label: 'Modifier', onClick: () => openSprintModal(sprintId) },
+    { label: 'Supprimer', danger: true, onClick: () => confirmDeleteSprint(sprintId) }
+  ]);
+}
+
+function epicActionMenu(btn, epicId) {
+  openActionMenu(btn, [
+    { label: 'Modifier', onClick: () => openEpicModal(epicId) },
+    { label: 'Supprimer', danger: true, onClick: () => confirmDeleteEpic(epicId) }
+  ]);
+}
+
+function clientActionMenu(btn, clientId) {
+  openActionMenu(btn, [
+    { label: 'Modifier', onClick: () => openClientModal(clientId) },
+    { label: 'Supprimer', danger: true, onClick: () => confirmDeleteClient(clientId) }
+  ]);
 }
 
 // === HELPERS ===
