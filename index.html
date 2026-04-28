@@ -900,6 +900,59 @@
     box-shadow: 0 0 0 2px rgba(76,154,255,0.2);
   }
 
+  /* === RICH TEXT EDITOR === */
+  .rich-toolbar {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+    background: var(--bg);
+  }
+
+  .rich-toolbar button {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    min-width: 32px;
+    color: var(--text);
+  }
+
+  .rich-toolbar button:hover { background: var(--bg-hover); border-color: var(--border-strong); }
+
+  .rich-editor {
+    min-height: 110px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 0 0 3px 3px;
+    background: white;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    resize: vertical;
+  }
+
+  .rich-editor:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 2px rgba(76,154,255,0.2);
+  }
+
+  .rich-editor:empty:before {
+    content: attr(data-placeholder);
+    color: var(--text-faint);
+    pointer-events: none;
+  }
+
+  .rich-editor ul, .rich-editor ol { margin: 4px 0 4px 24px; }
+  .rich-editor p { margin: 0 0 8px 0; }
+  .rich-editor p:last-child { margin-bottom: 0; }
+
   .modal-side {
     background: var(--bg);
     padding: 16px;
@@ -2374,7 +2427,14 @@ function openItemDetail(itemId) {
         <input type="text" id="ed_title" class="title-input" value="${escapeHtml(item.title)}">
         <div class="field-group">
           <label>Description</label>
-          <textarea id="ed_desc" rows="5" placeholder="Ajouter une description, des critères d'acceptation, des notes…">${escapeHtml(item.description || '')}</textarea>
+          <div class="rich-toolbar">
+            <button type="button" onmousedown="event.preventDefault();" onclick="execRich('bold')" title="Gras (Ctrl+B)"><b>B</b></button>
+            <button type="button" onmousedown="event.preventDefault();" onclick="execRich('italic')" title="Italique (Ctrl+I)"><i>I</i></button>
+            <button type="button" onmousedown="event.preventDefault();" onclick="execRich('underline')" title="Souligné (Ctrl+U)"><u>U</u></button>
+            <button type="button" onmousedown="event.preventDefault();" onclick="execRich('insertUnorderedList')" title="Liste à puces">•</button>
+            <button type="button" onmousedown="event.preventDefault();" onclick="execRich('insertOrderedList')" title="Liste numérotée">1.</button>
+          </div>
+          <div id="ed_desc" class="rich-editor" contenteditable="true" data-placeholder="Ajouter une description, des critères d'acceptation, des notes…"></div>
         </div>
       </div>
       <div class="modal-side">
@@ -2423,6 +2483,7 @@ function openItemDetail(itemId) {
       </div>
     </div>
   `;
+  document.getElementById('ed_desc').innerHTML = descriptionToHtml(item.description || '');
   document.getElementById('itemModal').classList.add('show');
 }
 
@@ -2439,7 +2500,7 @@ async function saveItemEdit(itemId) {
   if (newStatus === 'done' && item.status !== 'done') item.completedAt = Date.now();
 
   item.title = document.getElementById('ed_title').value.trim() || item.title;
-  item.description = document.getElementById('ed_desc').value;
+  item.description = sanitizeHtml(document.getElementById('ed_desc').innerHTML);
   item.type = document.getElementById('ed_type').value;
   item.priority = parseInt(document.getElementById('ed_prio').value);
   item.estimate = parseFloat(document.getElementById('ed_est').value) || 0;
@@ -2549,6 +2610,43 @@ async function createClient() {
   await saveState();
   closeClientModal();
   render();
+}
+
+// === RICH TEXT ===
+function execRich(cmd) {
+  document.execCommand(cmd, false, null);
+  document.getElementById('ed_desc').focus();
+}
+
+const RICH_ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','UL','OL','LI','P','BR','DIV','SPAN']);
+
+function sanitizeHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const walk = (node) => {
+    [...node.childNodes].forEach(child => {
+      if (child.nodeType === 1) {
+        if (!RICH_ALLOWED_TAGS.has(child.tagName)) {
+          while (child.firstChild) child.parentNode.insertBefore(child.firstChild, child);
+          child.parentNode.removeChild(child);
+          return;
+        }
+        [...child.attributes].forEach(a => child.removeAttribute(a.name));
+        walk(child);
+      } else if (child.nodeType !== 3) {
+        child.parentNode.removeChild(child);
+      }
+    });
+  };
+  walk(tmp);
+  return tmp.innerHTML;
+}
+
+// Migration : descriptions anciennes en texte brut → HTML innocent
+function descriptionToHtml(desc) {
+  if (!desc) return '';
+  if (/<\/?(b|strong|i|em|u|ul|ol|li|p|br|div|span)\b/i.test(desc)) return desc;
+  return escapeHtml(desc).replace(/\n/g, '<br>');
 }
 
 // === HELPERS ===
