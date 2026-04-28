@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
+    color-scheme: light dark;
     --sidebar-width: 240px;
     --bg: #f4f5f7;
     --bg-app: #ffffff;
@@ -21,6 +22,10 @@
     --bg-card: #ffffff;
     --bg-input: #ffffff;
     --bg-input-hover: #f4f5f7;
+
+    --hover-soft: rgba(9,30,66,0.04);
+    --hover-med: rgba(9,30,66,0.06);
+    --hover-strong: rgba(9,30,66,0.08);
 
     --border: #dfe1e6;
     --border-strong: #c1c7d0;
@@ -62,6 +67,65 @@
     --shadow-lg: 0 12px 24px -6px rgba(9,30,66,0.15), 0 0 1px rgba(9,30,66,0.13);
   }
 
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161a1d;
+      --bg-app: #1d2125;
+      --bg-hover: #22272b;
+      --bg-selected: #1c2b41;
+      --bg-nav: #1d2125;
+      --bg-sidebar: #161a1d;
+      --bg-board: #161a1d;
+      --bg-col: #22272b;
+      --bg-card: #22272b;
+      --bg-input: #22272b;
+      --bg-input-hover: #2c333a;
+
+      --hover-soft: rgba(255,255,255,0.04);
+      --hover-med: rgba(255,255,255,0.06);
+      --hover-strong: rgba(255,255,255,0.10);
+
+      --border: #2c333a;
+      --border-strong: #454f59;
+      --border-focus: #579dff;
+
+      --text: #b6c2cf;
+      --text-mute: #9fadbc;
+      --text-faint: #7a8493;
+      --text-link: #85b8ff;
+      --text-on-primary: #1d2125;
+
+      --primary: #579dff;
+      --primary-hover: #85b8ff;
+      --primary-soft: #1c2b41;
+
+      --story: #4bce97;
+      --task: #579dff;
+      --bug: #f87168;
+      --epic: #9f8fef;
+
+      --p-highest: #f87168;
+      --p-high: #f87168;
+      --p-medium: #f5cd47;
+      --p-low: #579dff;
+      --p-lowest: #94c748;
+
+      --status-todo-bg: #2c333a;
+      --status-todo-fg: #b6c2cf;
+      --status-progress-bg: #1c2b41;
+      --status-progress-fg: #85b8ff;
+      --status-done-bg: #1c3329;
+      --status-done-fg: #7ee2b8;
+
+      --shadow-sm: 0 1px 1px rgba(0,0,0,0.4), 0 0 1px rgba(0,0,0,0.4);
+      --shadow-md: 0 4px 8px -2px rgba(0,0,0,0.4), 0 0 1px rgba(0,0,0,0.4);
+      --shadow-lg: 0 12px 24px -6px rgba(0,0,0,0.5), 0 0 1px rgba(0,0,0,0.4);
+    }
+
+    .due-pill.overdue { background: #5d1f16; color: #ffb4ab; }
+    .due-pill.soon { background: #4e3a16; color: #ffd591; }
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -74,7 +138,7 @@
   }
 
   button { font-family: inherit; cursor: pointer; }
-  input, select, textarea { font-family: inherit; }
+  input, select, textarea { font-family: inherit; color: inherit; }
 
   /* === LAYOUT === */
   .app {
@@ -163,7 +227,7 @@
   .topbar-search input:focus {
     outline: none;
     border-color: var(--border-focus);
-    background: white;
+    background: var(--bg-app);
     box-shadow: 0 0 0 2px rgba(76,154,255,0.2);
   }
 
@@ -225,7 +289,7 @@
     user-select: none;
   }
 
-  .side-item:hover { background: rgba(9,30,66,0.04); }
+  .side-item:hover { background: var(--hover-soft); }
 
   .side-item.active {
     background: var(--bg-selected);
@@ -258,7 +322,7 @@
   }
 
   .side-item.active .count {
-    background: white;
+    background: var(--bg-app);
     color: var(--primary);
   }
 
@@ -278,7 +342,7 @@
   }
 
   .side-item:hover .side-action { opacity: 1; }
-  .side-action:hover { background: rgba(9,30,66,0.08); color: var(--bug); }
+  .side-action:hover { background: var(--hover-strong); color: var(--bug); }
   .side-action.edit:hover { color: var(--primary); }
 
   .side-nav-item {
@@ -293,7 +357,7 @@
     user-select: none;
   }
 
-  .side-nav-item:hover { background: rgba(9,30,66,0.04); }
+  .side-nav-item:hover { background: var(--hover-soft); }
 
   .side-nav-item.active {
     background: var(--bg-selected);
@@ -365,18 +429,18 @@
   .btn-primary:hover { background: var(--primary-hover); }
 
   .btn-secondary {
-    background: rgba(9,30,66,0.04);
+    background: var(--hover-soft);
     color: var(--text);
   }
 
-  .btn-secondary:hover { background: rgba(9,30,66,0.08); }
+  .btn-secondary:hover { background: var(--hover-strong); }
 
   .btn-ghost {
     background: transparent;
     color: var(--text-mute);
   }
 
-  .btn-ghost:hover { background: rgba(9,30,66,0.06); color: var(--text); }
+  .btn-ghost:hover { background: var(--hover-med); color: var(--text); }
 
   .btn-sm { padding: 4px 10px; font-size: 12px; }
 
@@ -393,7 +457,7 @@
     padding: 6px 10px;
     border: 1px solid var(--border);
     border-radius: 3px;
-    background: white;
+    background: var(--bg-app);
     font-size: 13px;
     color: var(--text);
     cursor: pointer;
@@ -405,7 +469,7 @@
     padding: 5px 12px;
     border: 1px solid var(--border);
     border-radius: 12px;
-    background: white;
+    background: var(--bg-app);
     font-size: 12px;
     color: var(--text-mute);
     cursor: pointer;
@@ -451,7 +515,7 @@
   }
 
   .board-col-head .num {
-    background: rgba(9,30,66,0.08);
+    background: var(--hover-strong);
     color: var(--text-mute);
     padding: 1px 8px;
     border-radius: 10px;
@@ -468,7 +532,7 @@
   }
 
   .card {
-    background: white;
+    background: var(--bg-app);
     border-radius: 3px;
     padding: 10px 12px;
     box-shadow: var(--shadow-sm);
@@ -597,7 +661,7 @@
     font-size: 11px;
     padding: 1px 7px;
     border-radius: 3px;
-    background: rgba(9,30,66,0.06);
+    background: var(--hover-med);
     color: var(--text-mute);
     font-weight: 500;
   }
@@ -617,7 +681,7 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: rgba(9,30,66,0.06);
+    background: var(--hover-med);
     color: var(--text-mute);
     font-size: 11px;
     font-weight: 600;
@@ -641,7 +705,7 @@
   }
 
   .backlog-section.sprint-active-section .backlog-section-head {
-    background: linear-gradient(to right, var(--primary-soft), white 80%);
+    background: linear-gradient(to right, var(--primary-soft), var(--bg-app) 80%);
     border-bottom-color: var(--primary-soft);
   }
 
@@ -806,14 +870,14 @@
   }
 
   .backlog-row:hover .row-action { opacity: 1; }
-  .row-action:hover { background: rgba(9,30,66,0.08); color: var(--bug); }
+  .row-action:hover { background: var(--hover-strong); color: var(--bug); }
 
   .add-row {
     padding: 10px 16px;
     color: var(--text-mute);
     font-size: 13px;
     cursor: pointer;
-    background: white;
+    background: var(--bg-app);
     border: none;
     width: 100%;
     text-align: left;
@@ -824,7 +888,7 @@
 
   .inline-form {
     padding: 10px 16px;
-    background: white;
+    background: var(--bg-app);
     border-top: 1px solid var(--border);
     display: flex;
     gap: 8px;
@@ -836,7 +900,7 @@
     border: 1px solid var(--border);
     border-radius: 3px;
     font-size: 13px;
-    background: white;
+    background: var(--bg-app);
   }
 
   .inline-form input:focus, .inline-form select:focus {
@@ -872,7 +936,7 @@
   .modal-overlay.show { display: flex; }
 
   .modal {
-    background: white;
+    background: var(--bg-app);
     border-radius: 3px;
     box-shadow: var(--shadow-lg);
     width: 100%;
@@ -906,7 +970,7 @@
     border-radius: 3px;
   }
 
-  .modal-close:hover { background: rgba(9,30,66,0.08); }
+  .modal-close:hover { background: var(--hover-strong); }
 
   .modal-body {
     padding: 20px 24px;
@@ -938,7 +1002,7 @@
   }
 
   .modal-body input.title-input:hover { background: var(--bg); }
-  .modal-body input.title-input:focus { background: white; border-color: var(--border-focus); outline: none; }
+  .modal-body input.title-input:focus { background: var(--bg-app); border-color: var(--border-focus); outline: none; }
 
   .field-group {
     margin-bottom: 14px;
@@ -960,7 +1024,7 @@
     border: 1px solid var(--border);
     border-radius: 3px;
     font-size: 14px;
-    background: white;
+    background: var(--bg-app);
     color: var(--text);
   }
 
@@ -987,7 +1051,7 @@
   }
 
   .rich-toolbar button {
-    background: white;
+    background: var(--bg-app);
     border: 1px solid var(--border);
     border-radius: 3px;
     padding: 4px 10px;
@@ -1006,7 +1070,7 @@
     padding: 10px;
     border: 1px solid var(--border);
     border-radius: 0 0 3px 3px;
-    background: white;
+    background: var(--bg-app);
     font-size: 14px;
     color: var(--text);
     outline: none;
@@ -1084,7 +1148,7 @@
 
   /* === SPRINT === */
   .sprint-header {
-    background: white;
+    background: var(--bg-app);
     border: 1px solid var(--border);
     border-radius: 3px;
     padding: 12px 16px;
