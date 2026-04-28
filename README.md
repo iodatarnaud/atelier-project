@@ -6,23 +6,27 @@ Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fic
 
 ## Aperçu des fonctionnalités
 
-- Multi-clients (un workspace par client)
-- Items typés (Build / TMA / Bug) et priorisés (P1 / P2 / P3)
-- Vues Backlog, Kanban (drag & drop) et Archive
-- Sprints : création, activation, clôture (les items non terminés retournent au backlog)
-- Recherche plein-texte et filtres (type, priorité)
-- Persistance offline (IndexedDB)
+- Multi-clients (un workspace par client) avec stats par projet
+- Items typés (Build / TMA / Bug), priorisés (P1 / P2 / P3), avec estimations en jours, dates d'échéance et description rich text
+- Epics colorés (CRUD, filtrage, assignement)
+- Vues **Backlog**, **Sprint actif** (kanban) et **Archive**
+- Sprints avec lifecycle (future → actif → terminé), suppression sécurisée
+- Drag & drop : items entre sprints, depuis la sidebar, et réordonnement manuel
+- Filtres (type, priorité, epic), recherche plein-texte, groupement par sprint ou par epic
+- Persistance offline (IndexedDB, fallback `localStorage`)
 - Synchronisation multi-machines optionnelle via Gist GitHub privé
 - Export / import JSON manuel (sauvegarde de secours)
-- Raccourcis : `Ctrl+C` pour créer un item, `Échap` pour fermer un modal
+- **Mode test** : bac à sable isolé avec jeu de données démo, aucune écriture vers tes vraies données
+- Dark theme automatique selon le mode OS
+- Sidebar redimensionnable, raccourcis clavier (`Ctrl+C` quick add, `Échap` fermer un modal)
 
 ## Stack
 
-- HTML / CSS / JavaScript vanilla, ~2500 lignes dans un seul `index.html`
+- HTML / CSS / JavaScript vanilla, ~3760 lignes dans un seul `index.html`
 - Aucune dépendance runtime (juste la police Inter via CDN)
 - IndexedDB pour le cache local, fallback `localStorage`
 - API REST GitHub pour la synchronisation Gist (optionnelle)
-- Playwright pour les tests end-to-end (29 specs)
+- Playwright pour les tests end-to-end (45 tests répartis sur 7 fichiers)
 
 ## Lancer en local
 
@@ -42,12 +46,18 @@ Suite end-to-end Playwright qui valide les fonctionnalités principales avant ch
 ```bash
 npm install
 npx playwright install     # installe Chromium headless (une seule fois)
-npm test                   # 29 tests, ~30s
+npm test                   # 45 tests, ~50s
 npm run test:headed        # voir le navigateur pendant les tests
 npm run test:ui            # mode interactif avec replay
 ```
 
-Les specs vivent dans [`tests/`](tests/), un fichier par feature.
+Les specs vivent dans [`tests/`](tests/), un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`.
+
+## Documentation
+
+- [`MANUEL.md`](MANUEL.md) — manuel utilisateur (concepts, vues, sync, mode test)
+- [`SMOKE-TEST.md`](SMOKE-TEST.md) — plan de validation manuel pour vérifier tout le périmètre avant un déploiement
+- [`CLAUDE.md`](CLAUDE.md) — détails techniques (architecture, persistance, conventions)
 
 ## Auto-hébergement (fork)
 
@@ -69,6 +79,18 @@ Sans cette étape, les données restent dans l'IndexedDB du navigateur local —
    - Permission **Account → Gists: Read and write**
    - Aucune autre permission n'est nécessaire
 3. Ouvrir l'app, cliquer sur l'indicateur **Local** en haut à droite, coller le PAT et l'ID du Gist, **Connecter**.
+
+### Mode test (bac à sable)
+
+Pour expérimenter sans risque (montrer l'app à quelqu'un, tester un workflow, jouer avec un jeu de données plus riche que ses vrais clients) :
+
+1. Cliquer sur l'indicateur de sync (Local / GitHub) → modale Paramètres
+2. Section **🧪 Mode test** → **Activer le mode test**
+3. La page recharge avec un banner jaune permanent et un seed de 4 projets démo / 25+ items.
+4. Tout ce qu'on fait en mode test est **volatile** : aucune écriture en local ni vers le Gist, refresh = retour au seed propre.
+5. Pour sortir : bouton **Sortir du mode test** dans le banner ou la modale.
+
+Triple garde-fou côté code : `loadState()` saute IndexedDB et Gist, `saveState()` est no-op, `scheduleGistPush()` retourne tôt. Impossible d'écraser les vraies données par accident.
 
 ## Sécurité et confidentialité
 
