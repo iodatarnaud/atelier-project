@@ -259,6 +259,7 @@
 
   .side-item:hover .side-action { opacity: 1; }
   .side-action:hover { background: rgba(9,30,66,0.08); color: var(--bug); }
+  .side-action.edit:hover { color: var(--primary); }
 
   .side-nav-item {
     display: flex;
@@ -1325,7 +1326,7 @@
 <div class="modal-overlay" id="epicModal">
   <div class="modal" style="max-width:420px;">
     <div class="modal-head">
-      <h2 style="margin:0;font-size:16px;font-weight:600;">Nouvel epic</h2>
+      <h2 id="epicModalTitle" style="margin:0;font-size:16px;font-weight:600;">Nouvel epic</h2>
       <button class="modal-close" onclick="closeEpicModal()">×</button>
     </div>
     <div class="modal-body modal-body-narrow">
@@ -1339,7 +1340,7 @@
       </div>
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeEpicModal()">Annuler</button>
-        <button class="btn btn-primary" onclick="createEpic()">Créer l'epic</button>
+        <button id="epicModalSubmit" class="btn btn-primary" onclick="saveEpic()">Créer l'epic</button>
       </div>
     </div>
   </div>
@@ -1948,6 +1949,7 @@ function renderSidebar() {
           <span style="width:10px;height:10px;border-radius:3px;background:${e.color};flex-shrink:0;"></span>
           <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(e.name)}</span>
           <span class="count">${count}</span>
+          <button class="side-action edit" onclick="event.stopPropagation();openEpicModal('${e.id}')" title="Modifier cet epic">✎</button>
           <button class="side-action" onclick="event.stopPropagation();confirmDeleteEpic('${e.id}')" title="Supprimer cet epic">×</button>
         </div>
       `;
@@ -2696,19 +2698,30 @@ async function completeSprint(sprintId) {
 
 // === EPIC ACTIONS ===
 const EPIC_COLORS = ['#0052cc', '#36b37e', '#8777d9', '#ff8b00', '#e5493a', '#4bade8'];
+let _editingEpicId = null;
 
-function openEpicModal() {
-  if (!getActiveClient()) return;
-  document.getElementById('epicName').value = '';
-  document.getElementById('epicColors').innerHTML = EPIC_COLORS.map((c, i) =>
-    `<button type="button" class="epic-color-swatch${i === 0 ? ' selected' : ''}" data-color="${c}" style="background:${c}" onclick="selectEpicColor(this)"></button>`
+function openEpicModal(epicId) {
+  const client = getActiveClient();
+  if (!client) return;
+  const epic = epicId ? client.epics.find(e => e.id === epicId) : null;
+  _editingEpicId = epic ? epic.id : null;
+
+  document.getElementById('epicModalTitle').textContent = epic ? "Modifier l'epic" : 'Nouvel epic';
+  document.getElementById('epicModalSubmit').textContent = epic ? 'Enregistrer' : "Créer l'epic";
+  document.getElementById('epicName').value = epic ? epic.name : '';
+
+  const currentColor = epic ? epic.color : EPIC_COLORS[0];
+  document.getElementById('epicColors').innerHTML = EPIC_COLORS.map(c =>
+    `<button type="button" class="epic-color-swatch${c === currentColor ? ' selected' : ''}" data-color="${c}" style="background:${c}" onclick="selectEpicColor(this)"></button>`
   ).join('');
+
   document.getElementById('epicModal').classList.add('show');
   setTimeout(() => document.getElementById('epicName').focus(), 50);
 }
 
 function closeEpicModal() {
   document.getElementById('epicModal').classList.remove('show');
+  _editingEpicId = null;
 }
 
 function selectEpicColor(btn) {
@@ -2716,13 +2729,19 @@ function selectEpicColor(btn) {
   btn.classList.add('selected');
 }
 
-async function createEpic() {
+async function saveEpic() {
   const name = document.getElementById('epicName').value.trim();
   if (!name) { document.getElementById('epicName').focus(); return; }
   const selected = document.querySelector('#epicColors .epic-color-swatch.selected');
   const color = selected ? selected.dataset.color : EPIC_COLORS[0];
   const client = getActiveClient();
-  client.epics.push({ id: 'e' + Date.now(), name, color });
+
+  if (_editingEpicId) {
+    const epic = client.epics.find(e => e.id === _editingEpicId);
+    if (epic) { epic.name = name; epic.color = color; }
+  } else {
+    client.epics.push({ id: 'e' + Date.now(), name, color });
+  }
   await saveState();
   closeEpicModal();
   render();
