@@ -1425,6 +1425,39 @@
     100% { transform: scale(1) rotate(0); opacity: 1; }
   }
 
+  /* === MODE TEST === */
+  .test-mode-banner[hidden] { display: none; }
+  .test-mode-banner {
+    background: linear-gradient(135deg, #f5cd47 0%, #e9a83a 100%);
+    color: #5d4001;
+    padding: 8px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    border-bottom: 1px solid #b88008;
+    box-shadow: var(--shadow-sm);
+  }
+  .test-mode-banner-text { flex: 1; }
+  .test-mode-banner-text strong { font-weight: 700; }
+  .test-mode-banner-exit {
+    background: #5d4001;
+    color: #fff;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s var(--ease);
+  }
+  .test-mode-banner-exit:hover { background: #3d2901; }
+
+  .settings-section-divider {
+    border-top: 1px solid var(--border);
+    margin: 16px 0;
+  }
+
   /* === RESPONSIVE === */
   @media (max-width: 900px) {
     .app { grid-template-columns: 1fr; grid-template-areas: "topbar" "main"; }
@@ -1434,6 +1467,13 @@
 </style>
 </head>
 <body>
+
+<div id="testModeBanner" class="test-mode-banner" hidden>
+  <span class="test-mode-banner-text">
+    <strong>🧪 Mode test actif</strong> — Aucune donnée n'est sauvegardée. Refresh = jeu démo propre.
+  </span>
+  <button class="test-mode-banner-exit" onclick="toggleTestMode()">Sortir du mode test</button>
+</div>
 
 <div class="app">
   <!-- TOPBAR -->
@@ -1663,6 +1703,19 @@
 
       <div id="settingsStatus" style="font-size:12px;color:var(--text-mute);margin-bottom:12px;min-height:18px;"></div>
 
+      <div class="settings-section-divider"></div>
+
+      <div class="settings-help" style="margin-bottom:8px;">
+        <strong>🧪 Mode test</strong> — Bac à sable isolé. Tes données réelles restent intactes,
+        rien n'est sauvegardé en local ni poussé vers GitHub. Chaque refresh recharge un jeu
+        de données démo propre. Pratique pour expérimenter sans risque.
+      </div>
+      <div class="modal-actions" style="margin-bottom:12px;">
+        <button class="btn btn-secondary btn-sm" onclick="toggleTestMode()" id="testModeBtn">Activer le mode test</button>
+      </div>
+
+      <div class="settings-section-divider"></div>
+
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="disconnectGist()" id="disconnectBtn" style="margin-right:auto;color:var(--bug);display:none;">Déconnecter</button>
         <button class="btn btn-secondary" onclick="closeSettingsModal()">Fermer</button>
@@ -1695,6 +1748,98 @@
 const STORAGE_KEY = 'atelier-data-v2';
 const DB_NAME = 'atelier-db';
 const DB_STORE = 'kv';
+
+// === MODE TEST ===
+// Flag localStorage qui isole l'app dans un bac à sable : seed riche en mémoire,
+// aucune écriture (ni IndexedDB ni Gist). Refresh = jeu de données propre.
+const TEST_MODE_KEY = 'atelier-mode-test';
+function isTestMode() {
+  try { return localStorage.getItem(TEST_MODE_KEY) === '1'; }
+  catch (e) { return false; }
+}
+
+// Jeu de données démo chargé en mémoire en mode test. Noms de projets et de
+// clients = placeholders culture dev, ne JAMAIS y mettre de vrais noms.
+function buildDemoSeed() {
+  const day = 86400000;
+  const now = Date.now();
+  return {
+    activeClientId: 'demo-c1',
+    clients: [
+      {
+        id: 'demo-c1', name: 'Acme', key: 'ACM', color: '#0052cc', counter: 10,
+        epics: [
+          { id: 'demo-e1', name: 'Refonte UI', color: '#8777d9' },
+          { id: 'demo-e2', name: 'Migration data', color: '#36b37e' }
+        ],
+        sprints: [
+          { id: 'demo-s1', name: 'Sprint 12 — Refonte UI', startDate: '2026-04-15', endDate: '2026-04-29', active: true, completed: false },
+          { id: 'demo-s2', name: 'Sprint 13 — Permissions', startDate: '2026-04-29', endDate: '2026-05-13', active: false, completed: false }
+        ],
+        items: [
+          { id: 'demo-c1-i1', num: 1, title: "Refondre l'écran de cadrage projet", type: 'story', priority: 2, status: 'done', estimate: 1.5, sprintId: 'demo-s1', epicId: 'demo-e1', createdAt: now - day*10, completedAt: now - day*2 },
+          { id: 'demo-c1-i2', num: 2, title: 'Ajouter SSO Salesforce sur l\'admin', type: 'task', priority: 1, status: 'doing', estimate: 2, dueDate: '2026-04-30', sprintId: 'demo-s1', epicId: null, createdAt: now - day*5 },
+          { id: 'demo-c1-i3', num: 3, title: 'Bug : validation email côté serveur ignorée', type: 'bug', priority: 1, status: 'todo', estimate: 0.5, dueDate: '2026-04-28', sprintId: 'demo-s1', epicId: null, createdAt: now - day*3 },
+          { id: 'demo-c1-i4', num: 4, title: "Améliorer l'export CSV (encodage UTF-8 BOM)", type: 'task', priority: 3, status: 'todo', estimate: 0.25, sprintId: 'demo-s1', epicId: null, createdAt: now - day*3 },
+          { id: 'demo-c1-i5', num: 5, title: "Documenter le workflow d'onboarding", type: 'story', priority: 2, status: 'todo', estimate: 1, sprintId: 'demo-s2', epicId: null, createdAt: now - day*2 },
+          { id: 'demo-c1-i6', num: 6, title: 'Refactor du module de notifications', type: 'task', priority: 3, status: 'todo', estimate: 0.5, sprintId: null, epicId: 'demo-e1', createdAt: now - day*8 },
+          { id: 'demo-c1-i7', num: 7, title: 'Migration des comptes legacy vers v2', type: 'story', priority: 1, status: 'todo', estimate: 3, sprintId: 'demo-s2', epicId: 'demo-e2', createdAt: now - day*6 },
+          { id: 'demo-c1-i8', num: 8, title: 'Audit de perf : identifier les hot paths', type: 'task', priority: 2, status: 'todo', estimate: 0.5, sprintId: null, epicId: null, createdAt: now - day, description: '<p><strong>Objectif :</strong> identifier les 3 endpoints les plus lents.</p><ul><li>Activer logs de timing</li><li>Échantillon 24h prod</li><li>Top 3 et plan d\'attaque</li></ul>' },
+          { id: 'demo-c1-i9', num: 9, title: 'POC API webhook Stripe', type: 'task', priority: 2, status: 'done', estimate: 1, sprintId: null, epicId: null, createdAt: now - day*15, completedAt: now - day*7 },
+          { id: 'demo-c1-i10', num: 10, title: 'Item sans estimate (cas limite)', type: 'task', priority: 3, status: 'todo', sprintId: null, epicId: null, createdAt: now - day }
+        ]
+      },
+      {
+        id: 'demo-c2', name: 'Globex', key: 'GLB', color: '#36b37e', counter: 8,
+        epics: [
+          { id: 'demo-e3', name: 'Auth', color: '#e5493a' },
+          { id: 'demo-e4', name: 'API publique', color: '#4bade8' }
+        ],
+        sprints: [
+          { id: 'demo-s3', name: 'Sprint 4 — Migration', startDate: '2026-04-15', endDate: '2026-04-29', active: true, completed: false },
+          { id: 'demo-s4', name: 'Sprint 3 — Cadrage', startDate: '2026-03-15', endDate: '2026-03-29', active: false, completed: true }
+        ],
+        items: [
+          { id: 'demo-c2-i1', num: 1, title: 'Cadrage architecture cible', type: 'story', priority: 1, status: 'done', estimate: 2, sprintId: 'demo-s4', epicId: null, createdAt: now - day*40, completedAt: now - day*30 },
+          { id: 'demo-c2-i2', num: 2, title: 'Setup CI/CD GitHub Actions', type: 'task', priority: 2, status: 'done', estimate: 1, sprintId: 'demo-s4', epicId: null, createdAt: now - day*35, completedAt: now - day*25 },
+          { id: 'demo-c2-i3', num: 3, title: 'Implémenter OAuth 2.0', type: 'story', priority: 1, status: 'doing', estimate: 2.5, dueDate: '2026-04-29', sprintId: 'demo-s3', epicId: 'demo-e3', createdAt: now - day*8 },
+          { id: 'demo-c2-i4', num: 4, title: 'Endpoint /users/me', type: 'task', priority: 2, status: 'todo', estimate: 0.5, sprintId: 'demo-s3', epicId: 'demo-e4', createdAt: now - day*6 },
+          { id: 'demo-c2-i5', num: 5, title: 'Bug : tokens qui expirent trop vite', type: 'bug', priority: 1, status: 'todo', estimate: 0.5, dueDate: '2026-04-26', sprintId: 'demo-s3', epicId: 'demo-e3', createdAt: now - day*2 },
+          { id: 'demo-c2-i6', num: 6, title: 'Documenter API publique', type: 'task', priority: 3, status: 'todo', estimate: 1, sprintId: null, epicId: 'demo-e4', createdAt: now - day*4 },
+          { id: 'demo-c2-i7', num: 7, title: "Tests d'intégration end-to-end", type: 'task', priority: 2, status: 'todo', estimate: 1.5, sprintId: null, epicId: null, createdAt: now - day*3 },
+          { id: 'demo-c2-i8', num: 8, title: 'Old story livrée', type: 'story', priority: 2, status: 'done', estimate: 1, sprintId: null, epicId: null, createdAt: now - day*70, completedAt: now - day*60 }
+        ]
+      },
+      {
+        id: 'demo-c3', name: 'Initech', key: 'INI', color: '#8777d9', counter: 4,
+        epics: [
+          { id: 'demo-e5', name: 'Cadrage initial', color: '#e9a83a' }
+        ],
+        sprints: [
+          { id: 'demo-s5', name: 'Sprint 1 — Démarrage', startDate: '2026-05-01', endDate: '2026-05-15', active: false, completed: false }
+        ],
+        items: [
+          { id: 'demo-c3-i1', num: 1, title: 'Atelier de découverte client', type: 'task', priority: 1, status: 'todo', estimate: 0.5, dueDate: '2026-05-02', sprintId: null, epicId: 'demo-e5', createdAt: now - day },
+          { id: 'demo-c3-i2', num: 2, title: 'Cartographie SI existant', type: 'story', priority: 2, status: 'todo', estimate: 2, sprintId: null, epicId: 'demo-e5', createdAt: now - day },
+          { id: 'demo-c3-i3', num: 3, title: 'Identifier flux critiques', type: 'task', priority: 1, status: 'todo', estimate: 1, sprintId: null, epicId: 'demo-e5', createdAt: now - day },
+          { id: 'demo-c3-i4', num: 4, title: 'Rédiger spec technique v1', type: 'story', priority: 2, status: 'todo', estimate: 3, sprintId: null, epicId: null, createdAt: now }
+        ]
+      },
+      {
+        id: 'demo-c4', name: 'Hooli', key: 'HOO', color: '#ff8b00', counter: 3,
+        epics: [
+          { id: 'demo-e6', name: 'Performance', color: '#cd1f1f' }
+        ],
+        sprints: [],
+        items: [
+          { id: 'demo-c4-i1', num: 1, title: 'Optimiser temps de chargement dashboard', type: 'task', priority: 1, status: 'doing', estimate: 1, dueDate: '2026-04-30', sprintId: null, epicId: 'demo-e6', createdAt: now - day*4 },
+          { id: 'demo-c4-i2', num: 2, title: 'Bug : graphiques qui ne se rafraîchissent pas', type: 'bug', priority: 2, status: 'todo', estimate: 0.5, sprintId: null, epicId: null, createdAt: now - day*2 },
+          { id: 'demo-c4-i3', num: 3, title: 'Réduire taille du bundle JS', type: 'task', priority: 3, status: 'done', estimate: 0.5, sprintId: null, epicId: 'demo-e6', createdAt: now - day*10, completedAt: now - day*5 }
+        ]
+      }
+    ]
+  };
+}
 
 let state = {
   clients: [],
@@ -1857,6 +2002,7 @@ async function pushGist(payload) {
 }
 
 function scheduleGistPush() {
+  if (isTestMode()) return; // Mode test : aucune écriture distante
   if (!syncConfig.connected) return;
   if (_gistPushTimer) clearTimeout(_gistPushTimer);
   setSyncStatus('syncing', 'En attente…');
@@ -1871,6 +2017,7 @@ function scheduleGistPush() {
 
 // Push avant fermeture de page si push en attente
 window.addEventListener('beforeunload', () => {
+  if (isTestMode()) return; // Mode test : aucune écriture distante
   if (_gistPushTimer && syncConfig.connected) {
     try {
       fetch(`https://api.github.com/gists/${syncConfig.gistId}`, {
@@ -1895,6 +2042,15 @@ window.addEventListener('beforeunload', () => {
 
 async function loadState() {
   loadConfig();
+
+  // Mode test : on saute IndexedDB et Gist, on charge le seed démo en mémoire.
+  // Aucune persistance — refresh = jeu propre.
+  if (isTestMode()) {
+    const seed = buildDemoSeed();
+    state = { ...state, clients: seed.clients, activeClientId: seed.activeClientId };
+    setSyncStatus('local', 'Mode test');
+    return;
+  }
 
   // 1. Charger d'abord depuis IndexedDB (rapide)
   try {
@@ -1957,6 +2113,9 @@ async function loadState() {
 }
 
 async function saveState() {
+  // Mode test : no-op total. Les modifs restent en mémoire jusqu'au prochain
+  // refresh (qui rechargera le seed propre).
+  if (isTestMode()) return;
   // Debounce : évite d'écrire 10 fois pendant un cycle de render
   if (_saveTimer) clearTimeout(_saveTimer);
   updateSaveIndicator('saving');
@@ -1994,7 +2153,21 @@ function openSettingsModal() {
     document.getElementById('connectBtn').textContent = 'Connecter';
     document.getElementById('disconnectBtn').style.display = 'none';
   }
+  // Bouton mode test : libellé selon l'état
+  const tBtn = document.getElementById('testModeBtn');
+  if (tBtn) tBtn.textContent = isTestMode() ? 'Désactiver le mode test' : 'Activer le mode test';
   document.getElementById('settingsModal').classList.add('show');
+}
+
+function toggleTestMode() {
+  const enabling = !isTestMode();
+  if (enabling) {
+    if (!confirm("Activer le mode test ?\n\nTes vraies données restent intactes mais ce que tu fais en mode test n'est pas sauvegardé. Refresh = jeu de données démo propre.\n\nLa page va se recharger.")) return;
+    try { localStorage.setItem(TEST_MODE_KEY, '1'); } catch (e) {}
+  } else {
+    try { localStorage.removeItem(TEST_MODE_KEY); } catch (e) {}
+  }
+  location.reload();
 }
 
 function closeSettingsModal() {
@@ -2002,6 +2175,10 @@ function closeSettingsModal() {
 }
 
 async function connectGist() {
+  if (isTestMode()) {
+    showToast('⚠ Désactive le mode test avant de configurer la sync');
+    return;
+  }
   const token = document.getElementById('cfgToken').value.trim();
   const gistId = document.getElementById('cfgGistId').value.trim();
   const status = document.getElementById('settingsStatus');
@@ -3561,6 +3738,11 @@ function initSidebarResize() {
 // === INIT ===
 (async () => {
   loadSidebarWidth();
+  // Affiche le banner avant le load (au cas où loadState fail, le user voit qu'il est en mode test)
+  if (isTestMode()) {
+    const banner = document.getElementById('testModeBanner');
+    if (banner) banner.hidden = false;
+  }
   await loadState();
   render();
   initSidebarResize();
