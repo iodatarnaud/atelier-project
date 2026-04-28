@@ -479,6 +479,14 @@
     color: var(--primary);
   }
 
+  .backlog-row[draggable="true"] { cursor: grab; }
+  .backlog-row[draggable="true"]:active { cursor: grabbing; }
+  .backlog-row.dragging { opacity: 0.4; }
+  .backlog-section.drag-over {
+    box-shadow: inset 0 0 0 2px var(--primary);
+    background: var(--primary-soft);
+  }
+
   .drop-placeholder {
     height: 2px;
     background: var(--primary);
@@ -2090,6 +2098,7 @@ function renderBacklog(container, client) {
 
   container.innerHTML = html;
   attachInlineFormHandlers(client);
+  attachBacklogDragDrop();
 }
 
 function renderBacklogSection(section, client) {
@@ -2171,7 +2180,7 @@ function renderBacklogRow(item, client) {
   const epic = item.epicId ? client.epics.find(e => e.id === item.epicId) : null;
   const epicChip = epic ? `<span class="epic-chip" style="background:${epic.color}" title="${escapeHtml(epic.name)}">${escapeHtml(epic.name)}</span>` : '';
   return `
-    <div class="backlog-row ${item.status === 'done' ? 'done' : ''}" onclick="openItemDetail('${item.id}')">
+    <div class="backlog-row ${item.status === 'done' ? 'done' : ''}" draggable="true" data-id="${item.id}" onclick="openItemDetail('${item.id}')">
       <span class="type-ico type-${item.type}" title="${TYPE_LABELS[item.type]}">${TYPE_LETTERS[item.type]}</span>
       <span class="prio-ico prio-${item.priority}" title="P${item.priority}">${item.priority === 1 ? '↑' : item.priority === 2 ? '=' : '↓'}</span>
       <span class="row-key">${escapeHtml(key)}</span>
@@ -2573,6 +2582,86 @@ function attachDragDrop() {
       if (newStatus === 'done') item.completedAt = Date.now();
       await saveState();
       render();
+    });
+  });
+}
+
+// === DRAG & DROP (BACKLOG) ===
+function attachBacklogDragDrop() {
+  const container = document.getElementById('viewContent');
+  if (!container) return;
+
+  container.querySelectorAll('.backlog-row[draggable="true"]').forEach(row => {
+    row.addEventListener('dragstart', (e) => {
+      dragItemId = row.dataset.id;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', dragItemId);
+    });
+
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      dragItemId = null;
+      document.querySelectorAll('.backlog-section').forEach(s => s.classList.remove('drag-over'));
+      dragJustHappened = true;
+      setTimeout(() => { dragJustHappened = false; }, 100);
+    });
+
+    row.addEventListener('click', (e) => {
+      if (dragJustHappened) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }, true);
+  });
+
+  container.querySelectorAll('.backlog-section').forEach(section => {
+    section.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      section.classList.add('drag-over');
+    });
+
+    section.addEventListener('dragleave', (e) => {
+      if (!section.contains(e.relatedTarget)) {
+        section.classList.remove('drag-over');
+      }
+    });
+
+    section.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      section.classList.remove('drag-over');
+      const itemId = e.dataTransfer.getData('text/plain') || dragItemId;
+      if (!itemId) return;
+
+      const client = getActiveClient();
+      const item = client.items.find(i => i.id === itemId);
+      if (!item) return;
+
+      const sectionId = section.dataset.section;
+      let changed = false;
+
+      if (state.groupBy === 'epic') {
+        // Mode Epic : drop modifie epicId
+        const newEpicId = (sectionId === 'e-none' || !sectionId.startsWith('e-')) ? null : sectionId.slice(2);
+        if (item.epicId !== newEpicId) { item.epicId = newEpicId; changed = true; }
+      } else {
+        // Mode Sprint : drop modifie sprintId
+        let newSprintId = null;
+        if (sectionId === 'sprint-active') {
+          const active = client.sprints.find(s => s.active);
+          newSprintId = active ? active.id : null;
+        } else if (sectionId.startsWith('s-')) {
+          newSprintId = sectionId.slice(2);
+        }
+        if (item.sprintId !== newSprintId) { item.sprintId = newSprintId; changed = true; }
+      }
+
+      if (changed) {
+        await saveState();
+        render();
+      }
     });
   });
 }
