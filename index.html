@@ -321,6 +321,38 @@
     font-weight: 500;
   }
 
+  .side-item-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+    gap: 2px;
+  }
+  .side-item-text > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .side-stats {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    font-size: 10px;
+    color: var(--text-faint);
+    font-weight: 500;
+  }
+  .side-stat {
+    background: var(--status-todo-bg);
+    color: var(--status-todo-fg);
+    padding: 1px 5px;
+    border-radius: 8px;
+    min-width: 16px;
+    text-align: center;
+    font-weight: 600;
+  }
+  .side-stat.progress { background: var(--status-progress-bg); color: var(--status-progress-fg); }
+  .side-stat.done { background: var(--status-done-bg); color: var(--status-done-fg); }
+
   .side-item.active .count {
     background: var(--bg-app);
     color: var(--primary);
@@ -2053,14 +2085,26 @@ function renderSidebar() {
   // Clients
   const list = document.getElementById('clientList');
   list.innerHTML = state.clients.map(c => {
-    const open = c.items.filter(i => i.status !== 'done').length;
+    const todo = c.items.filter(i => i.status === 'todo').length;
+    const progress = c.items.filter(i => i.status === 'progress').length;
+    const done = c.items.filter(i => i.status === 'done').length;
+    const open = todo + progress;
+    const days = c.items.filter(i => i.status !== 'done').reduce((a, i) => a + (parseFloat(i.estimate) || 0), 0);
     const initial = (c.key || c.name.substring(0,2)).substring(0,2).toUpperCase();
     const colors = ['#0052cc', '#36b37e', '#8777d9', '#ff8b00', '#e5493a', '#4bade8'];
     const color = c.color || colors[state.clients.indexOf(c) % colors.length];
     return `
       <div class="side-item ${c.id === state.activeClientId ? 'active' : ''}" data-client-id="${c.id}" onclick="switchClient('${c.id}')">
         <div class="ico" style="background:${color}">${escapeHtml(initial)}</div>
-        <span>${escapeHtml(c.name)}</span>
+        <div class="side-item-text">
+          <span>${escapeHtml(c.name)}</span>
+          <div class="side-stats" title="À faire / En cours / Terminés · jours estimés">
+            <span class="side-stat" title="À faire">${todo}</span>
+            <span class="side-stat progress" title="En cours">${progress}</span>
+            <span class="side-stat done" title="Terminés">${done}</span>
+            <span>· ${days.toFixed(1)}j</span>
+          </div>
+        </div>
         <span class="count">${open}</span>
         <button class="side-action menu" onclick="event.stopPropagation();clientActionMenu(this, '${c.id}')" title="Options">⋯</button>
       </div>
