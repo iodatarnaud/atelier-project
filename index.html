@@ -2654,6 +2654,28 @@ function quickAdd() {
 let dragItemId = null;
 let dragJustHappened = false;
 
+function findInsertTarget(container, clientY, cardSelector) {
+  const cards = [...container.querySelectorAll(cardSelector)].filter(c => !c.classList.contains('dragging'));
+  for (const card of cards) {
+    const r = card.getBoundingClientRect();
+    if (clientY < r.top + r.height / 2) return { targetId: card.dataset.id, after: false };
+  }
+  if (cards.length > 0) return { targetId: cards[cards.length - 1].dataset.id, after: true };
+  return null;
+}
+
+function reorderInItems(arr, itemId, target) {
+  const fromIdx = arr.findIndex(i => i.id === itemId);
+  if (fromIdx === -1) return false;
+  const [moved] = arr.splice(fromIdx, 1);
+  if (!target) { arr.push(moved); return true; }
+  let toIdx = arr.findIndex(i => i.id === target.targetId);
+  if (toIdx === -1) { arr.push(moved); return true; }
+  if (target.after) toIdx++;
+  arr.splice(toIdx, 0, moved);
+  return true;
+}
+
 function attachDragDrop() {
   const board = document.getElementById('kanbanBoard');
   if (!board) return;
@@ -2709,12 +2731,20 @@ function attachDragDrop() {
 
       const client = getActiveClient();
       const item = client.items.find(i => i.id === itemId);
-      if (!item || item.status === newStatus) return;
+      if (!item) return;
 
-      item.status = newStatus;
-      if (newStatus === 'done') item.completedAt = Date.now();
-      await saveState();
-      render();
+      let changed = false;
+      if (item.status !== newStatus) {
+        item.status = newStatus;
+        if (newStatus === 'done') item.completedAt = Date.now();
+        changed = true;
+      }
+      const target = findInsertTarget(col, e.clientY, '.card[draggable="true"]');
+      if (target && target.targetId !== itemId) {
+        reorderInItems(client.items, itemId, target);
+        changed = true;
+      }
+      if (changed) { await saveState(); render(); }
     });
   });
 }
@@ -2824,6 +2854,12 @@ function attachBacklogDragDrop() {
           newSprintId = sectionId.slice(2);
         }
         if (item.sprintId !== newSprintId) { item.sprintId = newSprintId; changed = true; }
+      }
+
+      const target = findInsertTarget(section, e.clientY, '.backlog-row[draggable="true"]');
+      if (target && target.targetId !== itemId) {
+        reorderInItems(client.items, itemId, target);
+        changed = true;
       }
 
       if (changed) {
