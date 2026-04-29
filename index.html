@@ -1481,7 +1481,7 @@
     <div class="logo">
       <div class="logo-mark">A</div>
       Atelier
-      <span class="version">v0.13.3</span>
+      <span class="version">v0.13.4</span>
     </div>
     <div class="topbar-search">
       <input type="text" id="searchInput" placeholder="Rechercher un item…">
@@ -1947,6 +1947,184 @@ function setSyncStatus(status, label) {
   lbl.textContent = label;
 }
 
+// === VALIDATION (normalisation des données externes) ===
+//
+// Tout state qui arrive d'une source externe (import JSON, premier pull Gist)
+// passe par normalizeImportedState() avant d'atterrir dans `state.clients`.
+// On reconstruit des objets propres champ par champ : ça neutralise les
+// payloads XSS qui s'appuieraient sur les ids/colors/types interpolés tels
+// quels dans des onclick="...${id}..." ou style="background:${color}", et ça
+// coupe net les pollutions de prototype (__proto__, constructor) puisqu'on
+// ne lit que les clés explicitement whitelistées.
+//
+// Politique : champ critique (id, title) invalide → on rejette l'entité ;
+// énum / cosmétique invalide → on retombe sur un défaut sûr.
+
+const ID_PATTERN = /^[a-z0-9_-]{1,64}$/i;
+const KEY_PATTERN = /^[A-Z0-9]{1,10}$/;
+const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const TYPE_VALUES = new Set(['story', 'task', 'bug']);
+const STATUS_VALUES = new Set(['todo', 'doing', 'done']);
+const PRIORITY_VALUES = new Set([1, 2, 3]);
+const MAX_CLIENTS = 100;
+const MAX_ITEMS_PER_CLIENT = 1000;
+const MAX_SPRINTS_PER_CLIENT = 200;
+const MAX_EPICS_PER_CLIENT = 200;
+const MAX_DESCRIPTION_LEN = 50000;
+const DEFAULT_EPIC_COLOR = '#0052cc';
+
+function _clampString(v, min, max) {
+  if (typeof v !== 'string') return '';
+  const trimmed = v.length > max ? v.substring(0, max) : v;
+  return trimmed.length < min ? '' : trimmed;
+}
+
+function _clampInt(v, min, max, fallback) {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return fallback;
+  const n = Math.trunc(v);
+  return (n < min || n > max) ? fallback : n;
+}
+
+function _clampNumber(v, min, max, fallback) {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return fallback;
+  return (v < min || v > max) ? fallback : v;
+}
+
+function _normalizeSprint(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  if (typeof raw.id !== 'string' || !ID_PATTERN.test(raw.id)) return null;
+  const name = _clampString(raw.name, 1, 100);
+  if (!name) return null;
+  return {
+    id: raw.id,
+    name,
+    startDate: (typeof raw.startDate === 'string' && ISO_DATE_PATTERN.test(raw.startDate)) ? raw.startDate : null,
+    endDate: (typeof raw.endDate === 'string' && ISO_DATE_PATTERN.test(raw.endDate)) ? raw.endDate : null,
+    active: raw.active === true,
+    completed: raw.completed === true
+  };
+}
+
+function _normalizeEpic(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  if (typeof raw.id !== 'string' || !ID_PATTERN.test(raw.id)) return null;
+  const name = _clampString(raw.name, 1, 100);
+  if (!name) return null;
+  return {
+    id: raw.id,
+    name,
+    color: (typeof raw.color === 'string' && HEX_COLOR_PATTERN.test(raw.color)) ? raw.color : DEFAULT_EPIC_COLOR
+  };
+}
+
+function _normalizeItem(raw, validSprintIds, validEpicIds) {
+  if (!raw || typeof raw !== 'object') return null;
+  if (typeof raw.id !== 'string' || !ID_PATTERN.test(raw.id)) return null;
+  const title = _clampString(raw.title, 1, 300);
+  if (!title) return null;
+  const result = {
+    id: raw.id,
+    num: _clampInt(raw.num, 1, Number.MAX_SAFE_INTEGER, 1),
+    title,
+    type: TYPE_VALUES.has(raw.type) ? raw.type : 'task',
+    priority: PRIORITY_VALUES.has(raw.priority) ? raw.priority : 2,
+    estimate: _clampNumber(raw.estimate, 0, 1000, 0),
+    status: STATUS_VALUES.has(raw.status) ? raw.status : 'todo',
+    sprintId: (typeof raw.sprintId === 'string' && ID_PATTERN.test(raw.sprintId) && validSprintIds.has(raw.sprintId)) ? raw.sprintId : null,
+    epicId: (typeof raw.epicId === 'string' && ID_PATTERN.test(raw.epicId) && validEpicIds.has(raw.epicId)) ? raw.epicId : null,
+    createdAt: _clampInt(raw.createdAt, 0, Number.MAX_SAFE_INTEGER, Date.now()),
+    dueDate: (typeof raw.dueDate === 'string' && ISO_DATE_PATTERN.test(raw.dueDate)) ? raw.dueDate : null,
+    description: _clampString(raw.description, 0, MAX_DESCRIPTION_LEN)
+  };
+  if (typeof raw.completedAt === 'number' && Number.isFinite(raw.completedAt) && raw.completedAt >= 0) {
+    result.completedAt = Math.trunc(raw.completedAt);
+  }
+  return result;
+}
+
+function _normalizeClient(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  if (typeof raw.id !== 'string' || !ID_PATTERN.test(raw.id)) return null;
+  const name = _clampString(raw.name, 1, 200);
+  if (!name) return null;
+
+  const sprints = [];
+  const seenSprintIds = new Set();
+  if (Array.isArray(raw.sprints)) {
+    for (const rs of raw.sprints.slice(0, MAX_SPRINTS_PER_CLIENT)) {
+      const sprint = _normalizeSprint(rs);
+      if (!sprint || seenSprintIds.has(sprint.id)) continue;
+      seenSprintIds.add(sprint.id);
+      sprints.push(sprint);
+    }
+  }
+
+  const epics = [];
+  const seenEpicIds = new Set();
+  if (Array.isArray(raw.epics)) {
+    for (const re of raw.epics.slice(0, MAX_EPICS_PER_CLIENT)) {
+      const epic = _normalizeEpic(re);
+      if (!epic || seenEpicIds.has(epic.id)) continue;
+      seenEpicIds.add(epic.id);
+      epics.push(epic);
+    }
+  }
+
+  const items = [];
+  const seenItemIds = new Set();
+  if (Array.isArray(raw.items)) {
+    for (const ri of raw.items.slice(0, MAX_ITEMS_PER_CLIENT)) {
+      const item = _normalizeItem(ri, seenSprintIds, seenEpicIds);
+      if (!item || seenItemIds.has(item.id)) continue;
+      seenItemIds.add(item.id);
+      items.push(item);
+    }
+  }
+
+  const maxItemNum = items.reduce((m, i) => Math.max(m, i.num || 0), 0);
+  const result = {
+    id: raw.id,
+    name,
+    key: (typeof raw.key === 'string' && KEY_PATTERN.test(raw.key)) ? raw.key : 'PRJ',
+    counter: _clampInt(raw.counter, 0, Number.MAX_SAFE_INTEGER, maxItemNum),
+    items,
+    sprints,
+    epics
+  };
+  if (typeof raw.color === 'string' && HEX_COLOR_PATTERN.test(raw.color)) {
+    result.color = raw.color;
+  }
+  return result;
+}
+
+// Retourne null si raw n'a pas la forme racine attendue. Sinon retourne
+// { clients, activeClientId, lastSavedAt } strictement reconstruit.
+function normalizeImportedState(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  if (!Array.isArray(raw.clients)) return null;
+
+  const clients = [];
+  const seenClientIds = new Set();
+  for (const rc of raw.clients.slice(0, MAX_CLIENTS)) {
+    const client = _normalizeClient(rc);
+    if (!client || seenClientIds.has(client.id)) continue;
+    seenClientIds.add(client.id);
+    clients.push(client);
+  }
+
+  const activeClientId =
+    (typeof raw.activeClientId === 'string' && ID_PATTERN.test(raw.activeClientId) && seenClientIds.has(raw.activeClientId))
+      ? raw.activeClientId
+      : (clients[0]?.id || null);
+
+  // Borne lastSavedAt à [0, now+1j] pour qu'un attaquant ne puisse pas forcer
+  // l'écrasement du local en mettant un timestamp astronomique.
+  const lastSavedAt = _clampInt(raw.lastSavedAt, 0, Date.now() + 86400000, 0);
+
+  return { clients, activeClientId, lastSavedAt };
+}
+
 async function fetchGist() {
   if (!syncConfig.token || !syncConfig.gistId) return null;
   const res = await fetch(`https://api.github.com/gists/${syncConfig.gistId}`, {
@@ -1965,7 +2143,9 @@ async function fetchGist() {
   if (!file || !file.content) return null;
   const trimmed = file.content.trim();
   if (!trimmed || trimmed === '{}') return null;
-  return JSON.parse(file.content);
+  // Toute donnée provenant du Gist est traitée comme non-fiable : un Gist peut
+  // avoir été modifié hors de l'app (web GitHub, machine compromise, etc.).
+  return normalizeImportedState(JSON.parse(file.content));
 }
 
 async function pushGist(payload) {
@@ -2052,11 +2232,38 @@ async function loadState() {
     return;
   }
 
-  // 1. Charger d'abord depuis IndexedDB (rapide)
+  // 1. Charger d'abord depuis IndexedDB (rapide).
+  //    Même la donnée locale est traitée comme non-fiable : elle peut avoir
+  //    été écrite par une version pré-validation, ou par une intervention
+  //    directe (DevTools, extension, XSS résiduelle). On passe par
+  //    normalizeImportedState et on RÉÉCRIT le stockage avec la version
+  //    nettoyée — comme ça les anciens payloads ne sont pas seulement filtrés
+  //    au boot courant, ils sont purgés définitivement de IndexedDB.
   try {
     const data = await dbGet(STORAGE_KEY);
     if (data && data.clients) {
-      state = { ...state, ...data };
+      const normalized = normalizeImportedState(data);
+      if (normalized) {
+        state = {
+          ...state,
+          clients: normalized.clients,
+          activeClientId: normalized.activeClientId
+        };
+        await dbSet(STORAGE_KEY, {
+          clients: normalized.clients,
+          activeClientId: normalized.activeClientId,
+          lastSavedAt: normalized.lastSavedAt || Date.now()
+        });
+      } else {
+        // Donnée locale tellement cassée qu'on ne peut rien en sauver.
+        // Plutôt que rendre l'app avec des champs corrompus, on repart propre.
+        console.warn('Local state rejected by schema validation — resetting to empty');
+        await dbSet(STORAGE_KEY, {
+          clients: [],
+          activeClientId: null,
+          lastSavedAt: Date.now()
+        });
+      }
     }
   } catch (e) {
     console.warn('Load failed:', e);
@@ -2322,14 +2529,14 @@ function triggerImport() {
     if (!file) return;
     try {
       const text = await file.text();
-      const data = JSON.parse(text);
-      if (!data.clients || !Array.isArray(data.clients)) {
+      const normalized = normalizeImportedState(JSON.parse(text));
+      if (!normalized) {
         showToast('⚠ Fichier invalide');
         return;
       }
-      if (!confirm(`Importer ${data.clients.length} projet(s) et écraser les données actuelles ?`)) return;
-      state.clients = data.clients;
-      state.activeClientId = data.activeClientId || data.clients[0]?.id;
+      if (!confirm(`Importer ${normalized.clients.length} projet(s) et écraser les données actuelles ?`)) return;
+      state.clients = normalized.clients;
+      state.activeClientId = normalized.activeClientId;
       await saveState();
       render();
       showToast('✓ Données importées');
