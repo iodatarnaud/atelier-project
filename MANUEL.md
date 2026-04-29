@@ -8,15 +8,16 @@ Atelier est une application web mono-utilisateur pour gérer un backlog et des s
 2. [Concepts](#concepts)
 3. [Vues](#vues)
 4. [Créer et gérer des items](#créer-et-gérer-des-items)
-5. [Sprints](#sprints)
-6. [Epics](#epics)
-7. [Filtres et recherche](#filtres-et-recherche)
-8. [Glisser-déposer](#glisser-déposer)
-9. [Synchronisation entre machines](#synchronisation-entre-machines)
-10. [Mode test (bac à sable)](#mode-test-bac-à-sable)
-11. [Sauvegarde manuelle (export / import)](#sauvegarde-manuelle-export--import)
-12. [Raccourcis clavier](#raccourcis-clavier)
-13. [Astuces](#astuces)
+5. [Activité du WI (commentaires + historique)](#activité-du-wi-commentaires--historique)
+6. [Sprints](#sprints)
+7. [Epics](#epics)
+8. [Filtres et recherche](#filtres-et-recherche)
+9. [Glisser-déposer](#glisser-déposer)
+10. [Synchronisation entre machines](#synchronisation-entre-machines)
+11. [Mode test (bac à sable)](#mode-test-bac-à-sable)
+12. [Sauvegarde manuelle (export / import)](#sauvegarde-manuelle-export--import)
+13. [Raccourcis clavier](#raccourcis-clavier)
+14. [Astuces](#astuces)
 
 ---
 
@@ -58,18 +59,44 @@ Le breadcrumb en haut indique le projet actif et la vue. Le titre de la vue est 
 
 ### Modifier / archiver / supprimer un item
 
-Cliquer sur la ligne d'un item ouvre la modale de détail :
+Cliquer sur la ligne d'un item ouvre la modale de détail. Deux onglets :
+
+**Détails** (par défaut) :
 - Titre, type, priorité, statut, estimation, date d'échéance
 - **Sprint** : assigner / retirer d'un sprint
 - **Epic** : assigner / retirer d'un epic
 - **Description** : éditeur rich text (gras, italique, listes)
 - Bouton **Supprimer** en pied de modale
 
+**Activité** : commentaires + historique des changes du WI. Voir [Activité du WI](#activité-du-wi-commentaires--historique).
+
 Le badge de statut (à gauche du titre dans la liste) est cliquable pour cycler `À faire → En cours → Terminé → À faire`.
 
 ### Description rich text
 
 L'éditeur supporte gras (`Ctrl+B`), italique (`Ctrl+I`), listes à puces et numérotées via la barre d'outils. Tout est sauvegardé en HTML.
+
+## Activité du WI (commentaires + historique)
+
+Chaque item a un onglet **Activité** dans la modale détail (à côté de l'onglet **Détails**). Il rassemble deux choses :
+
+### Commentaires
+
+- Champ de saisie en haut de l'onglet : tape ton message, clique **Commenter**.
+- Texte brut (les sauts de ligne sont préservés). Pas de markdown, mais les URLs `http(s)://` sont auto-cliquables (ouverture dans un nouvel onglet).
+- Limite : 2000 caractères par commentaire.
+- **Modifier** un commentaire posté → édition inline. Une mention `· modifié` apparaît à côté de la date.
+- **Supprimer** un commentaire → confirmation puis le commentaire devient un slot grisé *"Commentaire supprimé le …"* dans la timeline. La trace reste pour ne pas créer de trous dans l'historique.
+
+### Timeline des changes
+
+Chaque modification d'un champ tracké de l'item génère automatiquement un event dans la timeline (chrono inverse, le plus récent en haut). Les champs trackés sont :
+
+- Titre, type, statut, priorité, estimation, échéance, sprint, epic.
+
+Affichage type : *"Statut : À faire → En cours"*, *"Sprint : aucun → Sprint 3"*. Toutes les actions utilisateur sont couvertes : édition via la modale, drag & drop entre colonnes du board ou entre sprints, cycle du badge de statut, clôture d'un sprint, suppression d'un sprint/epic. Modifier la **description** ne génère **aucun event** (volontairement : trop verbeux).
+
+L'historique vit avec l'item : il est synchronisé via le Gist comme le reste, avec la même politique *last-write-wins*. Les items créés avant cette feature ont une timeline vide qui se remplit au fur et à mesure des modifications.
 
 ## Sprints
 
