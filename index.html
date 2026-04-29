@@ -1070,7 +1070,7 @@
   .modal-body {
     padding: 20px 24px;
     display: grid;
-    grid-template-columns: 1fr 220px;
+    grid-template-columns: minmax(0, 1fr) 220px;
     gap: 24px;
   }
 
@@ -1159,9 +1159,12 @@
   .rich-toolbar button:hover { background: var(--bg-hover); border-color: var(--border-strong); }
 
   .rich-editor {
+    width: 100%;
+    box-sizing: border-box;
     min-height: 110px;
     max-height: 300px;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 10px;
     border: 1px solid var(--border);
     border-radius: 0 0 3px 3px;
@@ -1170,6 +1173,7 @@
     color: var(--text);
     outline: none;
     resize: vertical;
+    overflow-wrap: anywhere;
   }
 
   .rich-editor:focus {
