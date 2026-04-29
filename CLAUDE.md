@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Active orchestration protocol** — If `ai-system/AI_SYSTEM.md` exists and a WI file is referenced in the user prompt or active branch (`work-items/WI-<NNN>.md`), follow the multi-agent execution contract defined there. Read `ai-system/CLAUDE_BOOTSTRAP.md` as entry point before any action. The protocol overrides ad-hoc workflow described below for any active WI. Repo entry point: `00_AI.md`.
+
 ## Projet
 
 Atelier — SPA mono-utilisateur de gestion de backlog/sprints pour un consultant Salesforce gérant plusieurs clients. UI en français. Pas de backend ni d'étape de build pour l'app elle-même. Hébergé sur GitHub Pages, données persistées dans un Gist GitHub privé.
