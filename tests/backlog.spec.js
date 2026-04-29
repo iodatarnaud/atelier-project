@@ -99,6 +99,65 @@ test.describe('Backlog — CRUD items', () => {
     const modalOverflows = await page.locator('#itemModal .modal').evaluate((el) => el.scrollWidth > el.clientWidth);
     expect(modalOverflows).toBe(false);
   });
+
+  test('ATE-18 : footer modale détail item reste visible (sticky) avec contenu long', async ({ page }) => {
+    // Viewport réduit pour forcer le débordement de la modale.
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await createItemInline(page, { title: 'Sticky footer check' });
+    await openItemDetailByTitle(page, 'Sticky footer check');
+
+    // Injecte un contenu de description très long pour forcer la modale à scroller.
+    const longDesc = Array(50).fill('<p>Ligne de description pour forcer le scroll vertical.</p>').join('');
+    await page.locator('#ed_desc').evaluate((el, html) => { el.innerHTML = html; }, longDesc);
+
+    // Vérifie que la modale déborde réellement (pré-condition du test, évite
+    // un faux positif si jamais le contenu ne suffisait plus à déclencher le scroll).
+    const overflows = await page.locator('#itemModal .modal').evaluate((el) => el.scrollHeight > el.clientHeight);
+    expect(overflows).toBe(true);
+
+    // Le footer (avec Enregistrer/Annuler/Supprimer) doit rester dans la viewport.
+    const footer = page.locator('#itemModal .modal-actions');
+    await expect(footer).toBeInViewport();
+    await expect(footer.locator('.btn-primary', { hasText: 'Enregistrer' })).toBeInViewport();
+  });
+
+  test('ATE-18 : footer modale Nouveau Sprint visible d\'emblée', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 500 });
+    await page.locator('button[title="Nouveau sprint"]').click();
+    await expect(page.locator('#sprintModal')).toHaveClass(/show/);
+    const footer = page.locator('#sprintModal .modal-actions');
+    await expect(footer).toBeInViewport();
+  });
+
+  test('ATE-18 : footer modale de confirmation visible d\'emblée', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 500 });
+    await createItemInline(page, { title: 'À confirmer' });
+    const row = page.locator('.backlog-row', { hasText: 'À confirmer' });
+    await row.hover();
+    await row.locator('.row-action').click({ force: true });
+    await expect(page.locator('#confirmModal')).toHaveClass(/show/);
+    const footer = page.locator('#confirmModal .modal-actions');
+    await expect(footer).toBeInViewport();
+    await expect(page.locator('#confirmOk')).toBeInViewport();
+  });
+
+  test('ATE-18 anti-régression Settings : seul le DERNIER .modal-actions est sticky (pas le bouton mode test du milieu)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await page.locator('#syncIndicator').click();
+    await expect(page.locator('#settingsModal')).toHaveClass(/show/);
+
+    // Vérifie que le CSS sticky n'est appliqué qu'au dernier .modal-actions.
+    const stickyStates = await page.locator('#settingsModal .modal-actions').evaluateAll((els) =>
+      els.map(el => getComputedStyle(el).position)
+    );
+    // 2+ blocs .modal-actions, dont seul le dernier doit être 'sticky'.
+    expect(stickyStates.length).toBeGreaterThanOrEqual(2);
+    expect(stickyStates[stickyStates.length - 1]).toBe('sticky');
+    // Tous les autres doivent être 'static' (pas sticky).
+    for (let i = 0; i < stickyStates.length - 1; i++) {
+      expect(stickyStates[i]).not.toBe('sticky');
+    }
+  });
 });
 
 test.describe('Backlog — filtres et recherche', () => {

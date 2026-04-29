@@ -1217,6 +1217,19 @@
     margin-top: 8px;
   }
 
+  /* Footer sticky : seul le dernier .modal-actions enfant direct du
+     .modal-body devient sticky pour qu'il reste visible quand le contenu
+     déborde la viewport. Sélecteur ciblé pour ne pas affecter les
+     .modal-actions intermédiaires (cas Settings : bouton "Activer le mode
+     test" qui ne doit PAS flotter). Le scroll container est .modal qui a
+     déjà overflow-y: auto. */
+  .modal-body > .modal-actions:last-child {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-app);
+    z-index: 1;
+  }
+
   /* === TABS === */
   .tabs {
     display: flex;
