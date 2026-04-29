@@ -10,7 +10,7 @@ Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fic
 - Items typés (Build / TMA / Bug), priorisés (P1 / P2 / P3), avec estimations en jours, dates d'échéance et description rich text
 - **Activité par item** : commentaires datés (édition / suppression avec trace) + timeline historique des changes (statut, sprint, priorité, etc.) trackés automatiquement
 - Epics colorés (CRUD, filtrage, assignement)
-- Vues **Backlog**, **Sprint actif** (kanban) et **Archive**
+- Vues **Backlog**, **Sprint actif** (kanban), **Archive** et **Calendrier** (mensuel multi-projets avec section "En retard", filtres projet/type/prio/epic, et drag & drop pour replanifier la `dueDate` en 1 geste)
 - Sprints avec lifecycle (future → actif → terminé), suppression sécurisée
 - Drag & drop : items entre sprints, depuis la sidebar, et réordonnement manuel
 - Filtres (type, priorité, epic), recherche plein-texte, groupement par sprint ou par epic
@@ -27,7 +27,7 @@ Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fic
 - Aucune dépendance runtime (juste la police Inter via CDN)
 - IndexedDB pour le cache local, fallback `localStorage`
 - API REST GitHub pour la synchronisation Gist (optionnelle)
-- Playwright pour les tests end-to-end (84 tests répartis sur 9 fichiers, dont sécurité XSS, activité et raccourcis)
+- Playwright pour les tests end-to-end (118 tests répartis sur 11 fichiers, dont sécurité XSS, activité, calendrier et raccourcis)
 
 ## Lancer en local
 
@@ -47,12 +47,12 @@ Suite end-to-end Playwright qui valide les fonctionnalités principales avant ch
 ```bash
 npm install
 npx playwright install     # installe Chromium headless (une seule fois)
-npm test                   # 84 tests, ~80s
+npm test                   # 118 tests, ~2min
 npm run test:headed        # voir le navigateur pendant les tests
 npm run test:ui            # mode interactif avec replay
 ```
 
-Les specs vivent dans [`tests/`](tests/), un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`, `security`, `activite`.
+Les specs vivent dans [`tests/`](tests/), un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`, `security`, `activite`, `calendrier`, `calendrier-dnd`.
 
 ## Documentation
 

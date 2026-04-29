@@ -4,7 +4,7 @@ Plan de validation manuel pour vérifier que l'app fonctionne de bout en bout av
 
 ## Setup
 
-1. `npm test` doit passer (84/84 verts).
+1. `npm test` doit passer (118/118 verts).
 2. Ouvrir l'app via Live Server (`http://localhost:5500/`) ou la version déployée.
 3. Recommandé : activer le **mode test** dès le départ (modale Paramètres → 🧪 Mode test → Activer). Le seed démo charge 4 projets / 25+ items, parfait pour tester sans rien casser.
 
@@ -109,6 +109,26 @@ Cocher au fur et à mesure ; le plan est conçu pour être linéaire (les sectio
 - [ ] **10.7** Tenter de configurer la sync Gist → toast "Désactive le mode test d'abord".
 - [ ] **10.8** Désactiver le mode test (banner ou modale) → reload → banner disparu, vraies données intactes.
 
+## 10-ter. Vue Calendrier (multi-projets + drag & drop)
+
+- [ ] **10c.1** Cliquer sur **📅 Calendrier** dans la nav sidebar → vue mensuelle s'affiche, mois courant en titre, today highlighted.
+- [ ] **10c.2** Navigation mois précédent / suivant / "Aujourd'hui" met à jour le titre + les cellules.
+- [ ] **10c.3** Items avec `dueDate` apparaissent dans la cellule du jour. Items sans `dueDate` apparaissent dans la section "Non planifiés" en bas.
+- [ ] **10c.4** Items overdue + non terminés apparaissent dans la section "⚠ En retard" en haut. Items terminés (`done`) ne sont **jamais** dans le calendrier (la vue est une charge à venir).
+- [ ] **10c.5** Filtres (projet / type / prio / epic) fonctionnent et se combinent. Le filtre Epic est désactivé en mode "Tous projets".
+- [ ] **10c.6** Cellule avec > 3 items affiche "+N autres" cliquable pour expand.
+- [ ] **10c.7** Section "Non planifiés" repliable (preview 10 + bouton "Afficher tout").
+- [ ] **10c.8** Click sur un item : modale détail s'ouvre, vue reste sur Calendrier après fermeture.
+- [ ] **10c.9** (D&D) Drag un item d'une cellule vers une autre : `dueDate` mise à jour, item se déplace visuellement.
+- [ ] **10c.10** (D&D) Drag depuis "Non planifiés" vers une cellule : item planifié.
+- [ ] **10c.11** (D&D) Drag depuis une cellule vers "Non planifiés" : item dé-planifié (`dueDate = null`).
+- [ ] **10c.12** (D&D) Drag depuis "En retard" vers une cellule future : item replanifié.
+- [ ] **10c.13** (D&D) Drop sur une cellule grisée du mois adjacent ou sur la section "En retard" : drop ignoré, aucune modif.
+- [ ] **10c.14** (D&D) Click sur un item juste après un drop ne ré-ouvre PAS la modale (pattern anti-click post-drag).
+- [ ] **10c.15** (D&D) Drop sur la même cellule = no-op (pas d'event d'activité parasite).
+- [ ] **10c.16** (D&D multi-projets) Drag un item du projet A vers une cellule en mode "Tous projets" alors que projet B est actif : l'item reste dans projet A, seule sa `dueDate` change.
+- [ ] **10c.17** (Tracking) Chaque change de `dueDate` via D&D génère un event dans la timeline d'activité de l'item (visible dans l'onglet Activité).
+
 ## 10-bis. Activité du WI (commentaires + historique)
 
 - [ ] **10b.1** Ouvrir un item → la modale détail a 2 onglets : **Détails** (actif) et **Activité**.
@@ -166,7 +186,7 @@ Cocher au fur et à mesure ; le plan est conçu pour être linéaire (les sectio
 
 ## Validation finale
 
-- [ ] **Tests automatiques** : `npm test` → 84 passed.
+- [ ] **Tests automatiques** : `npm test` → 118 passed.
 - [ ] **Console JS** : pas d'erreur ni warning suspect.
 - [ ] **Network** : si Gist actif, requêtes `api.github.com` propres (200/304). Si Local ou Mode test, **aucun** call sortant.
 

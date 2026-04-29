@@ -13,6 +13,7 @@ Atelier est une application web mono-utilisateur pour gérer un backlog et des s
 7. [Epics](#epics)
 8. [Filtres et recherche](#filtres-et-recherche)
 9. [Glisser-déposer](#glisser-déposer)
+10. [Vue Calendrier](#vue-calendrier)
 10. [Synchronisation entre machines](#synchronisation-entre-machines)
 11. [Mode test (bac à sable)](#mode-test-bac-à-sable)
 12. [Sauvegarde manuelle (export / import)](#sauvegarde-manuelle-export--import)
@@ -163,8 +164,40 @@ Les filtres se combinent (intersection). Pour tout retirer, cliquer sur les chip
 
 - **Vue Backlog** : déplacer un item d'une section à l'autre (sprint → backlog, sprint → autre sprint, etc.).
 - **Vue Sprint actif** : déplacer un item entre les colonnes À faire / En cours / Terminé. Le statut est mis à jour.
+- **Vue Calendrier** : déplacer un item entre cellules pour replanifier sa `dueDate`, depuis la section "Non planifiés" vers une cellule pour planifier en 1 geste, ou depuis une cellule vers "Non planifiés" pour dé-planifier. Voir [Vue Calendrier](#vue-calendrier).
 - **Sur la sidebar** : déposer un item sur un sprint l'assigne à ce sprint, sur un epic l'assigne à cet epic.
 - **Réordonnement manuel** : dans une même section ou colonne, glisser pour changer l'ordre. L'ordre est persisté.
+
+## Vue Calendrier
+
+Vue mensuelle multi-projets pour visualiser ta charge à venir et replanifier vite. Accessible via la 4ème entrée de la nav sidebar (📅 Calendrier).
+
+### Affichage
+- **Section "⚠ En retard"** en haut : items dont la `dueDate` est passée et qui ne sont pas terminés. Toujours visible si > 0.
+- **Grille mensuelle** 7 colonnes (semaine commence lundi). Aujourd'hui est highlighted.
+- **Section "Non planifiés"** en bas (repliable) : items sans `dueDate`. Affiche les 10 premiers + bouton "Afficher tout".
+- **Cellule "+N autres"** : si une journée a > 3 items, clic pour expand la cellule.
+- **Items terminés exclus** : le calendrier est une vue de charge à venir, pas l'archive.
+- **Items hors mois** : pas affichés dans les cellules grisées (other-month).
+
+### Filtres
+- **Projet** : "Tous les projets" ou un projet spécifique.
+- **Type** : tous / Build / TMA / Bug.
+- **Priorité** : toutes / P1 / P2 / P3.
+- **Epic** : actif uniquement quand un projet est sélectionné (cohérence multi-projets).
+
+### Drag & drop
+- Drag un item entre cellules pour changer sa `dueDate`.
+- Drag depuis "Non planifiés" vers une cellule pour planifier.
+- Drag depuis une cellule vers "Non planifiés" pour dé-planifier (`dueDate = null`).
+- Drag depuis "En retard" vers une cellule future pour replanifier.
+- Drop sur une cellule grisée du mois adjacent ou sur "En retard" : ignoré.
+- Le projet d'un item n'est jamais modifié par un D&D calendrier (immuable).
+- Chaque change de `dueDate` génère un event dans la timeline d'activité de l'item.
+
+### Click vs drag
+- Click court sur un item : ouvre la modale détail (avec switch projet si nécessaire, vue Calendrier conservée).
+- Drag : modifie la `dueDate` sans ouvrir la modale (pattern `dragJustHappened` empêche l'ouverture intempestive après un drop).
 
 ## Synchronisation entre machines
 
