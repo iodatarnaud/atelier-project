@@ -36,7 +36,7 @@ test.describe('Sprints', () => {
     await openItemDetailByTitle(page, 'Item backlog');
     // Le select sprint propose "— Pas de sprint —" + le sprint créé
     await page.locator('#ed_sprint').selectOption({ label: 'Sprint 1' });
-    await page.locator('#itemModal button.btn-primary').click();
+    await page.locator('#itemModal .modal-actions .btn-primary').click();
     await expect(page.locator('#itemModal')).not.toHaveClass(/show/);
 
     // L'item est maintenant dans la section du sprint actif (data-section commence par 's')
