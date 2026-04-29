@@ -1241,6 +1241,159 @@
     font-weight: 600;
   }
 
+  /* === ACTIVITY (commentaires + timeline du WI) === */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .activity-pane {
+    padding: 0 24px 20px;
+  }
+
+  .comment-form { margin-bottom: 24px; }
+
+  .comment-form textarea {
+    width: 100%;
+    min-height: 70px;
+    resize: vertical;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--bg-app);
+    color: var(--text);
+    box-sizing: border-box;
+  }
+
+  .comment-form textarea:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 2px rgba(76,154,255,0.2);
+  }
+
+  .comment-form .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .timeline-empty {
+    color: var(--text-faint);
+    font-size: 13px;
+    text-align: center;
+    padding: 24px 0;
+  }
+
+  .timeline-event { font-size: 13px; }
+
+  .timeline-event.comment {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px 12px;
+  }
+
+  .timeline-event.comment.deleted {
+    opacity: 0.6;
+    font-style: italic;
+  }
+
+  .comment-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: var(--text);
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .comment-text a { color: var(--primary); text-decoration: underline; }
+
+  .comment-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-mute);
+  }
+
+  .comment-meta .actions {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+  }
+
+  .comment-meta .actions button {
+    background: none;
+    border: none;
+    color: var(--text-mute);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .comment-meta .actions button:hover {
+    color: var(--text);
+    background: var(--hover-soft);
+  }
+
+  .comment-edit {
+    width: 100%;
+    min-height: 70px;
+    resize: vertical;
+    padding: 10px 12px;
+    border: 1px solid var(--border-focus);
+    border-radius: 3px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--bg-app);
+    color: var(--text);
+    box-sizing: border-box;
+  }
+
+  .comment-edit:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(76,154,255,0.2);
+  }
+
+  .comment-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .timeline-event.change {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    color: var(--text-mute);
+    padding: 4px 0 4px 12px;
+    border-left: 2px solid var(--border);
+    font-size: 13px;
+  }
+
+  .timeline-event.change .field {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .timeline-event.change .arrow { color: var(--text-faint); }
+  .timeline-event.change .value { color: var(--text); }
+
+  .timeline-event.change .change-date {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
   /* === SPRINT === */
   .sprint-header {
     background: var(--bg-app);
@@ -1481,7 +1634,7 @@
     <div class="logo">
       <div class="logo-mark">A</div>
       Atelier
-      <span class="version">v0.13.4</span>
+      <span class="version">v0.14.0</span>
     </div>
     <div class="topbar-search">
       <input type="text" id="searchInput" placeholder="Rechercher un item…">
@@ -1974,6 +2127,15 @@ const MAX_EPICS_PER_CLIENT = 200;
 const MAX_DESCRIPTION_LEN = 50000;
 const DEFAULT_EPIC_COLOR = '#0052cc';
 
+// Activité : whitelist des champs trackés (ce qui apparaît dans la timeline
+// d'un WI). Délibérément sans `description` (verbeux) ni `completedAt`
+// (calculé automatiquement quand status passe à done : on tracke la cause,
+// pas la conséquence).
+const TRACKED_FIELDS = new Set(['title', 'type', 'status', 'priority', 'estimate', 'dueDate', 'sprintId', 'epicId']);
+const ACTIVITY_TYPE_VALUES = new Set(['comment', 'change']);
+const MAX_ACTIVITY_EVENTS_PER_ITEM = 500;
+const MAX_ACTIVITY_TEXT_LEN = 2000;
+
 function _clampString(v, min, max) {
   if (typeof v !== 'string') return '';
   const trimmed = v.length > max ? v.substring(0, max) : v;
@@ -2018,6 +2180,86 @@ function _normalizeEpic(raw) {
   };
 }
 
+// Indique si un champ tracké peut légitimement valoir null (transition
+// d'/vers "pas de valeur"). Pour les autres champs, null en before/after
+// signale un event impossible métier → rejet.
+function isNullableTrackedField(field) {
+  return field === 'dueDate' || field === 'sprintId' || field === 'epicId';
+}
+
+// Valide la valeur before/after d'un event change selon le champ concerné.
+// Retourne null pour une transition d'/vers une valeur "vide" (uniquement
+// pour les champs nullables), ou undefined si la valeur est syntaxiquement
+// invalide ou null sur un champ non-nullable (rejette l'event).
+function _normalizeChangeFieldValue(field, v) {
+  if (v === null || v === undefined) {
+    return isNullableTrackedField(field) ? null : undefined;
+  }
+  switch (field) {
+    case 'title': {
+      if (typeof v !== 'string') return undefined;
+      return v.length > 300 ? v.substring(0, 300) : v;
+    }
+    case 'type':
+      return TYPE_VALUES.has(v) ? v : undefined;
+    case 'status':
+      return STATUS_VALUES.has(v) ? v : undefined;
+    case 'priority':
+      return PRIORITY_VALUES.has(v) ? v : undefined;
+    case 'estimate': {
+      if (typeof v !== 'number' || !Number.isFinite(v)) return undefined;
+      return (v < 0 || v > 1000) ? undefined : v;
+    }
+    case 'dueDate':
+      return (typeof v === 'string' && ISO_DATE_PATTERN.test(v)) ? v : undefined;
+    case 'sprintId':
+    case 'epicId':
+      return (typeof v === 'string' && ID_PATTERN.test(v)) ? v : undefined;
+    default:
+      return undefined;
+  }
+}
+
+// Normalise un event d'activité (commentaire ou change). Rejette tout event
+// dont l'id, le type, le timestamp ou le payload est invalide.
+function _normalizeActivityEvent(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  if (typeof raw.id !== 'string' || !ID_PATTERN.test(raw.id)) return null;
+  if (!ACTIVITY_TYPE_VALUES.has(raw.type)) return null;
+  if (typeof raw.at !== 'number' || !Number.isFinite(raw.at) || raw.at < 0) return null;
+  const at = Math.trunc(raw.at);
+
+  if (raw.type === 'comment') {
+    const result = {
+      id: raw.id,
+      type: 'comment',
+      at,
+      text: _clampString(raw.text, 0, MAX_ACTIVITY_TEXT_LEN)
+    };
+    if (typeof raw.editedAt === 'number' && Number.isFinite(raw.editedAt) && raw.editedAt >= 0) {
+      result.editedAt = Math.trunc(raw.editedAt);
+    }
+    if (typeof raw.deletedAt === 'number' && Number.isFinite(raw.deletedAt) && raw.deletedAt >= 0) {
+      result.deletedAt = Math.trunc(raw.deletedAt);
+    }
+    return result;
+  }
+
+  // type === 'change'
+  if (!TRACKED_FIELDS.has(raw.field)) return null;
+  const before = _normalizeChangeFieldValue(raw.field, raw.before);
+  const after = _normalizeChangeFieldValue(raw.field, raw.after);
+  if (before === undefined || after === undefined) return null;
+  return {
+    id: raw.id,
+    type: 'change',
+    at,
+    field: raw.field,
+    before,
+    after
+  };
+}
+
 function _normalizeItem(raw, validSprintIds, validEpicIds) {
   if (!raw || typeof raw !== 'object') return null;
   if (typeof raw.id !== 'string' || !ID_PATTERN.test(raw.id)) return null;
@@ -2039,6 +2281,16 @@ function _normalizeItem(raw, validSprintIds, validEpicIds) {
   };
   if (typeof raw.completedAt === 'number' && Number.isFinite(raw.completedAt) && raw.completedAt >= 0) {
     result.completedAt = Math.trunc(raw.completedAt);
+  }
+  result.activity = [];
+  if (Array.isArray(raw.activity)) {
+    const seenEventIds = new Set();
+    for (const re of raw.activity.slice(0, MAX_ACTIVITY_EVENTS_PER_ITEM)) {
+      const ev = _normalizeActivityEvent(re);
+      if (!ev || seenEventIds.has(ev.id)) continue;
+      seenEventIds.add(ev.id);
+      result.activity.push(ev);
+    }
   }
   return result;
 }
@@ -3049,8 +3301,10 @@ async function cycleStatus(itemId) {
   const item = client.items.find(i => i.id === itemId);
   if (!item) return;
   const order = ['todo', 'doing', 'done'];
-  item.status = order[(order.indexOf(item.status) + 1) % 3];
-  if (item.status === 'done') item.completedAt = Date.now();
+  withItemChangeTracking(item, () => {
+    item.status = order[(order.indexOf(item.status) + 1) % 3];
+    if (item.status === 'done') item.completedAt = Date.now();
+  });
   await saveState();
   render();
 }
@@ -3134,10 +3388,18 @@ async function doDelete() {
       client.items = client.items.filter(i => i.id !== pendingDelete.id);
     } else if (pendingDelete.type === 'sprint') {
       client.sprints = client.sprints.filter(s => s.id !== pendingDelete.id);
-      client.items.forEach(i => { if (i.sprintId === pendingDelete.id) i.sprintId = null; });
+      client.items.forEach(i => {
+        if (i.sprintId === pendingDelete.id) {
+          withItemChangeTracking(i, () => { i.sprintId = null; });
+        }
+      });
     } else if (pendingDelete.type === 'epic') {
       client.epics = client.epics.filter(e => e.id !== pendingDelete.id);
-      client.items.forEach(i => { if (i.epicId === pendingDelete.id) i.epicId = null; });
+      client.items.forEach(i => {
+        if (i.epicId === pendingDelete.id) {
+          withItemChangeTracking(i, () => { i.epicId = null; });
+        }
+      });
     }
   }
   await saveState();
@@ -3306,8 +3568,10 @@ function attachDragDrop() {
 
       let changed = false;
       if (item.status !== newStatus) {
-        item.status = newStatus;
-        if (newStatus === 'done') item.completedAt = Date.now();
+        withItemChangeTracking(item, () => {
+          item.status = newStatus;
+          if (newStatus === 'done') item.completedAt = Date.now();
+        });
         changed = true;
       }
       const target = findInsertTarget(col, e.clientY, '.card[draggable="true"]');
@@ -3344,10 +3608,10 @@ function attachSidebarDropTargets() {
       if (!item) return;
       let changed = false;
       if (el.dataset.sprintId && item.sprintId !== el.dataset.sprintId) {
-        item.sprintId = el.dataset.sprintId;
+        withItemChangeTracking(item, () => { item.sprintId = el.dataset.sprintId; });
         changed = true;
       } else if (el.dataset.epicId && item.epicId !== el.dataset.epicId) {
-        item.epicId = el.dataset.epicId;
+        withItemChangeTracking(item, () => { item.epicId = el.dataset.epicId; });
         changed = true;
       }
       if (changed) { await saveState(); render(); }
@@ -3414,7 +3678,10 @@ function attachBacklogDragDrop() {
       if (state.groupBy === 'epic') {
         // Mode Epic : drop modifie epicId
         const newEpicId = (sectionId === 'e-none' || !sectionId.startsWith('e-')) ? null : sectionId.slice(2);
-        if (item.epicId !== newEpicId) { item.epicId = newEpicId; changed = true; }
+        if (item.epicId !== newEpicId) {
+          withItemChangeTracking(item, () => { item.epicId = newEpicId; });
+          changed = true;
+        }
       } else {
         // Mode Sprint : drop modifie sprintId
         let newSprintId = null;
@@ -3424,7 +3691,10 @@ function attachBacklogDragDrop() {
         } else if (sectionId.startsWith('s-')) {
           newSprintId = sectionId.slice(2);
         }
-        if (item.sprintId !== newSprintId) { item.sprintId = newSprintId; changed = true; }
+        if (item.sprintId !== newSprintId) {
+          withItemChangeTracking(item, () => { item.sprintId = newSprintId; });
+          changed = true;
+        }
       }
 
       const target = findInsertTarget(section, e.clientY, '.backlog-row[draggable="true"]');
@@ -3442,10 +3712,10 @@ function attachBacklogDragDrop() {
 }
 
 
-function openItemDetail(itemId) {
+function renderItemDetailModal(itemId, activeTab, editingCommentId) {
   const client = getActiveClient();
   const item = client.items.find(i => i.id === itemId);
-  if (!item) return;
+  if (!item || !client) return '';
 
   const key = `${client.key}-${item.num}`;
   const sprintOptions = ['<option value="">— Pas de sprint —</option>']
@@ -3455,79 +3725,246 @@ function openItemDetail(itemId) {
     .concat((client.epics || []).map(e => `<option value="${e.id}" ${item.epicId===e.id?'selected':''}>${escapeHtml(e.name)}</option>`))
     .join('');
 
-  document.getElementById('itemModalContent').innerHTML = `
+  return `
     <div class="modal-head">
       <span class="type-ico type-${item.type}">${TYPE_LETTERS[item.type]}</span>
       <span class="key">${escapeHtml(key)}</span>
       <button class="modal-close" onclick="closeItemModal()">×</button>
     </div>
-    <div class="modal-body">
-      <div>
-        <input type="text" id="ed_title" class="title-input" value="${escapeHtml(item.title)}">
-        <div class="field-group">
-          <label>Description</label>
-          <div class="rich-toolbar">
-            <button type="button" onmousedown="event.preventDefault();" onclick="execRich('bold')" title="Gras (Ctrl+B)"><b>B</b></button>
-            <button type="button" onmousedown="event.preventDefault();" onclick="execRich('italic')" title="Italique (Ctrl+I)"><i>I</i></button>
-            <button type="button" onmousedown="event.preventDefault();" onclick="execRich('underline')" title="Souligné (Ctrl+U)"><u>U</u></button>
-            <button type="button" onmousedown="event.preventDefault();" onclick="execRich('insertUnorderedList')" title="Liste à puces">•</button>
-            <button type="button" onmousedown="event.preventDefault();" onclick="execRich('insertOrderedList')" title="Liste numérotée">1.</button>
+    <div class="tabs">
+      <button type="button" class="tab ${activeTab==='details'?'active':''}" data-tab="details" onclick="switchItemDetailTab('details')">Détails</button>
+      <button type="button" class="tab ${activeTab==='activity'?'active':''}" data-tab="activity" onclick="switchItemDetailTab('activity')">Activité</button>
+    </div>
+    <div class="tab-panel ${activeTab==='details'?'active':''}" data-panel="details">
+      <div class="modal-body">
+        <div>
+          <input type="text" id="ed_title" class="title-input" value="${escapeHtml(item.title)}">
+          <div class="field-group">
+            <label>Description</label>
+            <div class="rich-toolbar">
+              <button type="button" onmousedown="event.preventDefault();" onclick="execRich('bold')" title="Gras (Ctrl+B)"><b>B</b></button>
+              <button type="button" onmousedown="event.preventDefault();" onclick="execRich('italic')" title="Italique (Ctrl+I)"><i>I</i></button>
+              <button type="button" onmousedown="event.preventDefault();" onclick="execRich('underline')" title="Souligné (Ctrl+U)"><u>U</u></button>
+              <button type="button" onmousedown="event.preventDefault();" onclick="execRich('insertUnorderedList')" title="Liste à puces">•</button>
+              <button type="button" onmousedown="event.preventDefault();" onclick="execRich('insertOrderedList')" title="Liste numérotée">1.</button>
+            </div>
+            <div id="ed_desc" class="rich-editor" contenteditable="true" data-placeholder="Ajouter une description, des critères d'acceptation, des notes…"></div>
           </div>
-          <div id="ed_desc" class="rich-editor" contenteditable="true" data-placeholder="Ajouter une description, des critères d'acceptation, des notes…"></div>
+        </div>
+        <div class="modal-side">
+          <h3>Détails</h3>
+          <div class="field-group">
+            <label>Statut</label>
+            <select id="ed_status">
+              <option value="todo" ${item.status==='todo'?'selected':''}>À faire</option>
+              <option value="doing" ${item.status==='doing'?'selected':''}>En cours</option>
+              <option value="done" ${item.status==='done'?'selected':''}>Terminé</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Type</label>
+            <select id="ed_type">
+              <option value="story" ${item.type==='story'?'selected':''}>Build</option>
+              <option value="task" ${item.type==='task'?'selected':''}>TMA</option>
+              <option value="bug" ${item.type==='bug'?'selected':''}>Bug</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Priorité</label>
+            <select id="ed_prio">
+              <option value="1" ${item.priority===1?'selected':''}>P1 — Haute</option>
+              <option value="2" ${item.priority===2?'selected':''}>P2 — Moyenne</option>
+              <option value="3" ${item.priority===3?'selected':''}>P3 — Basse</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Estimation (jours)</label>
+            <input type="number" id="ed_est" step="0.25" min="0" value="${item.estimate || 0}">
+          </div>
+          <div class="field-group">
+            <label>Échéance</label>
+            <input type="date" id="ed_due" value="${item.dueDate || ''}">
+          </div>
+          <div class="field-group">
+            <label>Sprint</label>
+            <select id="ed_sprint">${sprintOptions}</select>
+          </div>
+          <div class="field-group">
+            <label>Epic</label>
+            <select id="ed_epic">${epicOptions}</select>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="confirmDeleteItem('${item.id}');closeItemModal();" style="margin-right:auto;color:var(--bug);">Supprimer</button>
+          <button class="btn btn-secondary" onclick="closeItemModal()">Annuler</button>
+          <button class="btn btn-primary" onclick="saveItemEdit('${item.id}')">Enregistrer</button>
         </div>
       </div>
-      <div class="modal-side">
-        <h3>Détails</h3>
-        <div class="field-group">
-          <label>Statut</label>
-          <select id="ed_status">
-            <option value="todo" ${item.status==='todo'?'selected':''}>À faire</option>
-            <option value="doing" ${item.status==='doing'?'selected':''}>En cours</option>
-            <option value="done" ${item.status==='done'?'selected':''}>Terminé</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label>Type</label>
-          <select id="ed_type">
-            <option value="story" ${item.type==='story'?'selected':''}>Build</option>
-            <option value="task" ${item.type==='task'?'selected':''}>TMA</option>
-            <option value="bug" ${item.type==='bug'?'selected':''}>Bug</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label>Priorité</label>
-          <select id="ed_prio">
-            <option value="1" ${item.priority===1?'selected':''}>P1 — Haute</option>
-            <option value="2" ${item.priority===2?'selected':''}>P2 — Moyenne</option>
-            <option value="3" ${item.priority===3?'selected':''}>P3 — Basse</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label>Estimation (jours)</label>
-          <input type="number" id="ed_est" step="0.25" min="0" value="${item.estimate || 0}">
-        </div>
-        <div class="field-group">
-          <label>Échéance</label>
-          <input type="date" id="ed_due" value="${item.dueDate || ''}">
-        </div>
-        <div class="field-group">
-          <label>Sprint</label>
-          <select id="ed_sprint">${sprintOptions}</select>
-        </div>
-        <div class="field-group">
-          <label>Epic</label>
-          <select id="ed_epic">${epicOptions}</select>
+    </div>
+    <div class="tab-panel ${activeTab==='activity'?'active':''}" data-panel="activity">
+      <div class="activity-pane">${renderActivityPane(item, client, editingCommentId)}</div>
+    </div>
+  `;
+}
+
+function openItemDetail(itemId) {
+  const client = getActiveClient();
+  const item = client.items.find(i => i.id === itemId);
+  if (!item) return;
+  document.getElementById('itemModalContent').innerHTML = renderItemDetailModal(itemId, 'details', null);
+  document.getElementById('ed_desc').innerHTML = descriptionToHtml(item.description || '');
+  document.getElementById('itemModal').classList.add('show');
+}
+
+function switchItemDetailTab(tab) {
+  const modal = document.getElementById('itemModalContent');
+  if (!modal) return;
+  modal.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+  modal.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.dataset.panel === tab);
+  });
+  if (tab === 'activity') {
+    const ta = modal.querySelector('#comment_input');
+    if (ta) ta.focus();
+  }
+}
+
+function refreshActivityPane(itemId, editingCommentId) {
+  const client = getActiveClient();
+  const item = client.items.find(i => i.id === itemId);
+  if (!item) return;
+  const pane = document.querySelector('#itemModalContent .tab-panel[data-panel="activity"] .activity-pane');
+  if (!pane) return;
+  const draftEl = pane.querySelector('#comment_input');
+  const draft = draftEl ? draftEl.value : '';
+  pane.innerHTML = renderActivityPane(item, client, editingCommentId);
+  if (draft) {
+    const newDraftEl = pane.querySelector('#comment_input');
+    if (newDraftEl) newDraftEl.value = draft;
+  }
+  if (editingCommentId) {
+    const ta = pane.querySelector('.comment-edit');
+    if (ta) {
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
+  }
+}
+
+function renderActivityPane(item, client, editingCommentId) {
+  const events = (item.activity || []).slice().sort((a, b) => b.at - a.at);
+  return `
+    <div class="comment-form">
+      <textarea id="comment_input" placeholder="Ajouter un commentaire…" maxlength="${MAX_ACTIVITY_TEXT_LEN}"></textarea>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" onclick="submitComment('${item.id}')">Commenter</button>
+      </div>
+    </div>
+    ${events.length === 0
+      ? `<div class="timeline-empty">Aucune activité pour le moment.</div>`
+      : `<div class="timeline">${events.map(e => renderActivityEvent(e, item, client, editingCommentId)).join('')}</div>`
+    }
+  `;
+}
+
+function renderActivityEvent(event, item, client, editingCommentId) {
+  if (event.type === 'comment') return renderCommentEvent(event, item, editingCommentId);
+  const formatted = formatActivityEvent(event, client);
+  if (!formatted) return '';
+  return `
+    <div class="timeline-event change">
+      <span class="field">${escapeHtml(formatted.label)}</span>
+      <span class="value">${escapeHtml(String(formatted.before))}</span>
+      <span class="arrow">→</span>
+      <span class="value">${escapeHtml(String(formatted.after))}</span>
+      <span class="change-date">${escapeHtml(formatActivityDate(event.at))}</span>
+    </div>
+  `;
+}
+
+function renderCommentEvent(event, item, editingCommentId) {
+  if (event.deletedAt) {
+    return `
+      <div class="timeline-event comment deleted">
+        <div class="comment-text">Commentaire supprimé le ${escapeHtml(formatActivityDate(event.deletedAt))}</div>
+      </div>
+    `;
+  }
+  if (editingCommentId === event.id) {
+    return `
+      <div class="timeline-event comment editing">
+        <textarea class="comment-edit" id="comment_edit_${escapeHtml(event.id)}" maxlength="${MAX_ACTIVITY_TEXT_LEN}">${escapeHtml(event.text)}</textarea>
+        <div class="comment-edit-actions">
+          <button type="button" class="btn btn-secondary" onclick="cancelCommentEdit('${item.id}')">Annuler</button>
+          <button type="button" class="btn btn-primary" onclick="saveCommentEdit('${item.id}', '${event.id}')">Enregistrer</button>
         </div>
       </div>
-      <div class="modal-actions">
-        <button class="btn btn-ghost" onclick="confirmDeleteItem('${item.id}');closeItemModal();" style="margin-right:auto;color:var(--bug);">Supprimer</button>
-        <button class="btn btn-secondary" onclick="closeItemModal()">Annuler</button>
-        <button class="btn btn-primary" onclick="saveItemEdit('${item.id}')">Enregistrer</button>
+    `;
+  }
+  return `
+    <div class="timeline-event comment">
+      <div class="comment-text">${renderCommentText(event.text)}</div>
+      <div class="comment-meta">
+        <span>${escapeHtml(formatActivityDate(event.at))}${event.editedAt ? ' · modifié' : ''}</span>
+        <div class="actions">
+          <button type="button" onclick="startEditComment('${item.id}', '${event.id}')">Modifier</button>
+          <button type="button" onclick="confirmDeleteComment('${item.id}', '${event.id}')">Supprimer</button>
+        </div>
       </div>
     </div>
   `;
-  document.getElementById('ed_desc').innerHTML = descriptionToHtml(item.description || '');
-  document.getElementById('itemModal').classList.add('show');
+}
+
+function formatActivityDate(at) {
+  if (!at) return '';
+  const d = new Date(at);
+  return d.toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+async function submitComment(itemId) {
+  const client = getActiveClient();
+  const item = client.items.find(i => i.id === itemId);
+  if (!item) return;
+  const ta = document.getElementById('comment_input');
+  if (!ta) return;
+  if (!addComment(item, ta.value)) return;
+  ta.value = '';
+  await saveState();
+  refreshActivityPane(itemId);
+}
+
+function startEditComment(itemId, eventId) {
+  refreshActivityPane(itemId, eventId);
+}
+
+async function saveCommentEdit(itemId, eventId) {
+  const client = getActiveClient();
+  const item = client.items.find(i => i.id === itemId);
+  if (!item) return;
+  const ta = document.getElementById('comment_edit_' + eventId);
+  if (!ta) return;
+  if (!editComment(item, eventId, ta.value)) {
+    refreshActivityPane(itemId);
+    return;
+  }
+  await saveState();
+  refreshActivityPane(itemId);
+}
+
+function cancelCommentEdit(itemId) {
+  refreshActivityPane(itemId);
+}
+
+async function confirmDeleteComment(itemId, eventId) {
+  if (!confirm('Supprimer ce commentaire ? Une trace restera dans la timeline.')) return;
+  const client = getActiveClient();
+  const item = client.items.find(i => i.id === itemId);
+  if (!item) return;
+  if (!deleteComment(item, eventId)) return;
+  await saveState();
+  refreshActivityPane(itemId);
 }
 
 function closeItemModal() {
@@ -3540,17 +3977,19 @@ async function saveItemEdit(itemId) {
   if (!item) return;
 
   const newStatus = document.getElementById('ed_status').value;
-  if (newStatus === 'done' && item.status !== 'done') item.completedAt = Date.now();
 
-  item.title = document.getElementById('ed_title').value.trim() || item.title;
-  item.description = sanitizeHtml(document.getElementById('ed_desc').innerHTML);
-  item.type = document.getElementById('ed_type').value;
-  item.priority = parseInt(document.getElementById('ed_prio').value);
-  item.estimate = parseFloat(document.getElementById('ed_est').value) || 0;
-  item.dueDate = document.getElementById('ed_due').value || null;
-  item.status = newStatus;
-  item.sprintId = document.getElementById('ed_sprint').value || null;
-  item.epicId = document.getElementById('ed_epic').value || null;
+  withItemChangeTracking(item, () => {
+    if (newStatus === 'done' && item.status !== 'done') item.completedAt = Date.now();
+    item.title = document.getElementById('ed_title').value.trim() || item.title;
+    item.description = sanitizeHtml(document.getElementById('ed_desc').innerHTML);
+    item.type = document.getElementById('ed_type').value;
+    item.priority = parseInt(document.getElementById('ed_prio').value);
+    item.estimate = parseFloat(document.getElementById('ed_est').value) || 0;
+    item.dueDate = document.getElementById('ed_due').value || null;
+    item.status = newStatus;
+    item.sprintId = document.getElementById('ed_sprint').value || null;
+    item.epicId = document.getElementById('ed_epic').value || null;
+  });
 
   await saveState();
   closeItemModal();
@@ -3622,7 +4061,7 @@ async function completeSprint(sprintId) {
   sprint.completed = true;
   client.items.forEach(i => {
     if (i.sprintId === sprintId && i.status !== 'done') {
-      i.sprintId = null;
+      withItemChangeTracking(i, () => { i.sprintId = null; });
     }
   });
   await saveState();
@@ -3889,6 +4328,223 @@ function formatDue(due) {
   else if (diff === 0) { cls = 'overdue'; text = "Aujourd'hui"; }
   else if (diff <= 3) { cls = 'soon'; text = `${text} · J-${diff}`; }
   return { text, cls };
+}
+
+// === ACTIVITY (commentaires + historique des changes par WI) ===
+//
+// Trois responsabilités :
+//   1. Snapshot/diff des champs trackés (whitelist TRACKED_FIELDS).
+//   2. Mutation in-place de item.activity[] avec garde MAX_ACTIVITY_EVENTS_PER_ITEM.
+//   3. Formatage humain pour la timeline (labels FR, lookup sprint/epic).
+//
+// Politique : tout chemin qui mute un champ tracké d'un item doit passer par
+// withItemChangeTracking(item, () => { ... mutations ... }) pour garantir
+// qu'aucune modif ne tombe à côté de l'historique.
+
+function genActivityId() {
+  return 'a' + Date.now() + Math.random().toString(36).slice(2, 10);
+}
+
+function snapshotTrackableItemFields(item) {
+  const snap = {};
+  for (const field of TRACKED_FIELDS) {
+    snap[field] = item[field];
+  }
+  return snap;
+}
+
+function addActivityEvent(item, event) {
+  if (!item) return false;
+  if (!Array.isArray(item.activity)) item.activity = [];
+  if (item.activity.length >= MAX_ACTIVITY_EVENTS_PER_ITEM) {
+    showToast(`⚠ Limite d'historique atteinte sur cet item (${MAX_ACTIVITY_EVENTS_PER_ITEM} entrées)`);
+    return false;
+  }
+  item.activity.push(event);
+  return true;
+}
+
+// Compare l'état actuel de l'item à un snapshot pris avant mutation et
+// pousse un event change par champ qui a changé. Les transitions
+// null↔undefined sont ignorées (pas un vrai changement métier).
+function recordItemChanges(item, beforeSnapshot) {
+  if (!item || !beforeSnapshot) return;
+  const after = snapshotTrackableItemFields(item);
+  for (const field of TRACKED_FIELDS) {
+    const b = beforeSnapshot[field];
+    const a = after[field];
+    if (b === a) continue;
+    const bIsEmpty = (b === null || b === undefined);
+    const aIsEmpty = (a === null || a === undefined);
+    if (bIsEmpty && aIsEmpty) continue;
+    const ok = addActivityEvent(item, {
+      id: genActivityId(),
+      type: 'change',
+      at: Date.now(),
+      field,
+      before: bIsEmpty ? null : b,
+      after: aIsEmpty ? null : a
+    });
+    if (!ok) break;
+  }
+}
+
+// Wrapper centralisé : tout chemin de mutation d'un item passe par ici pour
+// que le tracking ne soit jamais oublié. mutateFn() est synchrone — la
+// persistance (saveState) reste à la charge de l'appelant après le wrap.
+function withItemChangeTracking(item, mutateFn) {
+  if (!item) return mutateFn ? mutateFn() : undefined;
+  const before = snapshotTrackableItemFields(item);
+  const result = mutateFn();
+  recordItemChanges(item, before);
+  return result;
+}
+
+function addComment(item, text) {
+  if (!item) return false;
+  const trimmed = (typeof text === 'string') ? text.trim() : '';
+  if (!trimmed) return false;
+  if (trimmed.length > MAX_ACTIVITY_TEXT_LEN) {
+    showToast(`⚠ Commentaire trop long (max ${MAX_ACTIVITY_TEXT_LEN} caractères)`);
+    return false;
+  }
+  return addActivityEvent(item, {
+    id: genActivityId(),
+    type: 'comment',
+    at: Date.now(),
+    text: trimmed
+  });
+}
+
+function editComment(item, eventId, newText) {
+  if (!item || !Array.isArray(item.activity)) return false;
+  const ev = item.activity.find(e => e.id === eventId);
+  if (!ev || ev.type !== 'comment' || ev.deletedAt) return false;
+  const trimmed = (typeof newText === 'string') ? newText.trim() : '';
+  if (!trimmed) return false;
+  if (trimmed.length > MAX_ACTIVITY_TEXT_LEN) {
+    showToast(`⚠ Commentaire trop long (max ${MAX_ACTIVITY_TEXT_LEN} caractères)`);
+    return false;
+  }
+  if (trimmed === ev.text) return false;
+  ev.text = trimmed;
+  ev.editedAt = Date.now();
+  return true;
+}
+
+function deleteComment(item, eventId) {
+  if (!item || !Array.isArray(item.activity)) return false;
+  const ev = item.activity.find(e => e.id === eventId);
+  if (!ev || ev.type !== 'comment' || ev.deletedAt) return false;
+  ev.text = '';
+  ev.deletedAt = Date.now();
+  return true;
+}
+
+const _ACTIVITY_FIELD_LABELS = {
+  title: 'Titre',
+  type: 'Type',
+  status: 'Statut',
+  priority: 'Priorité',
+  estimate: 'Estimation',
+  dueDate: 'Échéance',
+  sprintId: 'Sprint',
+  epicId: 'Epic'
+};
+
+const _ACTIVITY_STATUS_LABELS = { todo: 'À faire', doing: 'En cours', done: 'Terminé' };
+const _ACTIVITY_TYPE_LABELS = { story: 'Build', task: 'TMA', bug: 'Bug' };
+const _ACTIVITY_PRIO_LABELS = { 1: 'P1 — Haute', 2: 'P2 — Moyenne', 3: 'P3 — Basse' };
+
+function _formatActivityFieldValue(field, value, client) {
+  if (value === null || value === undefined || value === '') return '—';
+  switch (field) {
+    case 'status':
+      return _ACTIVITY_STATUS_LABELS[value] || String(value);
+    case 'type':
+      return _ACTIVITY_TYPE_LABELS[value] || String(value);
+    case 'priority':
+      return _ACTIVITY_PRIO_LABELS[value] || String(value);
+    case 'estimate':
+      return formatDays(value) + ' j';
+    case 'dueDate': {
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return String(value);
+      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    case 'sprintId': {
+      if (!client) return String(value);
+      const s = (client.sprints || []).find(x => x.id === value);
+      return s ? s.name : '(sprint supprimé)';
+    }
+    case 'epicId': {
+      if (!client) return String(value);
+      const e = (client.epics || []).find(x => x.id === value);
+      return e ? e.name : '(epic supprimé)';
+    }
+    case 'title': {
+      const s = String(value);
+      return s.length > 60 ? s.substring(0, 60) + '…' : s;
+    }
+    default:
+      return String(value);
+  }
+}
+
+// Retourne { label, before, after } prêts à afficher (déjà escape-safe).
+// Pour les commentaires, retourne null : ils sont rendus séparément par
+// renderCommentText().
+function formatActivityEvent(event, client) {
+  if (!event || event.type !== 'change') return null;
+  return {
+    label: _ACTIVITY_FIELD_LABELS[event.field] || event.field,
+    before: _formatActivityFieldValue(event.field, event.before, client),
+    after: _formatActivityFieldValue(event.field, event.after, client)
+  };
+}
+
+// Rend un texte de commentaire en HTML safe : escape complet + auto-link
+// uniquement les URLs http(s) validées via new URL(). Les sauts de ligne
+// sont préservés via le CSS white-space:pre-wrap du conteneur (pas
+// d'injection de <br>). La ponctuation finale est exclue du lien pour
+// éviter les liens cassés type "https://x.com/foo)." → "https://x.com/foo"
+// + ").".
+function renderCommentText(text) {
+  if (!text) return '';
+  const URL_RE = /(https?:\/\/[^\s<>"']+)/g;
+  const TRAILING_PUNCT = /[.,;:!?)\]}]+$/;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+  while ((match = URL_RE.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(escapeHtml(text.substring(lastIndex, match.index)));
+    }
+    let url = match[0];
+    let trailing = '';
+    const punctMatch = url.match(TRAILING_PUNCT);
+    if (punctMatch) {
+      trailing = punctMatch[0];
+      url = url.substring(0, url.length - trailing.length);
+    }
+    let isValidUrl = false;
+    try {
+      const u = new URL(url);
+      isValidUrl = (u.protocol === 'http:' || u.protocol === 'https:');
+    } catch (_) { /* URL invalide → render comme texte */ }
+    if (isValidUrl) {
+      const safeUrl = escapeHtml(url);
+      parts.push(`<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>`);
+    } else {
+      parts.push(escapeHtml(url));
+    }
+    if (trailing) parts.push(escapeHtml(trailing));
+    lastIndex = URL_RE.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    parts.push(escapeHtml(text.substring(lastIndex)));
+  }
+  return parts.join('');
 }
 
 // Filter prio sync

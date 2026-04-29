@@ -35,7 +35,7 @@ test.describe('Backlog — CRUD items', () => {
     await page.locator('#ed_title').fill('Modifié');
     await page.locator('#ed_status').selectOption('doing');
     await page.locator('#ed_desc').fill('Une description');
-    await page.locator('#itemModal button.btn-primary').click();
+    await page.locator('#itemModal .modal-actions .btn-primary').click();
     await expect(page.locator('#itemModal')).not.toHaveClass(/show/);
 
     const row = page.locator('.backlog-row', { hasText: 'Modifié' });

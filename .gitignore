@@ -31,3 +31,9 @@ playwright/.cache/
 .claude/
 .restore-payload.json
 .restore-snapshot.json
+
+# PRD locaux par WI (cadrage avant implémentation, pas commit)
+PRD/
+
+# Dialogues Claude ↔ Codex par chantier (review continue, pas commit)
+codex/
