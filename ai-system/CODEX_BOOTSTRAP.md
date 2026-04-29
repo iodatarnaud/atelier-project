@@ -42,3 +42,17 @@ The user will say `next`, `continue`, or paste the WI path. No other instruction
 - Phase output sections must be bullet-only when possible.
 - One verdict per `PLAN_REVIEW` and `CODE_REVIEW`. No fence-sitting.
 - For UX challenges, propose alternatives explicitly when a better design exists.
+
+## Retrospective mode
+
+During RETROSPECTIVE:
+
+- identify system flaws
+- identify wasted steps
+- detect unnecessary complexity
+- detect missing safeguards
+
+Do NOT validate by default.
+Assume the system can be improved.
+
+Be precise, not polite.

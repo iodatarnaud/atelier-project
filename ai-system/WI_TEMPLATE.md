@@ -4,6 +4,8 @@ Status: CADRAGE
 Owner: Arnaud
 Branch: feat/ate-<N>-<slug>
 Target version: vX.Y.Z
+Mode: STANDARD | FAST_TRACK
+Risk: LOW | MEDIUM | HIGH
 
 ---
 
@@ -27,6 +29,22 @@ Constraints:
 Out of scope:
 Open questions:
 Decisions:
+
+---
+
+## MODE DECISION
+
+Chosen mode: <STANDARD | FAST_TRACK>
+
+Justification:
+- ...
+
+If FAST_TRACK:
+- skip PRD
+- skip PLAN_REVIEW
+- skip CODE_REVIEW
+- skip RETROSPECTIVE (optional)
+- go directly to IMPLEMENTATION
 
 ---
 
@@ -163,3 +181,26 @@ Justification:
 ## CLEANUP
 
 Branch deleted: <yes | no>
+
+## RETROSPECTIVE (STANDARD ONLY)
+
+Execution issues:
+- ...
+
+Process weaknesses:
+- ...
+
+Agent mistakes:
+- ...
+
+Missed edge cases:
+- ...
+
+Improvements proposed:
+- ...
+
+System updates needed:
+- ...
+
+Verdict:
+<OK | NEEDS IMPROVEMENT>
