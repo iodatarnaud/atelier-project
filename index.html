@@ -3431,7 +3431,10 @@ function attachInlineFormHandlers(client) {
     const titleInput = f.querySelector('.if-title');
     if (titleInput) {
       titleInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+        // Enter simple : submit local. Ctrl/Cmd+Enter : laissé au handler
+        // global qui clique le bouton primary (sinon double-submit, l'event
+        // étant à la fois traité ici et bubblé jusqu'au handler global).
+        if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
           const sectionId = f.id.replace('form-', '');
           submitInlineForm(sectionId, '');
         }
@@ -4564,12 +4567,90 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
   });
 });
 
-// Keyboard shortcut
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.modal-overlay.show').forEach(o => o.classList.remove('show'));
+// Keyboard shortcuts globaux
+//
+// Politique : aucun raccourci n'est intercepté quand le focus est dans un
+// input/textarea/select/contenteditable (laisse passer copier-coller natif,
+// retour à la ligne, etc.). Échappement explicite à cette règle pour des
+// fonctions comme Ctrl+Entrée qui doivent justement déclencher Enregistrer
+// depuis un input — voir findContextualPrimary().
+
+function isEditableTarget(el) {
+  if (!el) return false;
+  const tag = el.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+  if (el.isContentEditable) return true;
+  return false;
+}
+
+// Résout le bouton primary "actionnable" selon le contexte du focus pour
+// déclencher Enregistrer via Ctrl/Cmd+Entrée. Retourne null si aucun
+// contexte sûr n'est trouvé (notamment : jamais sur la modale de
+// confirmation pour éviter une suppression accidentelle).
+function findContextualPrimary(activeEl) {
+  if (activeEl) {
+    // 1. Édition d'un commentaire (priorité haute, scope étroit)
+    const commentEdit = activeEl.closest('.timeline-event.comment.editing');
+    if (commentEdit) return commentEdit.querySelector('.comment-edit-actions .btn-primary');
+
+    // 2. Champ commentaire (saisie nouvelle)
+    const commentForm = activeEl.closest('.comment-form');
+    if (commentForm) return commentForm.querySelector('.btn-primary');
+
+    // 3. Formulaire inline (création d'item dans backlog/sprint/epic)
+    const inlineForm = activeEl.closest('.inline-form, [id^="form-"]');
+    if (inlineForm) return inlineForm.querySelector('.btn-primary');
   }
-  if (e.key === 'c' && e.ctrlKey) { e.preventDefault(); quickAdd(); }
+
+  // 4. Modale ouverte. Exclut explicitement la modale de confirmation pour
+  // qu'aucun raccourci ne puisse déclencher une suppression sans clic.
+  const overlay = document.querySelector('.modal-overlay.show');
+  if (!overlay || overlay.id === 'confirmModal') return null;
+
+  // Si on a focus dans un panel d'onglet, ou si on cherche depuis le body
+  // d'une modale à onglets, prioriser le panel actif (évite de cliquer un
+  // bouton caché par display:none de l'onglet inactif).
+  const activeTab = overlay.querySelector('.tab-panel.active');
+  if (activeTab) {
+    return activeTab.querySelector('.comment-edit-actions .btn-primary')
+        || activeTab.querySelector('.comment-form .btn-primary')
+        || activeTab.querySelector('.modal-actions .btn-primary')
+        || activeTab.querySelector('.btn-primary');
+  }
+
+  return overlay.querySelector('.modal-actions .btn-primary')
+      || overlay.querySelector('.btn-primary');
+}
+
+document.addEventListener('keydown', (e) => {
+  // Échap : ferme les modales sauf si l'utilisateur édite un champ (sinon
+  // une frappe accidentelle ferme la modale et on perd le travail).
+  if (e.key === 'Escape') {
+    if (isEditableTarget(e.target)) return;
+    document.querySelectorAll('.modal-overlay.show').forEach(o => o.classList.remove('show'));
+    return;
+  }
+
+  // Ctrl+C (sans Alt/Shift/Meta) : quick add — uniquement hors champ éditable
+  // pour ne pas casser le copier natif. Codex : !alt && !shift évitent d'absorber
+  // AltGr / Ctrl+Shift+C.
+  if (e.key === 'c' && e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+    if (isEditableTarget(e.target)) return;
+    e.preventDefault();
+    quickAdd();
+    return;
+  }
+
+  // Ctrl/Cmd+Entrée : valide le bouton primary contextuel (Enregistrer /
+  // Créer / Commenter selon le formulaire ou la modale actifs). e.repeat
+  // évite un double-submit si l'utilisateur maintient la combinaison.
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !e.repeat) {
+    const btn = findContextualPrimary(e.target);
+    if (btn) {
+      e.preventDefault();
+      btn.click();
+    }
+  }
 });
 
 // === SIDEBAR RESIZE ===
