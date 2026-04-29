@@ -1664,6 +1664,24 @@
     font-size: 13px;
   }
 
+  /* WI-001 — D&D feedback visuel cohérent avec board/sidebar */
+  .cal-item[draggable="true"] { cursor: grab; }
+  .cal-item.dragging { opacity: 0.4; cursor: grabbing; }
+  .cal-cell.drag-over {
+    background: var(--bg-hover);
+    border-color: var(--primary);
+  }
+  .calendar-unplanned.drag-over {
+    background: rgba(76, 154, 255, 0.06);
+    border-radius: 3px;
+  }
+  .cal-unplanned-placeholder {
+    color: var(--text-faint);
+    font-size: 12px;
+    font-style: italic;
+    padding: 6px 10px;
+  }
+
   /* === SPRINT === */
   .sprint-header {
     background: var(--bg-app);
@@ -3873,7 +3891,10 @@ function renderCalendar(container) {
   }
   html += '</div>';
 
-  if (unplanned.length > 0) {
+  // Section "Non planifiés" : TOUJOURS rendue (même vide) pour servir de drop
+  // target lors d'un D&D calendrier (dé-planifier, cf. WI-001 AC3). Si vide,
+  // un placeholder discret invite au drop.
+  {
     const showAll = state.calendarUnplannedExpanded;
     const visible = showAll ? unplanned : unplanned.slice(0, _CAL_UNPLANNED_PREVIEW);
     const hidden = unplanned.length - visible.length;
@@ -3887,8 +3908,9 @@ function renderCalendar(container) {
             : ''}
         </div>
         <div class="calendar-unplanned-items">
-          ${visible.map(it => renderCalendarItem(it, false)).join('')}
-          ${hidden > 0 ? `<span class="cal-more-btn" style="cursor:default;">+${hidden} autre${hidden > 1 ? 's' : ''}</span>` : ''}
+          ${unplanned.length === 0
+            ? '<span class="cal-unplanned-placeholder">Glisser un item ici pour le dé-planifier</span>'
+            : visible.map(it => renderCalendarItem(it, false)).join('') + (hidden > 0 ? `<span class="cal-more-btn" style="cursor:default;">+${hidden} autre${hidden > 1 ? 's' : ''}</span>` : '')}
         </div>
       </div>
     `;
@@ -3902,6 +3924,8 @@ function renderCalendar(container) {
 
   html += '</div>';
   container.innerHTML = html;
+  // D&D listeners attachés après peinture du DOM (pattern board cf. setTimeout 0).
+  setTimeout(attachCalendarDragDrop, 0);
 }
 
 function renderCalendarItem(it, withDateLabel) {
@@ -3909,7 +3933,7 @@ function renderCalendarItem(it, withDateLabel) {
   const statusClass = it.status === 'done' ? 'done' : '';
   const dateLabel = withDateLabel ? `<span style="color:var(--text-mute);font-size:10px;">${escapeHtml(it.dueDate)}</span> ` : '';
   return `
-    <div class="cal-item ${statusClass}" onclick="openItemFromCalendar('${it.clientId}', '${it.id}')" title="${escapeHtml(it.clientName)} · ${escapeHtml(it.title)}">
+    <div class="cal-item ${statusClass}" draggable="true" data-client-id="${it.clientId}" data-item-id="${it.id}" onclick="openItemFromCalendar('${it.clientId}', '${it.id}')" title="${escapeHtml(it.clientName)} · ${escapeHtml(it.title)}">
       <span class="cal-item-color" style="background:${color};"></span>
       <span class="cal-item-title">${dateLabel}${escapeHtml(it.title)}</span>
     </div>
@@ -3969,6 +3993,8 @@ function toggleCalendarUnplanned() {
 }
 
 function openItemFromCalendar(clientId, itemId) {
+  // Bloque le click capturé juste après un drag (pattern partagé avec board/backlog).
+  if (dragJustHappened) return;
   if (state.activeClientId !== clientId) {
     switchClient(clientId);  // ne reset pas activeView (vérifié par Codex)
   }
@@ -4057,6 +4083,12 @@ function quickAdd() {
 // === DRAG & DROP (BOARD) ===
 let dragItemId = null;
 let dragJustHappened = false;
+// Variable dédiée au D&D calendrier (WI-001) : payload riche { clientId, itemId }
+// car le calendrier est multi-projets et `dragItemId` global n'est pas un
+// contrat suffisant pour identifier l'item à muter cross-projet. Sert aussi de
+// flag aux handlers existants (board/sidebar/backlog) qui doivent ignorer un
+// drop d'origine calendrier.
+let calendarDragItem = null;
 
 function findInsertTarget(container, clientY, cardSelector) {
   const cards = [...container.querySelectorAll(cardSelector)].filter(c => !c.classList.contains('dragging'));
@@ -4127,6 +4159,8 @@ function attachDragDrop() {
     });
 
     col.addEventListener('drop', async (e) => {
+      // Garde anti-cross-feature : ignorer un drag d'origine calendrier.
+      if (calendarDragItem) return;
       e.preventDefault();
       col.classList.remove('drag-over');
       const itemId = e.dataTransfer.getData('text/plain') || dragItemId;
@@ -4168,6 +4202,8 @@ function attachSidebarDropTargets() {
       if (!el.contains(e.relatedTarget)) el.classList.remove('drag-over');
     });
     el.addEventListener('drop', async (e) => {
+      // Garde anti-cross-feature : ignorer un drag d'origine calendrier.
+      if (calendarDragItem) return;
       e.preventDefault();
       e.stopPropagation();
       el.classList.remove('drag-over');
@@ -4233,6 +4269,8 @@ function attachBacklogDragDrop() {
     });
 
     section.addEventListener('drop', async (e) => {
+      // Garde anti-cross-feature : ignorer un drag d'origine calendrier.
+      if (calendarDragItem) return;
       e.preventDefault();
       e.stopPropagation();
       section.classList.remove('drag-over');
@@ -4280,6 +4318,101 @@ function attachBacklogDragDrop() {
       }
     });
   });
+}
+
+// === DRAG & DROP (CALENDAR) — WI-001 ===
+//
+// Pattern dédié au calendrier multi-projets. Payload riche { clientId, itemId }
+// car `dragItemId` global ne suffit pas pour identifier un item cross-projet
+// (handlers existants résolvent via getActiveClient()). Les handlers existants
+// (board/sidebar/backlog) ignorent les drops dont la source est calendrier
+// via la garde `if (calendarDragItem) return;` au début de leur callback drop.
+
+function attachCalendarDragDrop() {
+  const root = document.querySelector('.calendar-view');
+  if (!root) return;
+
+  // Dragstart / dragend sur tous les .cal-item (cellules + non planifiés + en retard)
+  root.querySelectorAll('.cal-item[draggable="true"]').forEach(itemEl => {
+    itemEl.addEventListener('dragstart', (e) => {
+      const clientId = itemEl.dataset.clientId;
+      const itemId = itemEl.dataset.itemId;
+      if (!clientId || !itemId) return;
+      calendarDragItem = { clientId, itemId };
+      itemEl.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      // Redondance défensive : payload aussi dans dataTransfer (si la variable
+      // est perdue par hasard, le drop peut récupérer le payload).
+      try { e.dataTransfer.setData('atelier/calendar', JSON.stringify(calendarDragItem)); } catch (_) {}
+    });
+    itemEl.addEventListener('dragend', () => {
+      itemEl.classList.remove('dragging');
+      calendarDragItem = null;
+      root.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      // Bloque le click capturé post-dragend (pattern partagé board/backlog)
+      dragJustHappened = true;
+      setTimeout(() => { dragJustHappened = false; }, 100);
+    });
+  });
+
+  // Drop targets : cellules du mois courant uniquement (pas .other-month)
+  root.querySelectorAll('.cal-cell:not(.other-month)').forEach(cell => {
+    cell.addEventListener('dragover', (e) => {
+      if (!calendarDragItem) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      cell.classList.add('drag-over');
+    });
+    cell.addEventListener('dragleave', (e) => {
+      if (!cell.contains(e.relatedTarget)) cell.classList.remove('drag-over');
+    });
+    cell.addEventListener('drop', async (e) => {
+      if (!calendarDragItem) return;
+      e.preventDefault();
+      e.stopPropagation();
+      cell.classList.remove('drag-over');
+      const targetDate = cell.dataset.date;
+      if (!targetDate) return;
+      await applyCalendarDrop(calendarDragItem, targetDate);
+    });
+  });
+
+  // Drop target : section "Non planifiés" → dueDate = null
+  const unplanned = root.querySelector('.calendar-unplanned');
+  if (unplanned) {
+    unplanned.addEventListener('dragover', (e) => {
+      if (!calendarDragItem) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      unplanned.classList.add('drag-over');
+    });
+    unplanned.addEventListener('dragleave', (e) => {
+      if (!unplanned.contains(e.relatedTarget)) unplanned.classList.remove('drag-over');
+    });
+    unplanned.addEventListener('drop', async (e) => {
+      if (!calendarDragItem) return;
+      e.preventDefault();
+      e.stopPropagation();
+      unplanned.classList.remove('drag-over');
+      await applyCalendarDrop(calendarDragItem, null);
+    });
+  }
+  // Section "En retard" et cellules other-month : pas de listeners → drop natif refusé.
+}
+
+// Mutation effective d'un drop calendrier. Garde no-op si la cible est égale
+// à la dueDate actuelle (évite event/save/render parasites).
+async function applyCalendarDrop(payload, newDueDate) {
+  const client = state.clients.find(c => c.id === payload.clientId);
+  if (!client) return;
+  const item = (client.items || []).find(i => i.id === payload.itemId);
+  if (!item) return;
+  const current = item.dueDate || null;
+  const target = newDueDate || null;
+  if (current === target) return;
+  withItemChangeTracking(item, () => { item.dueDate = target; });
+  await saveState();
+  renderView();
 }
 
 
