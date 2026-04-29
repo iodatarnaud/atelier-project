@@ -1411,6 +1411,259 @@
     color: var(--text-faint);
   }
 
+  /* === CALENDAR === */
+  .calendar-view { padding: 16px 24px 32px; }
+
+  .calendar-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .calendar-month-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .calendar-month-nav button {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 3px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .calendar-month-nav button:hover { background: var(--hover-soft); }
+
+  .calendar-month-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    min-width: 160px;
+    text-align: center;
+    text-transform: capitalize;
+  }
+
+  .calendar-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+
+  .calendar-filters select {
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--bg-app);
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .calendar-filters select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Section "En retard" — toujours visible et impossible à manquer */
+  .calendar-overdue {
+    background: rgba(229, 73, 58, 0.08);
+    border: 1px solid var(--bug);
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+  }
+
+  .calendar-overdue-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--bug);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+  }
+
+  .calendar-overdue-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Grid mensuelle */
+  .calendar-day-headers {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .calendar-day-header {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 4px 0;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .cal-cell {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    min-height: 96px;
+    padding: 4px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    overflow: hidden;
+  }
+
+  .cal-cell.other-month { opacity: 0.4; background: transparent; }
+  .cal-cell.today {
+    border-color: var(--primary);
+    border-width: 2px;
+    padding: 3px 5px;
+  }
+  .cal-cell.expanded { min-height: auto; }
+
+  .cal-cell-day {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-mute);
+  }
+
+  .cal-cell.today .cal-cell-day { color: var(--primary); }
+
+  .cal-cell-items {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+  }
+
+  .cal-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    background: var(--bg-app);
+    border: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text);
+    cursor: pointer;
+    line-height: 1.3;
+  }
+
+  .cal-item:hover { background: var(--hover-soft); border-color: var(--border-strong); }
+
+  .cal-item-color {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cal-item-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+
+  .cal-item.overdue {
+    background: rgba(229, 73, 58, 0.1);
+    border-color: var(--bug);
+  }
+
+  .cal-item.done {
+    opacity: 0.5;
+    text-decoration: line-through;
+  }
+
+  .cal-more-btn {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 2px 4px;
+    text-align: left;
+    font-weight: 500;
+  }
+
+  .cal-more-btn:hover { text-decoration: underline; }
+
+  /* Section "Non planifiés" repliable */
+  .calendar-unplanned {
+    margin-top: 24px;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+
+  .calendar-unplanned-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .calendar-unplanned-header h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0;
+  }
+
+  .calendar-unplanned-count {
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  .calendar-unplanned-toggle {
+    margin-left: auto;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .calendar-unplanned-toggle:hover { background: var(--hover-soft); }
+
+  .calendar-unplanned-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .calendar-empty {
+    text-align: center;
+    color: var(--text-faint);
+    padding: 32px 0;
+    font-size: 13px;
+  }
+
   /* === SPRINT === */
   .sprint-header {
     background: var(--bg-app);
@@ -1651,7 +1904,7 @@
     <div class="logo">
       <div class="logo-mark">A</div>
       Atelier
-      <span class="version">v0.14.3</span>
+      <span class="version">v0.14.4</span>
     </div>
     <div class="topbar-search">
       <input type="text" id="searchInput" placeholder="Rechercher un item…">
@@ -1684,6 +1937,9 @@
       </div>
       <div class="side-nav-item" data-view="archive" onclick="switchView('archive')">
         <span class="nav-ico">✓</span> Archive
+      </div>
+      <div class="side-nav-item" data-view="calendar" onclick="switchView('calendar')">
+        <span class="nav-ico">📅</span> Calendrier
       </div>
     </div>
 
@@ -2019,7 +2275,15 @@ let state = {
   filterPrio: '',
   filterEpic: null,
   groupBy: 'sprint',
-  search: ''
+  search: '',
+  // Calendar view state — non persisté (cohérent avec activeView, filterType, etc.)
+  calendarMonth: null,                  // { year, month } — initialisé à mois courant au boot
+  calendarFilterProject: null,          // null = tous projets
+  calendarFilterType: '',               // '' = tous types
+  calendarFilterPrio: '',               // '' = toutes priorités
+  calendarFilterEpic: '',               // '' = tous epics, désactivé en multi-projets
+  calendarExpandedCell: null,           // localDateKey de la cellule à expand pour "+N autres"
+  calendarUnplannedExpanded: false      // section "Non planifiés" repliable
 };
 
 const TYPE_LABELS = { story: 'Build', task: 'TMA', bug: 'Bug' };
@@ -2959,7 +3223,7 @@ function renderStats() {
 function renderBreadcrumb() {
   const c = getActiveClient();
   document.getElementById('bcClient').textContent = c ? c.name : '—';
-  const titles = { backlog: 'Backlog', board: 'Sprint actif', archive: 'Archive' };
+  const titles = { backlog: 'Backlog', board: 'Sprint actif', archive: 'Archive', calendar: 'Calendrier' };
   document.getElementById('pageTitle').textContent = titles[state.activeView] || 'Backlog';
 }
 
@@ -2976,6 +3240,10 @@ function renderView() {
 
   const container = document.getElementById('viewContent');
   const client = getActiveClient();
+
+  // Le calendrier est multi-projets : il ne dépend pas d'un client actif et
+  // doit s'afficher même si on en a 0 (avec un message si vide).
+  if (state.activeView === 'calendar') { renderCalendar(container); return; }
 
   if (!client) {
     container.innerHTML = '<div class="empty"><div class="empty-title">Aucun projet</div><div class="empty-desc">Créez un projet dans la barre latérale.</div></div>';
@@ -3422,6 +3690,289 @@ async function doDelete() {
   await saveState();
   closeConfirm();
   render();
+}
+
+// === CALENDAR (vue mensuelle multi-projets) ===
+//
+// Vue calendrier multi-projets avec section "En retard", grille mensuelle
+// (lundi-first FR), section "Non planifiés" repliable, et 4 filtres
+// (projet, type, priorité, epic conditionnel au filtre projet).
+//
+// Helper crucial : localDateKey() construit YYYY-MM-DD via getFullYear/
+// getMonth/getDate. NE PAS utiliser toISOString() qui décale d'un jour
+// en Europe/Paris selon l'heure UTC (bug subtil chopé par Codex).
+
+function localDateKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function ensureCalendarMonth() {
+  if (!state.calendarMonth) {
+    const now = new Date();
+    state.calendarMonth = { year: now.getFullYear(), month: now.getMonth() };
+  }
+}
+
+function buildMonthCells(year, month) {
+  const first = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const offset = (first.getDay() + 6) % 7; // Lundi = 0
+  const cells = [];
+  for (let i = offset; i > 0; i--) {
+    cells.push({ date: new Date(year, month, 1 - i), inMonth: false });
+  }
+  for (let d = 1; d <= lastDay; d++) {
+    cells.push({ date: new Date(year, month, d), inMonth: true });
+  }
+  while (cells.length % 7 !== 0) {
+    const next = cells.length - (offset + lastDay) + 1;
+    cells.push({ date: new Date(year, month + 1, next), inMonth: false });
+  }
+  return cells;
+}
+
+function getAllCalendarItems() {
+  const items = [];
+  for (const c of state.clients) {
+    for (const it of (c.items || [])) {
+      items.push({ ...it, clientId: c.id, clientName: c.name, clientColor: c.color });
+    }
+  }
+  return items;
+}
+
+function filterCalendarItems(items) {
+  return items.filter(it => {
+    // Le calendrier est une vue de charge à venir : on exclut les items terminés
+    // (l'Archive existe déjà pour l'historique). Décision produit cf. Codex.
+    if (it.status === 'done') return false;
+    if (state.calendarFilterProject && it.clientId !== state.calendarFilterProject) return false;
+    if (state.calendarFilterType && it.type !== state.calendarFilterType) return false;
+    if (state.calendarFilterPrio && it.priority !== parseInt(state.calendarFilterPrio)) return false;
+    // Epic appliqué seulement si on est sur un projet précis (sinon ambigu en multi-projets, cf. Codex)
+    if (state.calendarFilterProject && state.calendarFilterEpic && it.epicId !== state.calendarFilterEpic) return false;
+    return true;
+  });
+}
+
+// Pré-indexation pour lookup O(1) par cellule (perf — Codex point 8).
+function indexCalendarItems(items) {
+  const byDate = new Map();
+  const unplanned = [];
+  const overdue = [];
+  const todayKey = localDateKey(new Date());
+  for (const it of items) {
+    if (!it.dueDate) { unplanned.push(it); continue; }
+    if (it.dueDate < todayKey && it.status !== 'done') overdue.push(it);
+    if (!byDate.has(it.dueDate)) byDate.set(it.dueDate, []);
+    byDate.get(it.dueDate).push(it);
+  }
+  overdue.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  unplanned.sort((a, b) => a.priority - b.priority);
+  return { byDate, unplanned, overdue };
+}
+
+const _CAL_MONTH_NAMES = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const _CAL_DAY_HEADERS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const _CAL_MAX_VISIBLE_PER_CELL = 3;
+const _CAL_UNPLANNED_PREVIEW = 10;
+
+function renderCalendar(container) {
+  ensureCalendarMonth();
+  const { year, month } = state.calendarMonth;
+
+  if (!state.clients || state.clients.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="empty-title">Aucun projet</div><div class="empty-desc">Crée un projet dans la barre latérale pour commencer à planifier.</div></div>';
+    return;
+  }
+
+  const allItems = getAllCalendarItems();
+  const filtered = filterCalendarItems(allItems);
+  const { byDate, unplanned, overdue } = indexCalendarItems(filtered);
+  const cells = buildMonthCells(year, month);
+  const todayKey = localDateKey(new Date());
+
+  const projectOptions = ['<option value="">Tous les projets</option>']
+    .concat(state.clients.map(c => `<option value="${c.id}" ${state.calendarFilterProject === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`))
+    .join('');
+
+  const typeOptions = ['<option value="">Tous types</option>']
+    .concat(['story', 'task', 'bug'].map(t => `<option value="${t}" ${state.calendarFilterType === t ? 'selected' : ''}>${TYPE_LABELS[t]}</option>`))
+    .join('');
+
+  const prioOptions = ['<option value="">Toutes priorités</option>']
+    .concat([1, 2, 3].map(p => `<option value="${p}" ${state.calendarFilterPrio === String(p) ? 'selected' : ''}>P${p}</option>`))
+    .join('');
+
+  const activeProject = state.calendarFilterProject ? state.clients.find(c => c.id === state.calendarFilterProject) : null;
+  const epicsAvailable = activeProject ? (activeProject.epics || []) : [];
+  const epicOptions = ['<option value="">Tous epics</option>']
+    .concat(epicsAvailable.map(e => `<option value="${e.id}" ${state.calendarFilterEpic === e.id ? 'selected' : ''}>${escapeHtml(e.name)}</option>`))
+    .join('');
+  const epicDisabled = !activeProject;
+
+  let html = '<div class="calendar-view">';
+
+  html += `
+    <div class="calendar-header">
+      <div class="calendar-month-nav">
+        <button type="button" onclick="setCalendarMonth(-1)" title="Mois précédent">‹</button>
+        <span class="calendar-month-title">${_CAL_MONTH_NAMES[month]} ${year}</span>
+        <button type="button" onclick="setCalendarMonth(1)" title="Mois suivant">›</button>
+        <button type="button" onclick="setCalendarMonth(0)" title="Aujourd'hui" style="margin-left:8px;font-weight:500;width:auto;padding:0 10px;">Aujourd'hui</button>
+      </div>
+      <div class="calendar-filters">
+        <select onchange="setCalendarFilterProject(this.value)" data-cal-filter="project">${projectOptions}</select>
+        <select onchange="setCalendarFilterType(this.value)" data-cal-filter="type">${typeOptions}</select>
+        <select onchange="setCalendarFilterPrio(this.value)" data-cal-filter="prio">${prioOptions}</select>
+        <select onchange="setCalendarFilterEpic(this.value)" data-cal-filter="epic" ${epicDisabled ? 'disabled' : ''} title="${epicDisabled ? 'Sélectionne un projet pour filtrer par epic' : ''}">${epicOptions}</select>
+      </div>
+    </div>
+  `;
+
+  if (overdue.length > 0) {
+    html += `
+      <div class="calendar-overdue" data-section="overdue">
+        <div class="calendar-overdue-title">⚠ En retard · ${overdue.length} item${overdue.length > 1 ? 's' : ''}</div>
+        <div class="calendar-overdue-items">
+          ${overdue.map(it => renderCalendarItem(it, true)).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  html += `<div class="calendar-day-headers">${_CAL_DAY_HEADERS.map(d => `<div class="calendar-day-header">${d}</div>`).join('')}</div>`;
+  html += '<div class="calendar-grid">';
+  let visibleMonthItemCount = 0;
+  for (const cell of cells) {
+    const dKey = localDateKey(cell.date);
+    // Bloquant PRD/Codex : items des cellules hors mois ne s'affichent pas (cf. PRD).
+    const items = cell.inMonth ? (byDate.get(dKey) || []) : [];
+    if (cell.inMonth) visibleMonthItemCount += items.length;
+    const isToday = dKey === todayKey;
+    const isExpanded = state.calendarExpandedCell === dKey;
+    const visible = isExpanded ? items : items.slice(0, _CAL_MAX_VISIBLE_PER_CELL);
+    const hidden = items.length - visible.length;
+    const classes = ['cal-cell'];
+    if (!cell.inMonth) classes.push('other-month');
+    if (isToday) classes.push('today');
+    if (isExpanded) classes.push('expanded');
+    html += `<div class="${classes.join(' ')}" data-date="${dKey}">`;
+    html += `<div class="cal-cell-day">${cell.date.getDate()}</div>`;
+    html += '<div class="cal-cell-items">';
+    html += visible.map(it => renderCalendarItem(it, false)).join('');
+    if (hidden > 0) {
+      html += `<button type="button" class="cal-more-btn" onclick="toggleCalendarCell('${dKey}')">+${hidden} autre${hidden > 1 ? 's' : ''}</button>`;
+    } else if (isExpanded && items.length > _CAL_MAX_VISIBLE_PER_CELL) {
+      html += `<button type="button" class="cal-more-btn" onclick="toggleCalendarCell('${dKey}')">Réduire</button>`;
+    }
+    html += '</div></div>';
+  }
+  html += '</div>';
+
+  if (unplanned.length > 0) {
+    const showAll = state.calendarUnplannedExpanded;
+    const visible = showAll ? unplanned : unplanned.slice(0, _CAL_UNPLANNED_PREVIEW);
+    const hidden = unplanned.length - visible.length;
+    html += `
+      <div class="calendar-unplanned" data-section="unplanned">
+        <div class="calendar-unplanned-header">
+          <h3>Non planifiés</h3>
+          <span class="calendar-unplanned-count">${unplanned.length} item${unplanned.length > 1 ? 's' : ''}</span>
+          ${unplanned.length > _CAL_UNPLANNED_PREVIEW
+            ? `<button type="button" class="calendar-unplanned-toggle" onclick="toggleCalendarUnplanned()">${showAll ? 'Réduire' : `Afficher tout (${unplanned.length})`}</button>`
+            : ''}
+        </div>
+        <div class="calendar-unplanned-items">
+          ${visible.map(it => renderCalendarItem(it, false)).join('')}
+          ${hidden > 0 ? `<span class="cal-more-btn" style="cursor:default;">+${hidden} autre${hidden > 1 ? 's' : ''}</span>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // Empty state : on compte les items VISIBLES dans le mois courant (pas
+  // ceux qui tombent sur des cellules grisées des mois adjacents — Codex).
+  if (overdue.length === 0 && visibleMonthItemCount === 0 && unplanned.length === 0) {
+    html += '<div class="calendar-empty">Aucun item à afficher avec ces filtres.</div>';
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function renderCalendarItem(it, withDateLabel) {
+  const color = it.clientColor || '#6c7888';
+  const statusClass = it.status === 'done' ? 'done' : '';
+  const dateLabel = withDateLabel ? `<span style="color:var(--text-mute);font-size:10px;">${escapeHtml(it.dueDate)}</span> ` : '';
+  return `
+    <div class="cal-item ${statusClass}" onclick="openItemFromCalendar('${it.clientId}', '${it.id}')" title="${escapeHtml(it.clientName)} · ${escapeHtml(it.title)}">
+      <span class="cal-item-color" style="background:${color};"></span>
+      <span class="cal-item-title">${dateLabel}${escapeHtml(it.title)}</span>
+    </div>
+  `;
+}
+
+function setCalendarMonth(delta) {
+  ensureCalendarMonth();
+  if (delta === 0) {
+    const now = new Date();
+    state.calendarMonth = { year: now.getFullYear(), month: now.getMonth() };
+  } else {
+    let { year, month } = state.calendarMonth;
+    month += delta;
+    while (month < 0) { month += 12; year--; }
+    while (month > 11) { month -= 12; year++; }
+    state.calendarMonth = { year, month };
+  }
+  state.calendarExpandedCell = null;
+  renderView();
+}
+
+function setCalendarFilterProject(value) {
+  state.calendarFilterProject = value || null;
+  // Reset epic filter quand on change de projet (l'epic dépendait du projet précédent)
+  state.calendarFilterEpic = '';
+  state.calendarExpandedCell = null;
+  renderView();
+}
+
+function setCalendarFilterType(value) {
+  state.calendarFilterType = value;
+  state.calendarExpandedCell = null;
+  renderView();
+}
+
+function setCalendarFilterPrio(value) {
+  state.calendarFilterPrio = value;
+  state.calendarExpandedCell = null;
+  renderView();
+}
+
+function setCalendarFilterEpic(value) {
+  state.calendarFilterEpic = value;
+  state.calendarExpandedCell = null;
+  renderView();
+}
+
+function toggleCalendarCell(dateKey) {
+  state.calendarExpandedCell = state.calendarExpandedCell === dateKey ? null : dateKey;
+  renderView();
+}
+
+function toggleCalendarUnplanned() {
+  state.calendarUnplannedExpanded = !state.calendarUnplannedExpanded;
+  renderView();
+}
+
+function openItemFromCalendar(clientId, itemId) {
+  if (state.activeClientId !== clientId) {
+    switchClient(clientId);  // ne reset pas activeView (vérifié par Codex)
+  }
+  openItemDetail(itemId);
 }
 
 // === INLINE FORM ===
