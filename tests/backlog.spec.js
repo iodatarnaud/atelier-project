@@ -79,6 +79,26 @@ test.describe('Backlog — CRUD items', () => {
 
     await expect(page.locator('.backlog-row', { hasText: 'Doomed' })).toHaveCount(0);
   });
+
+  test('ATE-17 : description ne déborde pas en largeur même avec contenu .md collé', async ({ page }) => {
+    await createItemInline(page, { title: 'Overflow check' });
+    await openItemDetailByTitle(page, 'Overflow check');
+
+    // Simule un .md collé : ligne sans espace + URL très longue (les 2 cas qui
+    // poussaient la modale à déborder horizontalement avant le fix CSS).
+    const longContent = 'A'.repeat(500) + ' https://example.com/' + 'x'.repeat(500);
+    await page.locator('#ed_desc').evaluate((el, content) => {
+      el.innerHTML = content;
+    }, longContent);
+
+    // Le rich-editor wrap son contenu — pas de scroll horizontal.
+    const editorOverflows = await page.locator('#ed_desc').evaluate((el) => el.scrollWidth > el.clientWidth);
+    expect(editorOverflows).toBe(false);
+
+    // Et la modale entière non plus (le grid minmax(0, 1fr) empêche l'expansion).
+    const modalOverflows = await page.locator('#itemModal .modal').evaluate((el) => el.scrollWidth > el.clientWidth);
+    expect(modalOverflows).toBe(false);
+  });
 });
 
 test.describe('Backlog — filtres et recherche', () => {
