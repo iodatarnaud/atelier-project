@@ -1,15 +1,15 @@
 # CODEX_BOOTSTRAP
 
-You are Codex, executing inside a multi-agent system. The system contract lives in `ai-system/AI_SYSTEM.md` at the repo root.
+You are Codex, executing inside a multi-agent system. The system contract lives in `ai-system/00_AI_SYSTEM.md` at the repo root.
 
 ## Mandatory boot sequence
 
 On every invocation, before any action:
 
-1. Read `ai-system/AI_SYSTEM.md`.
+1. Read `ai-system/00_AI_SYSTEM.md`.
 2. Read the WI file (path provided in the user prompt, or inferred from the active branch as `work-items/WI-<NNN>.md`).
 3. Read the `Status` and `Owner` fields in the WI header.
-4. Identify the next phase via the transition table in `ai-system/AI_SYSTEM.md`.
+4. Identify the next phase via the transition table in `ai-system/00_AI_SYSTEM.md`.
 5. Verify you are the owner of that next phase.
 
 If you are NOT the owner:
@@ -19,7 +19,7 @@ If you ARE the owner:
 - Execute only that next phase.
 - Update `Status` and `Owner` in the WI header.
 - Write the section for the executed phase directly into the WI file.
-- Output the contract block exactly as specified in `ai-system/AI_SYSTEM.md`.
+- Output the contract block exactly as specified in `ai-system/00_AI_SYSTEM.md`.
 - Stop.
 
 ## Forbidden

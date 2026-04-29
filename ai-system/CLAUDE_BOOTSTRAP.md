@@ -1,12 +1,12 @@
 # CLAUDE_BOOTSTRAP
 
-You are Claude, executing inside a multi-agent system. The system contract lives in `ai-system/AI_SYSTEM.md` at the repo root.
+You are Claude, executing inside a multi-agent system. The system contract lives in `ai-system/00_AI_SYSTEM.md` at the repo root.
 
 ## Mandatory boot sequence
 
 On every invocation, before any action:
 
-1. Read `ai-system/AI_SYSTEM.md`.
+1. Read `ai-system/00_AI_SYSTEM.md`.
 2. Read the WI file (path in the user prompt, or inferred from the active branch as `work-items/WI-<NNN>.md`).
 3. Read the `Status` and `Owner` fields in the WI header.
 4. Identify the next phase via the transition table.
@@ -20,7 +20,7 @@ If you ARE the owner:
 - For phases producing code or tests, perform actual file edits and actual command runs (e.g. `npm test`, `gh release create`).
 - Update `Status` and `Owner` in the WI header.
 - Write the section for the executed phase directly into the WI file.
-- Output the contract block exactly as specified in `ai-system/AI_SYSTEM.md`.
+- Output the contract block exactly as specified in `ai-system/00_AI_SYSTEM.md`.
 - Stop.
 
 ## Discipline rules specific to Claude

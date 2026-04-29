@@ -2,7 +2,7 @@
 
 ## Start a WI
 
-1. `cp ai-system/WI_TEMPLATE.md work-items/WI-<NNN>.md` (numérotation séquentielle, indépendante du backlog ATE-X qui reste mentionné dans le titre)
+1. `cp ai-system/WI_TEMPLATE.md work-items/WI-<NNN>.md` (numérotation séquentielle, indépendante du backlog ATE-X qui reste mentionné dans le titre). Voir `ai-system/00_AI_SYSTEM.md` pour le contrat complet.
 2. Fill the title line, the `Branch:` and `Target version:` fields.
 3. Fill the `CADRAGE` section with goal + open questions.
 4. Set `Status: PRD`, `Owner: Claude`.
