@@ -4,7 +4,7 @@ Plan de validation manuel pour vérifier que l'app fonctionne de bout en bout av
 
 ## Setup
 
-1. `npm test` doit passer (45/45 verts).
+1. `npm test` doit passer (74/74 verts).
 2. Ouvrir l'app via Live Server (`http://localhost:5500/`) ou la version déployée.
 3. Recommandé : activer le **mode test** dès le départ (modale Paramètres → 🧪 Mode test → Activer). Le seed démo charge 4 projets / 25+ items, parfait pour tester sans rien casser.
 
@@ -29,6 +29,7 @@ Cocher au fur et à mesure ; le plan est conçu pour être linéaire (les sectio
 
 - [ ] **2.1** Vue Backlog → cliquer **+ Créer un item** dans la section *Backlog* d'Acme → formulaire inline visible. Remplir titre / type / priorité / estimation et valider. L'item apparaît avec une clé `ACM-X`.
 - [ ] **2.2** Cliquer sur un item → modale détail. Modifier titre, ajouter une description rich text avec gras / italique / liste, ajouter une date d'échéance, sauvegarder. Vérifier que tout est conservé en re-ouvrant.
+- [ ] **2.2-bis** (ATE-17) Coller le contenu d'un `.md` long (par ex. un PRD) dans la description : le rich-editor wrap proprement, **ni le rich-editor ni la modale ne débordent horizontalement** (pas de scroll horizontal sur la modale).
 - [ ] **2.3** Sur une ligne de backlog, cliquer le badge de statut (à gauche du titre) : `À faire → En cours → Terminé → À faire`. Les pastilles de la sidebar pulsent à chaque changement.
 - [ ] **2.4** Modale détail → bouton **Supprimer** → modale de confirmation → l'item disparaît.
 - [ ] **2.5** Raccourci `Ctrl+C` (ou `Cmd+C`) avec focus hors input → ouvre directement le formulaire inline du backlog.
@@ -108,6 +109,19 @@ Cocher au fur et à mesure ; le plan est conçu pour être linéaire (les sectio
 - [ ] **10.7** Tenter de configurer la sync Gist → toast "Désactive le mode test d'abord".
 - [ ] **10.8** Désactiver le mode test (banner ou modale) → reload → banner disparu, vraies données intactes.
 
+## 10-bis. Activité du WI (commentaires + historique)
+
+- [ ] **10b.1** Ouvrir un item → la modale détail a 2 onglets : **Détails** (actif) et **Activité**.
+- [ ] **10b.2** Onglet Activité → champ "Ajouter un commentaire…" + timeline (vide pour un item neuf : "Aucune activité pour le moment.").
+- [ ] **10b.3** Saisir un commentaire avec une URL `https://example.com/foo, suite` → cliquer **Commenter** → le commentaire apparaît avec l'URL auto-linkée (target=_blank) et la virgule reste hors du lien. Le textarea se vide après envoi.
+- [ ] **10b.4** Cliquer **Modifier** sur un commentaire → textarea inline avec le contenu pré-rempli + boutons **Annuler / Enregistrer**. Modifier puis enregistrer → le commentaire affiche la mention `· modifié` à côté de la date.
+- [ ] **10b.5** Cliquer **Supprimer** sur un commentaire → confirm natif → le commentaire devient un slot grisé italique *"Commentaire supprimé le …"*. Le texte original ne réapparaît plus.
+- [ ] **10b.6** Onglet Détails → modifier le statut + la priorité + l'estimation en bloc → enregistrer. Re-ouvrir → onglet Activité montre **3 events change** (1 par champ), format "Statut : À faire → En cours", chrono inverse.
+- [ ] **10b.7** Modifier seulement la description d'un item → enregistrer → onglet Activité reste vide (description n'est volontairement pas trackée).
+- [ ] **10b.8** Drag & drop d'une carte sur le board → re-ouvrir → un event "Statut" apparaît dans Activité.
+- [ ] **10b.9** Coller dans un commentaire un texte hostile type `<img src=x onerror="alert(1)">` → aucun popup, le texte s'affiche tel quel (chevrons visibles).
+- [ ] **10b.10** Refresh → tous les commentaires et changes survivent (persistance IndexedDB / Gist).
+
 ## 11. Polish UI
 
 - [ ] **11.1** Toutes les transitions sont fluides (~0.18 s, easing soyeux), pas de saut visuel.
@@ -145,7 +159,7 @@ Cocher au fur et à mesure ; le plan est conçu pour être linéaire (les sectio
 
 ## Validation finale
 
-- [ ] **Tests automatiques** : `npm test` → 45 passed.
+- [ ] **Tests automatiques** : `npm test` → 74 passed.
 - [ ] **Console JS** : pas d'erreur ni warning suspect.
 - [ ] **Network** : si Gist actif, requêtes `api.github.com` propres (200/304). Si Local ou Mode test, **aucun** call sortant.
 

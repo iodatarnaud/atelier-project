@@ -8,6 +8,7 @@ Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fic
 
 - Multi-clients (un workspace par client) avec stats par projet
 - Items typés (Build / TMA / Bug), priorisés (P1 / P2 / P3), avec estimations en jours, dates d'échéance et description rich text
+- **Activité par item** : commentaires datés (édition / suppression avec trace) + timeline historique des changes (statut, sprint, priorité, etc.) trackés automatiquement
 - Epics colorés (CRUD, filtrage, assignement)
 - Vues **Backlog**, **Sprint actif** (kanban) et **Archive**
 - Sprints avec lifecycle (future → actif → terminé), suppression sécurisée
@@ -26,7 +27,7 @@ Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fic
 - Aucune dépendance runtime (juste la police Inter via CDN)
 - IndexedDB pour le cache local, fallback `localStorage`
 - API REST GitHub pour la synchronisation Gist (optionnelle)
-- Playwright pour les tests end-to-end (45 tests répartis sur 7 fichiers)
+- Playwright pour les tests end-to-end (74 tests répartis sur 9 fichiers, dont sécurité XSS et activité)
 
 ## Lancer en local
 
@@ -46,12 +47,12 @@ Suite end-to-end Playwright qui valide les fonctionnalités principales avant ch
 ```bash
 npm install
 npx playwright install     # installe Chromium headless (une seule fois)
-npm test                   # 45 tests, ~50s
+npm test                   # 74 tests, ~70s
 npm run test:headed        # voir le navigateur pendant les tests
 npm run test:ui            # mode interactif avec replay
 ```
 
-Les specs vivent dans [`tests/`](tests/), un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`.
+Les specs vivent dans [`tests/`](tests/), un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`, `security`, `activite`.
 
 ## Documentation
 

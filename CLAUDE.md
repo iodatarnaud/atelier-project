@@ -18,13 +18,13 @@ Pas de toolchain de build/lint pour l'app : `index.html` reste autonome et drop-
 
 ## Architecture
 
-L'app entière est un **`index.html` unique et autonome** (~3760 lignes) : body HTML, `<style>` embarqué, et `<script>` embarqué. Aucune dépendance JS/CSS externe hormis la police web Inter. Les sections sont délimitées par des commentaires `=== NOM ===` — grep sur ce motif pour naviguer.
+L'app entière est un **`index.html` unique et autonome** (~4500 lignes) : body HTML, `<style>` embarqué, et `<script>` embarqué. Aucune dépendance JS/CSS externe hormis la police web Inter. Les sections sont délimitées par des commentaires `=== NOM ===` — grep sur ce motif pour naviguer.
 
 ### Stockage / sync — la partie critique
 
 Trois couches, de la plus rapide à la plus autoritaire :
 
-1. **En mémoire** : objet `state` (`{ clients, activeClientId, activeView, filterType, filterPrio, filterEpic, groupBy, search }`). Forme de `clients[i]` : `{ id, name, key, color?, counter, items[], sprints[], epics[] }`.
+1. **En mémoire** : objet `state` (`{ clients, activeClientId, activeView, filterType, filterPrio, filterEpic, groupBy, search }`). Forme de `clients[i]` : `{ id, name, key, color?, counter, items[], sprints[], epics[] }`. Forme de `items[i]` : `{ id, num, title, description, type, status, priority, estimate, dueDate, sprintId, epicId, completedAt?, activity[] }` (cf. section Activité ci-dessous pour `activity[]`).
 2. **IndexedDB** (`atelier-db` / store `kv` / clé `atelier-data-v2`) — écrite à chaque modification via `saveState()` (debounce 50 ms). Fallback `localStorage` si IndexedDB indisponible.
 3. **Gist GitHub** (fichier unique `atelier-data.json`) — push via `scheduleGistPush()` (debounce 2,5 s après l'écriture IndexedDB) en utilisant un PAT stocké dans `localStorage` (`atelier-config-v1`). Un handler `beforeunload` fait un PATCH `keepalive: true` si un push est en attente.
 
@@ -52,6 +52,21 @@ Les mutations suivent ce schéma : le handler met à jour `state.clients[...].it
 
 `renderSidebar()` snapshot les compteurs avant écrasement de l'innerHTML pour pouvoir bumper les pastilles `.side-stat` dont la valeur a changé (animation `count-bump`). `updateActiveIndicator()` repositionne la barre verticale qui slide vers le projet actif (élément `#activeIndicator` à `position: absolute` dans la sidebar).
 
+### Activité du WI (commentaires + historique des changes)
+
+Chaque item porte un champ optionnel `activity[]` qui mélange deux types d'events :
+
+- **Commentaires** : `{ id, type: 'comment', at, text, editedAt?, deletedAt? }`. Plain text + auto-link `http(s)://` via `renderCommentText()` (escape + `new URL()` strict + `rel="noopener noreferrer"`). Édition in-place (`editedAt`) ; suppression in-place (`deletedAt` + `text=''`) — l'event reste pour ne pas trouer la timeline.
+- **Changes** : `{ id, type: 'change', at, field, before, after }`. Générés automatiquement à chaque modif d'un champ tracké de l'item.
+
+**Whitelist `TRACKED_FIELDS`** : `title, type, status, priority, estimate, dueDate, sprintId, epicId`. Volontairement **sans `description`** (verbeux) ni `completedAt` (conséquence du passage à `done`, pas une action séparée).
+
+**Wrapper centralisé `withItemChangeTracking(item, mutateFn)`** : tout chemin de mutation d'un item DOIT passer par ce wrapper, qui snapshot les champs trackés avant, exécute la mutation, puis diff et pousse 1 event change par champ modifié. 10 sites instrumentés : `saveItemEdit`, `cycleStatus`, drag&drop board / sidebar (sprint+epic) / backlog groupé, `doDelete` sprint/epic (boucle items), `completeSprint` (boucle items non-done). Si tu ajoutes un nouveau chemin de mutation, instrumente-le obligatoirement.
+
+**Validator strict (rétrocompat Gist)** : `_normalizeActivityEvent()` rejette les events à id/type/timestamp invalide ; `_normalizeChangeFieldValue(field, v)` rejette `null` sur les champs non-nullables (`isNullableTrackedField()` → seuls `dueDate`, `sprintId`, `epicId` autorisent `null`). Limites : `MAX_ACTIVITY_EVENTS_PER_ITEM = 500`, `MAX_ACTIVITY_TEXT_LEN = 2000`. Au cap → toast + rejet silencieux (la mutation passe quand même, seul le tracking est skippé). Items sans champ `activity` (Gists pré-feature) : normalisés à `[]`, aucun crash.
+
+**UI** : modale détail à 2 onglets (`renderItemDetailModal(itemId, activeTab)` + `switchItemDetailTab()`). L'onglet Activité est re-render localement via `refreshActivityPane(itemId, editingCommentId)` après chaque submit/edit/delete pour ne pas perdre l'état du formulaire Détails. Toggle CSS via classe `.tab-panel.active` (pas de re-render au switch).
+
 ### Helpers d'affichage
 
 - `escapeHtml(s)` — seul chemin sûr pour injecter une string contrôlée par l'utilisateur dans `innerHTML`. Toujours l'utiliser.
@@ -73,7 +88,7 @@ Les mutations suivent ce schéma : le handler met à jour `state.clients[...].it
 
 ## Tests
 
-Suite E2E Playwright dans `tests/` (un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`). Helpers partagés dans `tests/helpers.js`. Total : 45 tests.
+Suite E2E Playwright dans `tests/` (un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`, `security`, `activite`). Helpers partagés dans `tests/helpers.js`. Total : 74 tests, ~70s, CI bloquant avant déploiement Pages.
 
 Spécificités à connaître quand on touche aux tests ou à `index.html` :
 - **Seed démo (boot)** : 2 clients placeholder (`Acme`, `Globex`) sont créés au premier boot d'une DB vide. **Ne jamais y mettre de vrais noms de clients** — le repo est public. Pareil pour les `placeholder=` des inputs.
