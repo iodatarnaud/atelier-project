@@ -26,3 +26,8 @@ node_modules/
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Outils locaux (Claude Code, snapshots de restauration)
+.claude/
+.restore-payload.json
+.restore-snapshot.json

@@ -1481,7 +1481,7 @@
     <div class="logo">
       <div class="logo-mark">A</div>
       Atelier
-      <span class="version">v0.13.2</span>
+      <span class="version">v0.13.3</span>
     </div>
     <div class="topbar-search">
       <input type="text" id="searchInput" placeholder="Rechercher un item…">
@@ -3559,8 +3559,12 @@ function execRich(cmd) {
 const RICH_ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','UL','OL','LI','P','BR','DIV','SPAN']);
 
 function sanitizeHtml(html) {
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
+  // Parse via DOMParser pour rester inerte : avec `tmp.innerHTML = html`, le
+  // navigateur déclencherait `<img onerror>` dès le parse, AVANT le strip — le
+  // payload XSS s'exécuterait avant qu'on ait pu l'enlever. DOMParser crée un
+  // document détaché qui ne fetch ni les images ni n'exécute les handlers.
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const root = doc.body;
   const walk = (node) => {
     [...node.childNodes].forEach(child => {
       if (child.nodeType === 1) {
@@ -3576,14 +3580,16 @@ function sanitizeHtml(html) {
       }
     });
   };
-  walk(tmp);
-  return tmp.innerHTML;
+  walk(root);
+  return root.innerHTML;
 }
 
 // Migration : descriptions anciennes en texte brut → HTML innocent
+// Sanitize systématiquement le HTML au rendu : la donnée peut venir d'un
+// import JSON ou d'un pull Gist initial qui contournent la sanitation au save.
 function descriptionToHtml(desc) {
   if (!desc) return '';
-  if (/<\/?(b|strong|i|em|u|ul|ol|li|p|br|div|span)\b/i.test(desc)) return desc;
+  if (/<\/?(b|strong|i|em|u|ul|ol|li|p|br|div|span)\b/i.test(desc)) return sanitizeHtml(desc);
   return escapeHtml(desc).replace(/\n/g, '<br>');
 }
 
