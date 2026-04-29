@@ -100,6 +100,31 @@ Always derive state from WI file.
 - Never create new sections
 - Never change scope implicitly
 
+## Execution modes
+
+Each Work Item defines:
+
+Mode: STANDARD | FAST_TRACK
+Risk: LOW | MEDIUM | HIGH
+
+STANDARD mode uses the full phase pipeline.
+
+FAST_TRACK mode is used for low-risk, small-scope changes and allows a reduced pipeline.
+
+FAST_TRACK skips:
+- PRD
+- PLAN_REVIEW
+- CODE_REVIEW
+- RETROSPECTIVE (optional)
+
+FAST_TRACK flow:
+
+CADRAGE → IMPLEMENTATION → TESTS → VALIDATION_UI → DONE
+
+If during FAST_TRACK execution a risk is detected:
+→ STOP
+→ write BLOCKERS
+→ switch to STANDARD mode
 ---
 
 ## Coding restriction
@@ -215,6 +240,7 @@ Codex may execute:
 - QA
 - REVIEW
 - FINAL DECISION
+- RETROSPECTIVE
 
 If next phase is not yours:
 
@@ -226,6 +252,32 @@ NEXT_PHASE_OWNER: [Claude / Codex]
 NEXT_PHASE: [phase]  
 ACTION_REQUIRED: Switch agent  
 
+---
+
+## Additional phase
+
+RETROSPECTIVE must be executed after FINAL_DECISION before DONE.
+
+This phase analyzes:
+- execution quality
+- failures
+- inefficiencies
+- system weaknesses
+
+The goal is to improve the system, not the feature.
+
+## Phase transitions
+
+STANDARD:
+
+FINAL_DECISION → RETROSPECTIVE  
+RETROSPECTIVE → DONE
+
+FAST_TRACK:
+
+IMPLEMENTATION → TESTS  
+TESTS → VALIDATION_UI  
+VALIDATION_UI → DONE
 ---
 
 ## System failure condition
