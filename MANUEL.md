@@ -205,9 +205,12 @@ L'export/import fonctionne aussi en mode test (l'import remplace le seed en mém
 | Raccourci | Action |
 |---|---|
 | `Ctrl+C` (ou `Cmd+C`) | Quick add : ouvre le formulaire inline du backlog |
+| `Ctrl+Entrée` (ou `Cmd+Entrée`) | Valide / enregistre le formulaire ou la modale active (équivalent au clic sur le bouton primary) |
 | `Échap` | Ferme le modal ouvert |
 
-Les raccourcis sont désactivés quand le focus est sur un input/textarea — pas de conflit avec la copie de texte.
+Les raccourcis qui pourraient gêner la saisie sont **désactivés quand le focus est sur un input/textarea/contenteditable** : `Ctrl+C` laisse passer la copie native, `Échap` ne ferme pas la modale tant que tu édites un champ. Seul `Ctrl/Cmd+Entrée` est volontairement actif depuis les inputs (c'est tout son intérêt).
+
+`Ctrl/Cmd+Entrée` cible le bouton "Enregistrer" / "Créer" / "Commenter" du formulaire ou de la modale courante — y compris dans le rich-editor de description, dans le champ commentaire de l'onglet Activité, et lors de l'édition d'un commentaire. Une exception de sécurité : la modale de **confirmation de suppression** ne se valide jamais au clavier, il faut cliquer (anti-suppression accidentelle).
 
 ## Astuces
 

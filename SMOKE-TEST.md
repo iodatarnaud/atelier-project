@@ -4,7 +4,7 @@ Plan de validation manuel pour vérifier que l'app fonctionne de bout en bout av
 
 ## Setup
 
-1. `npm test` doit passer (74/74 verts).
+1. `npm test` doit passer (84/84 verts).
 2. Ouvrir l'app via Live Server (`http://localhost:5500/`) ou la version déployée.
 3. Recommandé : activer le **mode test** dès le départ (modale Paramètres → 🧪 Mode test → Activer). Le seed démo charge 4 projets / 25+ items, parfait pour tester sans rien casser.
 
@@ -152,14 +152,21 @@ Cocher au fur et à mesure ; le plan est conçu pour être linéaire (les sectio
 ## 15. Raccourcis clavier
 
 - [ ] **15.1** `Ctrl+C` / `Cmd+C` (focus hors input) → quick add.
-- [ ] **15.2** `Échap` → ferme la modale ouverte (settings, item detail, confirm, sprint, client, epic).
-- [ ] **15.3** Avec une modale ouverte, cliquer en dehors → ferme la modale.
+- [ ] **15.2** (ATE-14) `Ctrl+C` avec focus dans un input/textarea → **le copier natif fonctionne** (pas de quick add déclenché). Vérifier avec un `Ctrl+V` dans un autre champ.
+- [ ] **15.3** `Échap` → ferme la modale ouverte (settings, item detail, confirm, sprint, client, epic).
+- [ ] **15.4** (ATE-14) `Échap` avec focus dans un input de modale → la modale **ne se ferme pas** (anti-frappe accidentelle).
+- [ ] **15.5** Avec une modale ouverte, cliquer en dehors → ferme la modale.
+- [ ] **15.6** (ATE-14) `Ctrl/Cmd+Entrée` dans la modale détail item → équivalent au clic **Enregistrer** (sauvegarde + ferme).
+- [ ] **15.7** (ATE-14) `Ctrl/Cmd+Entrée` dans le formulaire inline de création d'item → crée l'item (un seul, pas de double-submit).
+- [ ] **15.8** (ATE-14) `Ctrl/Cmd+Entrée` dans le champ commentaire de l'onglet Activité → poste le commentaire.
+- [ ] **15.9** (ATE-14) `Ctrl/Cmd+Entrée` pendant l'édition d'un commentaire → enregistre la modification.
+- [ ] **15.10** (ATE-14) `Ctrl/Cmd+Entrée` sur la modale de confirmation de suppression → **NE supprime PAS** (garde anti-suppression accidentelle, il faut cliquer manuellement).
 
 ---
 
 ## Validation finale
 
-- [ ] **Tests automatiques** : `npm test` → 74 passed.
+- [ ] **Tests automatiques** : `npm test` → 84 passed.
 - [ ] **Console JS** : pas d'erreur ni warning suspect.
 - [ ] **Network** : si Gist actif, requêtes `api.github.com` propres (200/304). Si Local ou Mode test, **aucun** call sortant.
 

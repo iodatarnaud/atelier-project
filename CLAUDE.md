@@ -67,6 +67,15 @@ Chaque item porte un champ optionnel `activity[]` qui mélange deux types d'even
 
 **UI** : modale détail à 2 onglets (`renderItemDetailModal(itemId, activeTab)` + `switchItemDetailTab()`). L'onglet Activité est re-render localement via `refreshActivityPane(itemId, editingCommentId)` après chaque submit/edit/delete pour ne pas perdre l'état du formulaire Détails. Toggle CSS via classe `.tab-panel.active` (pas de re-render au switch).
 
+### Raccourcis clavier (handler global)
+
+Un seul handler `keydown` global gère `Ctrl+C` (quick add), `Échap` (ferme modale) et `Ctrl/Cmd+Entrée` (valide le bouton primary contextuel). Deux helpers partagés à connaître si tu ajoutes un raccourci :
+
+- **`isEditableTarget(el)`** : retourne true pour `INPUT`/`TEXTAREA`/`SELECT`/`contenteditable`. Utilisé pour ne pas intercepter un raccourci natif quand l'utilisateur est en train d'éditer un champ (sinon `Ctrl+C` casse le copier natif, `Échap` perd la saisie en cours, etc.).
+- **`findContextualPrimary(activeEl)`** : résout le bouton "actionnable" pour `Ctrl+Entrée` en remontant depuis `document.activeElement`. Ordre de priorité : édition commentaire > saisie commentaire > formulaire inline > modale ouverte (avec `.tab-panel.active` prioritaire pour ne pas cliquer un bouton caché par display:none de l'onglet inactif). **Exclut explicitement `#confirmModal`** pour qu'aucun raccourci ne puisse déclencher une suppression sans clic.
+
+Garde-fous : `e.repeat` skippé sur `Ctrl+Enter` (anti double-submit si maintien), `!e.altKey && !e.shiftKey` sur `Ctrl+C` (évite AltGr / `Ctrl+Shift+C`). Le listener local sur `.if-title` (formulaire inline) ne traite que `Enter` simple — `Ctrl/Cmd+Enter` est laissé au handler global pour éviter le double-submit (event bubblé).
+
 ### Helpers d'affichage
 
 - `escapeHtml(s)` — seul chemin sûr pour injecter une string contrôlée par l'utilisateur dans `innerHTML`. Toujours l'utiliser.
@@ -88,7 +97,7 @@ Chaque item porte un champ optionnel `activity[]` qui mélange deux types d'even
 
 ## Tests
 
-Suite E2E Playwright dans `tests/` (un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`, `security`, `activite`). Helpers partagés dans `tests/helpers.js`. Total : 74 tests, ~70s, CI bloquant avant déploiement Pages.
+Suite E2E Playwright dans `tests/` (un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`, `security`, `activite`). Helpers partagés dans `tests/helpers.js`. Total : 84 tests, ~80s, CI bloquant avant déploiement Pages.
 
 Spécificités à connaître quand on touche aux tests ou à `index.html` :
 - **Seed démo (boot)** : 2 clients placeholder (`Acme`, `Globex`) sont créés au premier boot d'une DB vide. **Ne jamais y mettre de vrais noms de clients** — le repo est public. Pareil pour les `placeholder=` des inputs.
