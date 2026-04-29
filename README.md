@@ -19,7 +19,7 @@ Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fic
 - Export / import JSON manuel (sauvegarde de secours)
 - **Mode test** : bac à sable isolé avec jeu de données démo, aucune écriture vers tes vraies données
 - Dark theme automatique selon le mode OS
-- Sidebar redimensionnable, raccourcis clavier (`Ctrl+C` quick add, `Échap` fermer un modal)
+- Sidebar redimensionnable, raccourcis clavier (`Ctrl+C` quick add, `Ctrl+Entrée` valider partout, `Échap` fermer un modal)
 
 ## Stack
 
@@ -27,7 +27,7 @@ Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fic
 - Aucune dépendance runtime (juste la police Inter via CDN)
 - IndexedDB pour le cache local, fallback `localStorage`
 - API REST GitHub pour la synchronisation Gist (optionnelle)
-- Playwright pour les tests end-to-end (74 tests répartis sur 9 fichiers, dont sécurité XSS et activité)
+- Playwright pour les tests end-to-end (84 tests répartis sur 9 fichiers, dont sécurité XSS, activité et raccourcis)
 
 ## Lancer en local
 
@@ -47,7 +47,7 @@ Suite end-to-end Playwright qui valide les fonctionnalités principales avant ch
 ```bash
 npm install
 npx playwright install     # installe Chromium headless (une seule fois)
-npm test                   # 74 tests, ~70s
+npm test                   # 84 tests, ~80s
 npm run test:headed        # voir le navigateur pendant les tests
 npm run test:ui            # mode interactif avec replay
 ```
