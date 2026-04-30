@@ -3756,7 +3756,15 @@ function getAllCalendarItems() {
   const items = [];
   for (const c of state.clients) {
     for (const it of (c.items || [])) {
-      items.push({ ...it, clientId: c.id, clientName: c.name, clientColor: c.color });
+      const epic = it.epicId ? (c.epics || []).find(e => e.id === it.epicId) : null;
+      items.push({
+        ...it,
+        clientId: c.id,
+        clientName: c.name,
+        clientColor: c.color,
+        epicColor: epic ? epic.color : null,
+        epicName: epic ? epic.name : null
+      });
     }
   }
   return items;
@@ -3929,11 +3937,12 @@ function renderCalendar(container) {
 }
 
 function renderCalendarItem(it, withDateLabel) {
-  const color = it.clientColor || '#6c7888';
+  const color = it.epicColor || '#6c7888';
   const statusClass = it.status === 'done' ? 'done' : '';
   const dateLabel = withDateLabel ? `<span style="color:var(--text-mute);font-size:10px;">${escapeHtml(it.dueDate)}</span> ` : '';
+  const tooltip = [it.clientName, it.epicName, it.title].filter(Boolean).map(escapeHtml).join(' · ');
   return `
-    <div class="cal-item ${statusClass}" draggable="true" data-client-id="${it.clientId}" data-item-id="${it.id}" onclick="openItemFromCalendar('${it.clientId}', '${it.id}')" title="${escapeHtml(it.clientName)} · ${escapeHtml(it.title)}">
+    <div class="cal-item ${statusClass}" draggable="true" data-client-id="${it.clientId}" data-item-id="${it.id}" onclick="openItemFromCalendar('${it.clientId}', '${it.id}')" title="${tooltip}">
       <span class="cal-item-color" style="background:${color};"></span>
       <span class="cal-item-title">${dateLabel}${escapeHtml(it.title)}</span>
     </div>
