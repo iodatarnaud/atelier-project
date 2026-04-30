@@ -182,6 +182,13 @@ Vue mensuelle multi-projets pour visualiser ta charge à venir et replanifier vi
 - **Items terminés exclus** : le calendrier est une vue de charge à venir, pas l'archive.
 - **Items hors mois** : pas affichés dans les cellules grisées (other-month).
 
+### Pastille couleur (depuis v0.16.0)
+Chaque item est précédé d'une petite pastille ronde dont la couleur reflète l'**Epic** auquel l'item est rattaché. Cohérent avec le marquage Epic du backlog (`epicDot`) et de la modale détail (`epic-chip`).
+
+- **Item avec Epic** : pastille de la couleur de l'Epic.
+- **Item sans Epic** (ou Epic supprimé) : pastille **gris neutre** — signal qu'aucun Epic n'est défini, invitation à en assigner un.
+- **Tooltip au survol** : `Client · Epic · Titre` si Epic défini, sinon `Client · Titre`. Pratique en vue multi-projets.
+
 ### Filtres
 - **Projet** : "Tous les projets" ou un projet spécifique.
 - **Type** : tous / Build / TMA / Bug.
