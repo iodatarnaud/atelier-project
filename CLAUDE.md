@@ -6,6 +6,8 @@ This file provides project-specific guidance to Claude Code.
 
 ## ⚠️ EXECUTION PRIORITY
 
+The project runs under the **AI Orchestration Protocol v2.1** (multi-agent workflow Claude / Codex / Arnaud).
+
 If the following exists:
 
 - `/ai-system/00_AI_SYSTEM.md`
@@ -18,9 +20,10 @@ THEN:
 You MUST:
 
 1. Read `/AI.md`
-2. Read `/ai-system/00_AI_SYSTEM.md`
-3. Read `/ai-system/CLAUDE_BOOTSTRAP.md`
-4. Read the current WI
+2. Read `/ai-system/00_AI_SYSTEM.md` (core contract)
+3. Read `/ai-system/CLAUDE_BOOTSTRAP.md` (Claude-specific boot sequence)
+4. Reference as needed : `/ai-system/WI_TEMPLATE.md` (WI structure), `/ai-system/SYSTEM_USAGE.md` (usage guide), `/ai-system/CODEX_BOOTSTRAP.md` (Codex contract for cross-checks)
+5. Force-read the current WI header via Bash : `head -8 work-items/WI-<NNN>.md` (never trust editor cache or message snapshots)
 
 Then execute ONLY via the orchestration system.
 

@@ -2,6 +2,8 @@
 
 Atelier est une application web mono-utilisateur pour gérer un backlog et des sprints, conçue pour un consultant qui suit plusieurs clients en parallèle. Ce manuel décrit comment utiliser l'app au quotidien.
 
+> 🛠️ **Pour les contributeurs / devs** : ce document couvre l'usage de l'app. Le pipeline de développement multi-agents (Claude / Codex / Arnaud) est documenté dans le [README — section Workflow de développement](README.md#workflow-de-développement-multi-agents) et dans [`ai-system/00_AI_SYSTEM.md`](ai-system/00_AI_SYSTEM.md) (protocole v2.1).
+
 ## Sommaire
 
 1. [Premier lancement](#premier-lancement)

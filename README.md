@@ -59,6 +59,28 @@ Les specs vivent dans [`tests/`](tests/), un fichier par feature : `clients`, `b
 - [`MANUEL.md`](MANUEL.md) — manuel utilisateur (concepts, vues, sync, mode test)
 - [`SMOKE-TEST.md`](SMOKE-TEST.md) — plan de validation manuel pour vérifier tout le périmètre avant un déploiement
 - [`CLAUDE.md`](CLAUDE.md) — détails techniques (architecture, persistance, conventions)
+- [`AI.md`](AI.md) + [`ai-system/`](ai-system/) — protocole d'orchestration multi-agents (Claude / Codex / Arnaud), v2.1
+- [`work-items/`](work-items/) — Work Items (WI) : un fichier par chantier, source unique de vérité d'une feature
+
+## Workflow de développement (multi-agents)
+
+Toute évolution non triviale passe par un **Work Item** (WI) suivant le `AI Orchestration Protocol v2.1` documenté dans [`ai-system/00_AI_SYSTEM.md`](ai-system/00_AI_SYSTEM.md). Trois acteurs collaborent :
+
+- **Arnaud** (humain) : cadre la demande (`CADRAGE`), valide en pré-merge (`VALIDATION_UI`).
+- **Claude** : code (`IMPLEMENTATION`), tests (`TESTS`), release notes (`PATCH_NOTES`), merge (`MERGE_RELEASE`), docs (`DOCS`).
+- **Codex** : review du PRD (`PLAN_REVIEW`), review du code (`CODE_REVIEW`), rétrospective (`RETROSPECTIVE`).
+
+Pipeline canonique (mode STANDARD, 13 phases) :
+
+```
+CADRAGE → PRD → PLAN_REVIEW → IMPLEMENTATION → TESTS → CODE_REVIEW →
+VALIDATION_UI → PATCH_NOTES → MERGE_RELEASE → DOCS → CLEANUP →
+RETROSPECTIVE → DONE
+```
+
+Mode `FAST_TRACK` disponible pour les changements à risque LOW (< 50 lignes, pas de schéma, pas d'API publique) : skippe `PRD` / `PLAN_REVIEW` / `CODE_REVIEW` / `RETROSPECTIVE`. Détails dans [`ai-system/SYSTEM_USAGE.md`](ai-system/SYSTEM_USAGE.md).
+
+Pour démarrer un WI : `cp ai-system/WI_TEMPLATE.md work-items/WI-<NNN>.md`, remplir le `CADRAGE`, dire `next` à l'agent dont le `Owner:` du WI fait foi.
 
 ## Auto-hébergement (fork)
 
