@@ -262,3 +262,105 @@ test.describe('Calendrier — sécurité date (timezone)', () => {
     expect(inOverdue + inYesterday).toBeGreaterThan(0);
   });
 });
+
+// === Pastille couleur Epic [WI-003 / ATE-21] ===
+
+test.describe('Calendrier — pastille couleur = Epic [WI-003]', () => {
+  // #ff5733 = rgb(255, 87, 51) — Epic test ; #6c7888 = rgb(108, 120, 136) — fallback
+  const EPIC_COLOR_HEX = '#ff5733';
+  const EPIC_COLOR_RGB = 'rgb(255, 87, 51)';
+  const FALLBACK_RGB = 'rgb(108, 120, 136)';
+
+  test.beforeEach(async ({ page }) => {
+    await resetApp(page);
+    await createClient(page, { name: 'Acme', key: 'ACM' });
+    await page.evaluate((color) => {
+      const c = state.clients[0];
+      c.epics = c.epics || [];
+      c.epics.push({ id: 'epic-wi003-1', name: 'Refonte UI', color });
+    }, EPIC_COLOR_HEX);
+  });
+
+  async function assignEpicToItem(page, itemTitle, epicId) {
+    await page.evaluate(({ title, eid }) => {
+      const item = state.clients[0].items.find(i => i.title === title);
+      if (item) item.epicId = eid;
+    }, { title: itemTitle, eid: epicId });
+  }
+
+  test('AC1 — item avec Epic défini → pastille = couleur Epic', async ({ page }) => {
+    await createItemInline(page, { title: 'Avec Epic' });
+    await assignEpicToItem(page, 'Avec Epic', 'epic-wi003-1');
+    await gotoCalendar(page);
+    const pastille = page.locator('.cal-item').filter({ hasText: 'Avec Epic' }).locator('.cal-item-color').first();
+    const bg = await pastille.evaluate(el => getComputedStyle(el).backgroundColor);
+    expect(bg).toBe(EPIC_COLOR_RGB);
+  });
+
+  test('AC2 — item sans Epic → pastille gris fallback', async ({ page }) => {
+    // Titre "Item Solo" choisi pour éviter la collision avec l'option "Sans epic"
+    // du <select id="ed_epic"> qui ferait échouer le helper createItemInline (matching non strict).
+    await createItemInline(page, { title: 'Item Solo' });
+    await gotoCalendar(page);
+    const pastille = page.locator('.cal-item').filter({ hasText: 'Item Solo' }).locator('.cal-item-color').first();
+    const bg = await pastille.evaluate(el => getComputedStyle(el).backgroundColor);
+    expect(bg).toBe(FALLBACK_RGB);
+  });
+
+  test('AC2 bis — item avec epicId orphelin (Epic supprimé) → fallback gris', async ({ page }) => {
+    await createItemInline(page, { title: 'Epic orphelin' });
+    await assignEpicToItem(page, 'Epic orphelin', 'epic-introuvable-xxx');
+    await gotoCalendar(page);
+    const calItem = page.locator('.cal-item').filter({ hasText: 'Epic orphelin' });
+    const bg = await calItem.locator('.cal-item-color').first().evaluate(el => getComputedStyle(el).backgroundColor);
+    expect(bg).toBe(FALLBACK_RGB);
+    // Tooltip ne doit pas contenir de segment Epic (epicName = null)
+    const title = await calItem.first().getAttribute('title');
+    expect(title).toBe('Acme · Epic orphelin');
+  });
+
+  test('AC3 — tooltip avec Epic = "Client · Epic · Titre"', async ({ page }) => {
+    await createItemInline(page, { title: 'Tooltip Epic' });
+    await assignEpicToItem(page, 'Tooltip Epic', 'epic-wi003-1');
+    await gotoCalendar(page);
+    const calItem = page.locator('.cal-item').filter({ hasText: 'Tooltip Epic' }).first();
+    const title = await calItem.getAttribute('title');
+    expect(title).toBe('Acme · Refonte UI · Tooltip Epic');
+  });
+
+  test('AC3 bis — tooltip sans Epic = "Client · Titre"', async ({ page }) => {
+    await createItemInline(page, { title: 'Tooltip Sans Epic' });
+    await gotoCalendar(page);
+    const calItem = page.locator('.cal-item').filter({ hasText: 'Tooltip Sans Epic' }).first();
+    const title = await calItem.getAttribute('title');
+    expect(title).toBe('Acme · Tooltip Sans Epic');
+  });
+
+  test('AC4 — couleur cohérente entre 2 zones (overdue + non planifié)', async ({ page }) => {
+    // Item 1 : overdue, avec Epic
+    await createItemInline(page, { title: 'Overdue Epic' });
+    await assignEpicToItem(page, 'Overdue Epic', 'epic-wi003-1');
+    await setItemDueDate(page, 'Overdue Epic', '2024-01-15');
+    // Item 2 : non planifié, même Epic
+    await createItemInline(page, { title: 'NonPlanifie Epic' });
+    await assignEpicToItem(page, 'NonPlanifie Epic', 'epic-wi003-1');
+    await gotoCalendar(page);
+    const overdueBg = await page.locator('.calendar-overdue-items .cal-item').filter({ hasText: 'Overdue Epic' }).locator('.cal-item-color').first().evaluate(el => getComputedStyle(el).backgroundColor);
+    const unplannedBg = await page.locator('.calendar-unplanned-items .cal-item').filter({ hasText: 'NonPlanifie Epic' }).locator('.cal-item-color').first().evaluate(el => getComputedStyle(el).backgroundColor);
+    expect(overdueBg).toBe(EPIC_COLOR_RGB);
+    expect(unplannedBg).toBe(EPIC_COLOR_RGB);
+    expect(overdueBg).toBe(unplannedBg);
+  });
+
+  test('AC5 — aucune régression : data-client-id, data-item-id, draggable, onclick préservés', async ({ page }) => {
+    await createItemInline(page, { title: 'Anti-régression' });
+    await assignEpicToItem(page, 'Anti-régression', 'epic-wi003-1');
+    await gotoCalendar(page);
+    const calItem = page.locator('.cal-item').filter({ hasText: 'Anti-régression' }).first();
+    expect(await calItem.getAttribute('draggable')).toBe('true');
+    expect(await calItem.getAttribute('data-client-id')).toBeTruthy();
+    expect(await calItem.getAttribute('data-item-id')).toBeTruthy();
+    const onclick = await calItem.getAttribute('onclick');
+    expect(onclick).toContain('openItemFromCalendar');
+  });
+});
