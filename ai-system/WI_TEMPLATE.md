@@ -39,12 +39,16 @@ Chosen mode: <STANDARD | FAST_TRACK>
 Justification:
 - ...
 
+If STANDARD:
+- chaîne complète : `CADRAGE → PRD → PLAN_REVIEW → IMPLEMENTATION → TESTS → CODE_REVIEW → VALIDATION_UI → PATCH_NOTES → MERGE_RELEASE → DOCS → CLEANUP → RETROSPECTIVE → DONE`
+- `RETROSPECTIVE` obligatoire avant `DONE`.
+
 If FAST_TRACK:
-- skip PRD
-- skip PLAN_REVIEW
-- skip CODE_REVIEW
-- skip RETROSPECTIVE (optional)
-- go directly to IMPLEMENTATION
+- éligibilité (toutes obligatoires) : `Risk: LOW`, scope < 50 lignes, pas de modif schéma de données, pas d'API publique modifiée.
+- chaîne : `CADRAGE → IMPLEMENTATION → TESTS → VALIDATION_UI → PATCH_NOTES → MERGE_RELEASE → DOCS → CLEANUP → DONE`.
+- skippées : `PRD`, `PLAN_REVIEW`, `CODE_REVIEW`, `RETROSPECTIVE`.
+- jamais skippables (n'importe quel mode) : `TESTS`, `MERGE_RELEASE`, `CLEANUP`.
+- escalade : si pendant `IMPLEMENTATION` le scope dépasse l'éligibilité → STOP, BLOCKER, `Status` retombe en `PRD`, `Mode` passe à `STANDARD`.
 
 ---
 
@@ -117,6 +121,10 @@ Edge cases covered:
 
 Missing tests:
 
+Notes:
+<!-- Document toute boucle interne TESTS (cause test-side : sélecteur fragile, helper instable, race side-test). Si vide = aucun fix test-side. Voir 00_AI_SYSTEM.md → "TESTS red routing". -->
+- ...
+
 ---
 
 ## CODE_REVIEW
@@ -149,6 +157,12 @@ Issues:
 
 ---
 
+## PATCH_NOTES
+
+<!-- FR markdown body for GitHub Release -->
+
+---
+
 ## MERGE_RELEASE
 
 Version bumped: vX.Y.Z
@@ -160,12 +174,6 @@ Merge SHA on main:
 Push: <ok | fail>
 
 Release URL:
-
----
-
-## PATCH_NOTES
-
-<!-- FR markdown body for GitHub Release -->
 
 ---
 
