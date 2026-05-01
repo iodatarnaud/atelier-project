@@ -98,6 +98,17 @@ Cocher au fur et à mesure ; le plan est conçu pour être linéaire (les sectio
 - [ ] **9.3** Sur une autre machine avec le même PAT/Gist → reload → les modifs apparaissent.
 - [ ] **9.4** Bouton **Déconnecter** → l'indicateur revient à **`● Local`**.
 
+### 9.bis Sync multi-instances (depuis v0.17.0)
+
+Pré-requis : 2 onglets ouverts sur le même Gist (même PAT/Gist ID), ou Mac + Windows.
+
+- [ ] **9.5** Onglet A modifie un item → onglet B (revient au focus après quelques secondes) → toast `↺ Données mises à jour (depuis une autre machine)` + l'item est à jour côté B sans reload.
+- [ ] **9.6** Onglet A et onglet B modifient **chacun** un item différent en parallèle → le 2e à pusher voit un toast conflit `⚠ Données distantes plus récentes — depuis [délai]` avec 3 boutons.
+- [ ] **9.7** Cliquer **Recharger** sur le toast conflit → modifs locales jetées, version distante appliquée, toast info `↺ Synchronisé avec la version distante`.
+- [ ] **9.8** Re-provoquer un conflit → cliquer **Garder local** → toast `✓ Version locale poussée` ; vérifier sur l'autre instance qu'au prochain focus, la version locale gagne.
+- [ ] **9.9** Re-provoquer un conflit → cliquer **Voir diff** → modale s'ouvre avec compteurs clients/items/sprints/epics et liste d'items à titre divergent (max 10) ; les boutons `Recharger` / `Garder local` du footer fonctionnent.
+- [ ] **9.10** Échap dans la modale `Voir diff` → la modale se ferme, le toast conflit reste affiché.
+
 ## 10. Mode test
 
 - [ ] **10.1** Activer le mode test → confirm → reload → banner jaune visible et persistant.

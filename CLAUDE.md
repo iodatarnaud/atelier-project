@@ -127,7 +127,9 @@ App mono-fichier `index.html` (~4500 lignes) avec HTML + CSS + JS embarqués. Na
 2. IndexedDB (`atelier-db`)
 3. Gist GitHub (`atelier-data.json`)
 
-Politique : last-write-wins via `lastSavedAt`.
+Politique :
+- Inter-boot : last-write-wins via `lastSavedAt`.
+- Inter-instance ouverte (depuis v0.17.0) : push-guard avant chaque PATCH (GET préalable, comparaison `remoteTs` vs `_lastSyncedRemoteTs` baseline) + pull au focus / visibilitychange + toast conflit non-bloquant si modif locale dirty rencontre un remote plus récent.
 
 Ne jamais casser la compatibilité Gist.
 

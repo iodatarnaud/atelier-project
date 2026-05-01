@@ -221,7 +221,20 @@ Sans configuration, les données restent dans l'IndexedDB du navigateur local. P
 
 L'indicateur passe à **`● GitHub`**. Toute modif est sauvegardée localement (IndexedDB) puis poussée vers le Gist en arrière-plan (debounce 2,5 s). Sur une autre machine, configurer le même PAT + Gist ID : l'app récupère les dernières données au boot.
 
-⚠ **Politique de conflit** : last-write-wins. Si tu modifies en parallèle sur deux machines, la dernière écriture écrase l'autre. **Éviter d'éditer simultanément**.
+### Sync entre 2 sessions ouvertes (depuis v0.17.0)
+
+Quand l'app est ouverte sur deux machines (Mac + Windows) ou deux onglets en parallèle, trois garde-fous protègent les données :
+
+- **Pull au retour de focus** : quand tu reviens sur l'onglet ou la fenêtre, l'app refetch le Gist en arrière-plan. Si une autre instance a poussé entre temps **et** que tu n'as rien modifié localement, le nouvel état est appliqué silencieusement avec un petit toast « ↺ Données mises à jour (depuis une autre machine) ».
+- **Push-guard** : avant chaque push, l'app vérifie que le Gist distant n'a pas changé entre temps. Sinon, le push est bloqué et un toast conflit s'affiche.
+- **Toast conflit** quand un conflit est détecté (modifs locales **et** distant plus récent) :
+  - **Recharger** → applique la version distante, abandonne tes modifs locales en mémoire.
+  - **Garder local** → force le push de ta version (écrase le distant).
+  - **Voir diff** → ouvre une modale comparative (compteurs clients/items/sprints/epics + items à titre divergent, top 10) pour décider en connaissance.
+
+Le toast conflit reste visible tant que tu n'as pas tranché — pas d'auto-dismiss. Aucun nouveau push n'est tenté pendant ce temps. Si tu fermes l'onglet pendant qu'un check sync est en cours, l'app n'écrase pas le distant : tes modifs en attente reviennent au boot suivant.
+
+⚠ **Cas non couvert** : si trois instances ou plus poussent quasi-simultanément, le push-guard de l'une peut rater celui de l'autre. Pour la cible Atelier (mono-utilisateur), 2 instances suffisent largement.
 
 ## Mode test (bac à sable)
 
