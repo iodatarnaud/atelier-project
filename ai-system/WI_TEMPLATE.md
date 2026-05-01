@@ -9,6 +9,21 @@ Risk: LOW | MEDIUM | HIGH
 
 ---
 
+## TIMING
+
+Opened: JJ/MM/AAAA HH:MM
+Closed:
+Duration:
+
+<!--
+Conventions :
+- `Opened` : posé par Claude au boot CADRAGE via `date +'%d/%m/%Y %H:%M'` (timezone système, attendue Europe/Paris).
+- `Closed` : posé par Claude au passage `Status: DONE` via la même commande.
+- `Duration` : calculée à la fermeture, format `Xj Yh Zmin` ou `Yh Zmin` selon ordre de grandeur.
+-->
+
+---
+
 ## 0. SESSION CONTROL
 
 Repo source of truth confirmed: NO

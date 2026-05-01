@@ -21,6 +21,9 @@ If you ARE the owner:
 - For phases producing code or tests, perform actual file edits and actual command runs (e.g. `npm test`, `gh release create`).
 - Update `Status` and `Owner` in the WI header (Status Transition rule).
 - Write the section for the executed phase directly into the WI file.
+- **Timing** (depuis v2.2) :
+  - Si `## TIMING` est absent ou si `Opened` est vide alors que tu démarres `CADRAGE` (initialisation du WI), pose `Opened: <date FR>` via `date +'%d/%m/%Y %H:%M'`.
+  - Si tu finalises `Status: DONE`, pose `Closed: <date FR>` (même commande) ET calcule `Duration` à partir de `Opened`/`Closed` (format `Xj Yh Zmin` / `Yh Zmin` / `Xmin` selon ordre de grandeur).
 - Output the strict 6-field contract block exactly as specified in `ai-system/00_AI_SYSTEM.md`.
 - Stop.
 

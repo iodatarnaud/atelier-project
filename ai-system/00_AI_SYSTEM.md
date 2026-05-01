@@ -94,6 +94,31 @@ This is an explicit marker that the boot ran for THIS phase, not a cumulative tr
 
 ---
 
+## TIMING (mandatory)
+
+Each WI MUST contain a `## TIMING` section (between the header and `## 0. SESSION CONTROL`) with three fields :
+
+```
+Opened: JJ/MM/AAAA HH:MM
+Closed: JJ/MM/AAAA HH:MM
+Duration: Xj Yh Zmin   (ou Yh Zmin si < 24h)
+```
+
+Format and rules :
+
+- **Format** : `JJ/MM/AAAA HH:MM` (granularité minute, timezone système, attendue Europe/Paris).
+- **`Opened`** : posé par Claude au boot `CADRAGE` (création initiale du WI) via `date +'%d/%m/%Y %H:%M'`. Une fois écrit, NE JAMAIS le modifier (même en cas de reprise / re-cadrage / loop boucle).
+- **`Closed`** : posé par Claude au passage `Status: DONE` (dernière phase, après `CLEANUP` ou `RETROSPECTIVE` selon le mode). Même commande.
+- **`Duration`** : calculée par Claude à la fermeture, à partir de `Opened` et `Closed`. Format compact :
+  - < 1h : `Xmin`
+  - 1h à 24h : `Yh Zmin`
+  - ≥ 24h : `Xj Yh Zmin`
+- WI existants antérieurs à la version v2.2 du protocole ne sont pas migrés rétroactivement (pas d'information fiable). Ils restent valides sans la section `## TIMING`.
+
+The agent who finalizes `Status: DONE` MUST fill `Closed` and `Duration` in the same edit as the Status transition. Skipping this is a FAIL of the Output contract for that phase.
+
+---
+
 ## WI Resolution
 
 When `next` is received without an explicit WI path, apply this strict order:
