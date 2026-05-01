@@ -2420,7 +2420,7 @@ function setSyncStatus(status, label) {
 // passe par normalizeImportedState() avant d'atterrir dans `state.clients`.
 // On reconstruit des objets propres champ par champ : ça neutralise les
 // payloads XSS qui s'appuieraient sur les ids/colors/types interpolés tels
-// quels dans des onclick="...${id}..." ou style="background:${color}", et ça
+// quels dans des onclick="...${id}..." ou style="background:${escapeAttr(color)}", et ça
 // coupe net les pollutions de prototype (__proto__, constructor) puisqu'on
 // ne lit que les clés explicitement whitelistées.
 //
@@ -3000,7 +3000,7 @@ function openSyncDiffModal() {
     const d = a - b;
     if (d === 0) return '<span style="color:var(--text-mute);">=</span>';
     const color = d > 0 ? 'var(--story)' : 'var(--bug)';
-    return `<span style="color:${color};">${d > 0 ? '+' : ''}${d}</span>`;
+    return `<span style="color:${escapeAttr(color)};">${d > 0 ? '+' : ''}${d}</span>`;
   };
   // Items dont l'id existe des 2 côtés mais avec un title différent (max 10).
   const localItems = new Map();
@@ -3462,8 +3462,8 @@ function renderSidebar() {
     const colors = ['#0052cc', '#36b37e', '#8777d9', '#ff8b00', '#e5493a', '#4bade8'];
     const color = c.color || colors[state.clients.indexOf(c) % colors.length];
     return `
-      <div class="side-item ${c.id === state.activeClientId ? 'active' : ''}" data-client-id="${c.id}" onclick="switchClient('${c.id}')">
-        <div class="ico" style="background:${color}">${escapeHtml(initial)}</div>
+      <div class="side-item ${escapeAttr(c.id === state.activeClientId ? 'active' : '')}" data-client-id="${escapeAttr(c.id)}" onclick="switchClient('${escapeJs(c.id)}')">
+        <div class="ico" style="background:${escapeAttr(color)}">${escapeHtml(initial)}</div>
         <div class="side-item-text">
           <span>${escapeHtml(c.name)}</span>
           <div class="side-stats" title="À faire / En cours / Terminés · jours estimés">
@@ -3474,7 +3474,7 @@ function renderSidebar() {
           </div>
         </div>
         <span class="count">${open}</span>
-        <button class="side-action menu" onclick="event.stopPropagation();clientActionMenu(this, '${c.id}')" title="Options">⋯</button>
+        <button class="side-action menu" onclick="event.stopPropagation();clientActionMenu(this, '${escapeJs(c.id)}')" title="Options">⋯</button>
       </div>
     `;
   }).join('');
@@ -3485,7 +3485,7 @@ function renderSidebar() {
     if (!prev) return;
     ['todo', 'progress', 'done'].forEach(k => {
       if (prev[k] !== currentStats[cid][k]) {
-        const el = list.querySelector(`[data-client-id="${cid}"] [data-stat-key="${k}"]`);
+        const el = list.querySelector(`[data-client-id="${escapeAttr(cid)}"] [data-stat-key="${escapeAttr(k)}"]`);
         if (el) {
           el.classList.remove('bump');
           // reflow pour rejouer l'anim si la classe était déjà là
@@ -3511,11 +3511,11 @@ function renderSidebar() {
       const nameStyle = s.completed ? 'opacity:0.55;text-decoration:line-through;' : '';
       const suffix = s.completed ? ' <span style="color:var(--text-faint);font-style:italic;">(terminé)</span>' : '';
       return `
-        <div class="side-item" data-sprint-id="${s.id}" onclick="setActiveSprint('${s.id}')" style="font-size:12px;">
-          <span style="width:6px;height:6px;border-radius:50%;background:${dotColor};"></span>
-          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${nameStyle}">${escapeHtml(s.name)}${suffix}</span>
+        <div class="side-item" data-sprint-id="${escapeAttr(s.id)}" onclick="setActiveSprint('${escapeJs(s.id)}')" style="font-size:12px;">
+          <span style="width:6px;height:6px;border-radius:50%;background:${escapeAttr(dotColor)};"></span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${escapeAttr(nameStyle)}">${escapeHtml(s.name)}${suffix}</span>
           <span class="count">${done}/${total}</span>
-          <button class="side-action menu" onclick="event.stopPropagation();sprintActionMenu(this, '${s.id}')" title="Options">⋯</button>
+          <button class="side-action menu" onclick="event.stopPropagation();sprintActionMenu(this, '${escapeJs(s.id)}')" title="Options">⋯</button>
         </div>
       `;
     }).join('');
@@ -3530,11 +3530,11 @@ function renderSidebar() {
       const count = client.items.filter(i => i.epicId === e.id && i.status !== 'done').length;
       const isActive = state.filterEpic === e.id;
       return `
-        <div class="side-item ${isActive ? 'active' : ''}" data-epic-id="${e.id}" onclick="setEpicFilter('${e.id}')" style="font-size:12px;" title="${isActive ? 'Retirer le filtre' : 'Filtrer par cet epic'}">
-          <span style="width:10px;height:10px;border-radius:3px;background:${e.color};flex-shrink:0;"></span>
+        <div class="side-item ${escapeAttr(isActive ? 'active' : '')}" data-epic-id="${escapeAttr(e.id)}" onclick="setEpicFilter('${escapeJs(e.id)}')" style="font-size:12px;" title="${escapeAttr(isActive ? 'Retirer le filtre' : 'Filtrer par cet epic')}">
+          <span style="width:10px;height:10px;border-radius:3px;background:${escapeAttr(e.color)};flex-shrink:0;"></span>
           <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(e.name)}</span>
           <span class="count">${count}</span>
-          <button class="side-action menu" onclick="event.stopPropagation();epicActionMenu(this, '${e.id}')" title="Options">⋯</button>
+          <button class="side-action menu" onclick="event.stopPropagation();epicActionMenu(this, '${escapeJs(e.id)}')" title="Options">⋯</button>
         </div>
       `;
     }).join('');
@@ -3705,21 +3705,21 @@ function renderBacklogSection(section, client) {
   const epicSelect = !section.isEpic && client.epics && client.epics.length > 0 ? `
     <select class="if-epic">
       <option value="">Sans epic</option>
-      ${client.epics.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('')}
+      ${client.epics.map(e => `<option value="${escapeAttr(e.id)}">${escapeHtml(e.name)}</option>`).join('')}
     </select>
   ` : '';
 
   const sectionClass = section.isActiveSprint ? 'backlog-section sprint-active-section' : 'backlog-section';
   const badge = section.isActiveSprint ? '<span class="sprint-badge">Sprint actif</span>' : '';
   const goToBoard = section.isActiveSprint ? `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();switchView('board')" title="Voir le board">Voir le board ▦</button>` : '';
-  const epicDot = section.epicColor ? `<span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${section.epicColor};margin-right:6px;flex-shrink:0;vertical-align:middle;"></span>` : '';
+  const epicDot = section.epicColor ? `<span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${escapeAttr(section.epicColor)};margin-right:6px;flex-shrink:0;vertical-align:middle;"></span>` : '';
 
   return `
-    <div class="${sectionClass}" data-section="${section.id}">
+    <div class="${escapeAttr(sectionClass)}" data-section="${escapeAttr(section.id)}">
       <div class="backlog-section-head">
         <span class="name">${epicDot}${escapeHtml(section.name)}</span>
         ${badge}
-        <span class="meta" title="${formatDays(doneEst)}j livrés sur ${formatDays(totalEst)}j total">${escapeHtml(section.meta)}${totalEst > 0 ? ` · reste ${formatDays(remainingEst)} j sur ${formatDays(totalEst)}` : ''}</span>
+        <span class="meta" title="${escapeAttr(formatDays(doneEst))}j livrés sur ${escapeAttr(formatDays(totalEst))}j total">${escapeHtml(section.meta)}${totalEst > 0 ? ` · reste ${formatDays(remainingEst)} j sur ${formatDays(totalEst)}` : ''}</span>
         <div class="actions">
           <div class="backlog-section-stats">
             <span class="stat-pill" title="À faire">${todo}</span>
@@ -3727,13 +3727,13 @@ function renderBacklogSection(section, client) {
             <span class="stat-pill done" title="Terminé">${done}</span>
           </div>
           ${goToBoard}
-          ${section.canActivate ? `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();activateSprint('${section.sprintId}')">Activer</button>` : ''}
+          ${section.canActivate ? `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();activateSprint('${escapeJs(section.sprintId)}')">Activer</button>` : ''}
         </div>
       </div>
       <div class="backlog-list">
         ${rows}
         ${showInlineForm ? `
-          <button class="add-row" onclick="showInlineForm('${section.id}')">+ Créer un item${section.isActiveSprint ? ' dans ce sprint' : section.isEpic && section.epicId ? ' dans cet epic' : ''}</button>
+          <button class="add-row" onclick="showInlineForm('${escapeJs(section.id)}')">+ Créer un item${section.isActiveSprint ? ' dans ce sprint' : section.isEpic && section.epicId ? ' dans cet epic' : ''}</button>
           <div class="inline-form" id="form-${section.id}" style="display:none;">
             <select class="if-type">
               <option value="story">Build</option>
@@ -3749,8 +3749,8 @@ function renderBacklogSection(section, client) {
             <input type="text" class="if-title" placeholder="Titre de l'item…" />
             <input type="number" class="if-est" placeholder="0.5" step="0.25" min="0" style="width:70px;" />
             <input type="date" class="if-due" />
-            <button class="btn btn-primary btn-sm" onclick="submitInlineForm('${section.id}', '${formSprintId}', '${formEpicId}')">Créer</button>
-            <button class="btn btn-ghost btn-sm" onclick="hideInlineForm('${section.id}')">Annuler</button>
+            <button class="btn btn-primary btn-sm" onclick="submitInlineForm('${escapeJs(section.id)}', '${escapeJs(formSprintId)}', '${escapeJs(formEpicId)}')">Créer</button>
+            <button class="btn btn-ghost btn-sm" onclick="hideInlineForm('${escapeJs(section.id)}')">Annuler</button>
           </div>
         ` : ''}
       </div>
@@ -3762,17 +3762,17 @@ function renderBacklogRow(item, client) {
   const dueInfo = formatDue(item.dueDate);
   const key = `${client.key}-${item.num}`;
   const epic = item.epicId ? client.epics.find(e => e.id === item.epicId) : null;
-  const epicChip = epic ? `<span class="epic-chip" style="background:${epic.color}" title="${escapeHtml(epic.name)}">${escapeHtml(epic.name)}</span>` : '';
+  const epicChip = epic ? `<span class="epic-chip" style="background:${escapeAttr(epic.color)}" title="${escapeHtml(epic.name)}">${escapeHtml(epic.name)}</span>` : '';
   return `
-    <div class="backlog-row ${item.status === 'done' ? 'done' : ''}" draggable="true" data-id="${item.id}" onclick="openItemDetail('${item.id}')">
-      <span class="type-ico type-${item.type}" title="${TYPE_LABELS[item.type]}">${TYPE_LETTERS[item.type]}</span>
-      <span class="prio-ico prio-${item.priority}" title="P${item.priority}">${item.priority === 1 ? '↑' : item.priority === 2 ? '=' : '↓'}</span>
+    <div class="backlog-row ${escapeAttr(item.status === 'done' ? 'done' : '')}" draggable="true" data-id="${escapeAttr(item.id)}" onclick="openItemDetail('${escapeJs(item.id)}')">
+      <span class="type-ico type-${escapeAttr(item.type)}" title="${escapeAttr(TYPE_LABELS[item.type])}">${TYPE_LETTERS[item.type]}</span>
+      <span class="prio-ico prio-${escapeAttr(item.priority)}" title="P${escapeAttr(item.priority)}">${item.priority === 1 ? '↑' : item.priority === 2 ? '=' : '↓'}</span>
       <span class="row-key">${escapeHtml(key)}</span>
       <span class="row-title-wrap">${epicChip}<span class="row-title">${escapeHtml(item.title)}</span></span>
-      ${dueInfo.text !== '—' ? `<span class="due-pill ${dueInfo.cls}">${dueInfo.text}</span>` : '<span></span>'}
+      ${dueInfo.text !== '—' ? `<span class="due-pill ${escapeAttr(dueInfo.cls)}">${dueInfo.text}</span>` : '<span></span>'}
       <span class="est-badge" title="Estimation">${item.estimate || 0}</span>
-      <button class="status-badge status-${item.status}" onclick="event.stopPropagation();cycleStatus('${item.id}')">${STATUS_LABELS[item.status]}</button>
-      <button class="row-action" onclick="event.stopPropagation();confirmDeleteItem('${item.id}')" title="Supprimer">×</button>
+      <button class="status-badge status-${escapeAttr(item.status)}" onclick="event.stopPropagation();cycleStatus('${escapeJs(item.id)}')">${STATUS_LABELS[item.status]}</button>
+      <button class="row-action" onclick="event.stopPropagation();confirmDeleteItem('${escapeJs(item.id)}')" title="Supprimer">×</button>
     </div>
   `;
 }
@@ -3806,10 +3806,10 @@ function renderBoard(container, client) {
         <div class="dates">${sprint.startDate || '—'} → ${sprint.endDate || '—'}</div>
       </div>
       <div class="progress-wrap">
-        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-        <div class="progress-text" title="${formatDays(doneEst)}j livrés sur ${formatDays(totalEst)}j total">reste ${formatDays(remainingEst)} j sur ${formatDays(totalEst)} · ${pct}% terminé</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${escapeAttr(pct)}%"></div></div>
+        <div class="progress-text" title="${escapeAttr(formatDays(doneEst))}j livrés sur ${escapeAttr(formatDays(totalEst))}j total">reste ${formatDays(remainingEst)} j sur ${formatDays(totalEst)} · ${pct}% terminé</div>
       </div>
-      <button class="btn btn-secondary btn-sm" onclick="completeSprint('${sprint.id}')">Terminer le sprint</button>
+      <button class="btn btn-secondary btn-sm" onclick="completeSprint('${escapeJs(sprint.id)}')">Terminer le sprint</button>
     </div>
 
     <div class="board" id="kanbanBoard">
@@ -3851,17 +3851,17 @@ function renderCard(item, client) {
   const key = `${client.key}-${item.num}`;
   const dueInfo = formatDue(item.dueDate);
   const epic = item.epicId ? client.epics.find(e => e.id === item.epicId) : null;
-  const epicChip = epic ? `<span class="epic-chip" style="background:${epic.color};margin-bottom:6px;display:inline-block;" title="${escapeHtml(epic.name)}">${escapeHtml(epic.name)}</span>` : '';
+  const epicChip = epic ? `<span class="epic-chip" style="background:${escapeAttr(epic.color)};margin-bottom:6px;display:inline-block;" title="${escapeHtml(epic.name)}">${escapeHtml(epic.name)}</span>` : '';
   return `
-    <div class="card" draggable="true" data-id="${item.id}" onclick="openItemDetail('${item.id}')">
+    <div class="card" draggable="true" data-id="${escapeAttr(item.id)}" onclick="openItemDetail('${escapeJs(item.id)}')">
       ${epicChip}
       <div class="card-title">${escapeHtml(item.title)}</div>
       <div class="card-meta">
-        <span class="type-ico type-${item.type}">${TYPE_LETTERS[item.type]}</span>
+        <span class="type-ico type-${escapeAttr(item.type)}">${TYPE_LETTERS[item.type]}</span>
         <span class="key">${escapeHtml(key)}</span>
-        ${dueInfo.text !== '—' ? `<span class="due-pill ${dueInfo.cls}">${dueInfo.text}</span>` : ''}
+        ${dueInfo.text !== '—' ? `<span class="due-pill ${escapeAttr(dueInfo.cls)}">${dueInfo.text}</span>` : ''}
         <span class="spacer"></span>
-        <span class="prio-ico prio-${item.priority}">${item.priority === 1 ? '↑' : item.priority === 2 ? '=' : '↓'}</span>
+        <span class="prio-ico prio-${escapeAttr(item.priority)}">${item.priority === 1 ? '↑' : item.priority === 2 ? '=' : '↓'}</span>
         <span class="est-badge">${item.estimate || 0}</span>
       </div>
     </div>
@@ -4148,21 +4148,21 @@ function renderCalendar(container) {
   const todayKey = localDateKey(new Date());
 
   const projectOptions = ['<option value="">Tous les projets</option>']
-    .concat(state.clients.map(c => `<option value="${c.id}" ${state.calendarFilterProject === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`))
+    .concat(state.clients.map(c => `<option value="${escapeAttr(c.id)}" ${state.calendarFilterProject === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`))
     .join('');
 
   const typeOptions = ['<option value="">Tous types</option>']
-    .concat(['story', 'task', 'bug'].map(t => `<option value="${t}" ${state.calendarFilterType === t ? 'selected' : ''}>${TYPE_LABELS[t]}</option>`))
+    .concat(['story', 'task', 'bug'].map(t => `<option value="${escapeAttr(t)}" ${state.calendarFilterType === t ? 'selected' : ''}>${TYPE_LABELS[t]}</option>`))
     .join('');
 
   const prioOptions = ['<option value="">Toutes priorités</option>']
-    .concat([1, 2, 3].map(p => `<option value="${p}" ${state.calendarFilterPrio === String(p) ? 'selected' : ''}>P${p}</option>`))
+    .concat([1, 2, 3].map(p => `<option value="${escapeAttr(p)}" ${state.calendarFilterPrio === String(p) ? 'selected' : ''}>P${p}</option>`))
     .join('');
 
   const activeProject = state.calendarFilterProject ? state.clients.find(c => c.id === state.calendarFilterProject) : null;
   const epicsAvailable = activeProject ? (activeProject.epics || []) : [];
   const epicOptions = ['<option value="">Tous epics</option>']
-    .concat(epicsAvailable.map(e => `<option value="${e.id}" ${state.calendarFilterEpic === e.id ? 'selected' : ''}>${escapeHtml(e.name)}</option>`))
+    .concat(epicsAvailable.map(e => `<option value="${escapeAttr(e.id)}" ${state.calendarFilterEpic === e.id ? 'selected' : ''}>${escapeHtml(e.name)}</option>`))
     .join('');
   const epicDisabled = !activeProject;
 
@@ -4180,7 +4180,7 @@ function renderCalendar(container) {
         <select onchange="setCalendarFilterProject(this.value)" data-cal-filter="project">${projectOptions}</select>
         <select onchange="setCalendarFilterType(this.value)" data-cal-filter="type">${typeOptions}</select>
         <select onchange="setCalendarFilterPrio(this.value)" data-cal-filter="prio">${prioOptions}</select>
-        <select onchange="setCalendarFilterEpic(this.value)" data-cal-filter="epic" ${epicDisabled ? 'disabled' : ''} title="${epicDisabled ? 'Sélectionne un projet pour filtrer par epic' : ''}">${epicOptions}</select>
+        <select onchange="setCalendarFilterEpic(this.value)" data-cal-filter="epic" ${epicDisabled ? 'disabled' : ''} title="${escapeAttr(epicDisabled ? 'Sélectionne un projet pour filtrer par epic' : '')}">${epicOptions}</select>
       </div>
     </div>
   `;
@@ -4212,14 +4212,14 @@ function renderCalendar(container) {
     if (!cell.inMonth) classes.push('other-month');
     if (isToday) classes.push('today');
     if (isExpanded) classes.push('expanded');
-    html += `<div class="${classes.join(' ')}" data-date="${dKey}">`;
+    html += `<div class="${escapeAttr(classes.join(' '))}" data-date="${escapeAttr(dKey)}">`;
     html += `<div class="cal-cell-day">${cell.date.getDate()}</div>`;
     html += '<div class="cal-cell-items">';
     html += visible.map(it => renderCalendarItem(it, false)).join('');
     if (hidden > 0) {
-      html += `<button type="button" class="cal-more-btn" onclick="toggleCalendarCell('${dKey}')">+${hidden} autre${hidden > 1 ? 's' : ''}</button>`;
+      html += `<button type="button" class="cal-more-btn" onclick="toggleCalendarCell('${escapeJs(dKey)}')">+${hidden} autre${hidden > 1 ? 's' : ''}</button>`;
     } else if (isExpanded && items.length > _CAL_MAX_VISIBLE_PER_CELL) {
-      html += `<button type="button" class="cal-more-btn" onclick="toggleCalendarCell('${dKey}')">Réduire</button>`;
+      html += `<button type="button" class="cal-more-btn" onclick="toggleCalendarCell('${escapeJs(dKey)}')">Réduire</button>`;
     }
     html += '</div></div>';
   }
@@ -4268,8 +4268,8 @@ function renderCalendarItem(it, withDateLabel) {
   const dateLabel = withDateLabel ? `<span style="color:var(--text-mute);font-size:10px;">${escapeHtml(it.dueDate)}</span> ` : '';
   const tooltip = [it.clientName, it.epicName, it.title].filter(Boolean).map(escapeHtml).join(' · ');
   return `
-    <div class="cal-item ${statusClass}" draggable="true" data-client-id="${it.clientId}" data-item-id="${it.id}" onclick="openItemFromCalendar('${it.clientId}', '${it.id}')" title="${tooltip}">
-      <span class="cal-item-color" style="background:${color};"></span>
+    <div class="cal-item ${escapeAttr(statusClass)}" draggable="true" data-client-id="${escapeAttr(it.clientId)}" data-item-id="${escapeAttr(it.id)}" onclick="openItemFromCalendar('${escapeJs(it.clientId)}', '${escapeJs(it.id)}')" title="${escapeAttr(tooltip)}">
+      <span class="cal-item-color" style="background:${escapeAttr(color)};"></span>
       <span class="cal-item-title">${dateLabel}${escapeHtml(it.title)}</span>
     </div>
   `;
@@ -4758,23 +4758,23 @@ function renderItemDetailModal(itemId, activeTab, editingCommentId) {
 
   const key = `${client.key}-${item.num}`;
   const sprintOptions = ['<option value="">— Pas de sprint —</option>']
-    .concat(client.sprints.map(s => `<option value="${s.id}" ${item.sprintId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`))
+    .concat(client.sprints.map(s => `<option value="${escapeAttr(s.id)}" ${item.sprintId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`))
     .join('');
   const epicOptions = ['<option value="">— Pas d\'epic —</option>']
-    .concat((client.epics || []).map(e => `<option value="${e.id}" ${item.epicId===e.id?'selected':''}>${escapeHtml(e.name)}</option>`))
+    .concat((client.epics || []).map(e => `<option value="${escapeAttr(e.id)}" ${item.epicId===e.id?'selected':''}>${escapeHtml(e.name)}</option>`))
     .join('');
 
   return `
     <div class="modal-head">
-      <span class="type-ico type-${item.type}">${TYPE_LETTERS[item.type]}</span>
+      <span class="type-ico type-${escapeAttr(item.type)}">${TYPE_LETTERS[item.type]}</span>
       <span class="key">${escapeHtml(key)}</span>
       <button class="modal-close" onclick="closeItemModal()">×</button>
     </div>
     <div class="tabs">
-      <button type="button" class="tab ${activeTab==='details'?'active':''}" data-tab="details" onclick="switchItemDetailTab('details')">Détails</button>
-      <button type="button" class="tab ${activeTab==='activity'?'active':''}" data-tab="activity" onclick="switchItemDetailTab('activity')">Activité</button>
+      <button type="button" class="tab ${escapeAttr(activeTab==='details'?'active':'')}" data-tab="details" onclick="switchItemDetailTab('details')">Détails</button>
+      <button type="button" class="tab ${escapeAttr(activeTab==='activity'?'active':'')}" data-tab="activity" onclick="switchItemDetailTab('activity')">Activité</button>
     </div>
-    <div class="tab-panel ${activeTab==='details'?'active':''}" data-panel="details">
+    <div class="tab-panel ${escapeAttr(activeTab==='details'?'active':'')}" data-panel="details">
       <div class="modal-body">
         <div>
           <input type="text" id="ed_title" class="title-input" value="${escapeHtml(item.title)}">
@@ -4818,11 +4818,11 @@ function renderItemDetailModal(itemId, activeTab, editingCommentId) {
           </div>
           <div class="field-group">
             <label>Estimation (jours)</label>
-            <input type="number" id="ed_est" step="0.25" min="0" value="${item.estimate || 0}">
+            <input type="number" id="ed_est" step="0.25" min="0" value="${escapeAttr(item.estimate || 0)}">
           </div>
           <div class="field-group">
             <label>Échéance</label>
-            <input type="date" id="ed_due" value="${item.dueDate || ''}">
+            <input type="date" id="ed_due" value="${escapeAttr(item.dueDate || '')}">
           </div>
           <div class="field-group">
             <label>Sprint</label>
@@ -4834,13 +4834,13 @@ function renderItemDetailModal(itemId, activeTab, editingCommentId) {
           </div>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-ghost" onclick="confirmDeleteItem('${item.id}');closeItemModal();" style="margin-right:auto;color:var(--bug);">Supprimer</button>
+          <button class="btn btn-ghost" onclick="confirmDeleteItem('${escapeJs(item.id)}');closeItemModal();" style="margin-right:auto;color:var(--bug);">Supprimer</button>
           <button class="btn btn-secondary" onclick="closeItemModal()">Annuler</button>
-          <button class="btn btn-primary" onclick="saveItemEdit('${item.id}')">Enregistrer</button>
+          <button class="btn btn-primary" onclick="saveItemEdit('${escapeJs(item.id)}')">Enregistrer</button>
         </div>
       </div>
     </div>
-    <div class="tab-panel ${activeTab==='activity'?'active':''}" data-panel="activity">
+    <div class="tab-panel ${escapeAttr(activeTab==='activity'?'active':'')}" data-panel="activity">
       <div class="activity-pane">${renderActivityPane(item, client, editingCommentId)}</div>
     </div>
   `;
@@ -4898,7 +4898,7 @@ function renderActivityPane(item, client, editingCommentId) {
     <div class="comment-form">
       <textarea id="comment_input" placeholder="Ajouter un commentaire…" maxlength="${MAX_ACTIVITY_TEXT_LEN}"></textarea>
       <div class="actions">
-        <button type="button" class="btn btn-primary" onclick="submitComment('${item.id}')">Commenter</button>
+        <button type="button" class="btn btn-primary" onclick="submitComment('${escapeJs(item.id)}')">Commenter</button>
       </div>
     </div>
     ${events.length === 0
@@ -4936,8 +4936,8 @@ function renderCommentEvent(event, item, editingCommentId) {
       <div class="timeline-event comment editing">
         <textarea class="comment-edit" id="comment_edit_${escapeHtml(event.id)}" maxlength="${MAX_ACTIVITY_TEXT_LEN}">${escapeHtml(event.text)}</textarea>
         <div class="comment-edit-actions">
-          <button type="button" class="btn btn-secondary" onclick="cancelCommentEdit('${item.id}')">Annuler</button>
-          <button type="button" class="btn btn-primary" onclick="saveCommentEdit('${item.id}', '${event.id}')">Enregistrer</button>
+          <button type="button" class="btn btn-secondary" onclick="cancelCommentEdit('${escapeJs(item.id)}')">Annuler</button>
+          <button type="button" class="btn btn-primary" onclick="saveCommentEdit('${escapeJs(item.id)}', '${escapeJs(event.id)}')">Enregistrer</button>
         </div>
       </div>
     `;
@@ -4948,8 +4948,8 @@ function renderCommentEvent(event, item, editingCommentId) {
       <div class="comment-meta">
         <span>${escapeHtml(formatActivityDate(event.at))}${event.editedAt ? ' · modifié' : ''}</span>
         <div class="actions">
-          <button type="button" onclick="startEditComment('${item.id}', '${event.id}')">Modifier</button>
-          <button type="button" onclick="confirmDeleteComment('${item.id}', '${event.id}')">Supprimer</button>
+          <button type="button" onclick="startEditComment('${escapeJs(item.id)}', '${escapeJs(event.id)}')">Modifier</button>
+          <button type="button" onclick="confirmDeleteComment('${escapeJs(item.id)}', '${escapeJs(event.id)}')">Supprimer</button>
         </div>
       </div>
     </div>
@@ -5124,7 +5124,7 @@ function openEpicModal(epicId) {
 
   const currentColor = epic ? epic.color : EPIC_COLORS[0];
   document.getElementById('epicColors').innerHTML = EPIC_COLORS.map(c =>
-    `<button type="button" class="epic-color-swatch${c === currentColor ? ' selected' : ''}" data-color="${c}" style="background:${c}" onclick="selectEpicColor(this)"></button>`
+    `<button type="button" class="epic-color-swatch${escapeAttr(c === currentColor ? ' selected' : '')}" data-color="${escapeAttr(c)}" style="background:${escapeAttr(c)}" onclick="selectEpicColor(this)"></button>`
   ).join('');
 
   document.getElementById('epicModal').classList.add('show');
@@ -5192,7 +5192,7 @@ function openClientModal(clientId) {
   const defaultColor = EPIC_COLORS[state.clients.length % EPIC_COLORS.length];
   const currentColor = client ? (client.color || defaultColor) : defaultColor;
   document.getElementById('clientColors').innerHTML = EPIC_COLORS.map(c =>
-    `<button type="button" class="epic-color-swatch${c === currentColor ? ' selected' : ''}" data-color="${c}" style="background:${c}" onclick="selectEpicColor(this)"></button>`
+    `<button type="button" class="epic-color-swatch${escapeAttr(c === currentColor ? ' selected' : '')}" data-color="${escapeAttr(c)}" style="background:${escapeAttr(c)}" onclick="selectEpicColor(this)"></button>`
   ).join('');
 
   document.getElementById('clientModal').classList.add('show');
@@ -5288,7 +5288,7 @@ function openActionMenu(triggerEl, items) {
   menu.className = 'action-menu';
   menu.id = 'actionMenu';
   menu.innerHTML = items.map((it, i) =>
-    `<button class="action-menu-item ${it.danger ? 'danger' : ''}" data-i="${i}">${escapeHtml(it.label)}</button>`
+    `<button class="action-menu-item ${escapeAttr(it.danger ? 'danger' : '')}" data-i="${escapeAttr(i)}">${escapeHtml(it.label)}</button>`
   ).join('');
   document.body.appendChild(menu);
 
@@ -5346,6 +5346,25 @@ function clientActionMenu(btn, clientId) {
 function escapeHtml(s) {
   if (s == null) return '';
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Escape pour interpolation dans un attribut HTML quoted-double :
+// `<div data-x="${escapeAttr(v)}">`. Alias sémantique d'`escapeHtml` —
+// les règles d'évasion (`& < > " '`) couvrent déjà l'évasion d'attribut.
+// Ce nom dédié rend l'intention explicite à la lecture et au grep.
+const escapeAttr = escapeHtml;
+
+// Escape pour interpolation dans une chaîne JS encadrée par single/double
+// quotes elle-même placée dans un attribut `onclick="..."` (ou `on*="..."`).
+// Les caractères critiques sont `'`, `"`, `\`, retours à la ligne, séparateurs
+// Unicode, plus `<>&` (anti-évasion : un `<` suivi de `/script>` interpolé
+// dans le markup environnant pourrait fermer le script ; les `&` neutralisent
+// d'éventuelles entités HTML). Chaque caractère dangereux est encodé en
+// `\uHHHH` — idempotent à travers le décodage HTML puis le parsing JS.
+function escapeJs(s) {
+  if (s == null) return '';
+  return String(s).replace(/[\\'"\r\n\u2028\u2029<>&]/g, c =>
+    '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0').toUpperCase());
 }
 
 // Affiche un nombre de jours sans zéros traînants : 0 → "0", 0.25 → "0.25",

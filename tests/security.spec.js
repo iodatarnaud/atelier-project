@@ -506,3 +506,164 @@ test.describe('Sécurité — validation des données importées', () => {
     expect(bornes.valid).toBe(1000);
   });
 });
+
+// === WI-005 / ATE-9 — Escape contextuel des interpolations HTML restantes ===
+// 2ᵉ ligne de défense (en complément de normalizeImportedState) : si un payload
+// malicieux contourne la validation amont, les renders échappent systématiquement
+// les valeurs interpolées dans les attributs HTML et les chaînes JS dans onclick.
+test.describe('Sécurité — escape contextuel attributs/JS (WI-005)', () => {
+  test.beforeEach(async ({ page }) => {
+    await resetApp(page);
+  });
+
+  test('escapeJs encode les caractères dangereux pour une string JS dans onclick', async ({ page }) => {
+    const cases = await page.evaluate(() => ({
+      empty:    escapeJs(''),
+      nullVal:  escapeJs(null),
+      safe:     escapeJs('abc-123_def'),
+      single:   escapeJs("a'b"),
+      double:   escapeJs('a"b'),
+      backslash:escapeJs('a\\b'),
+      newline:  escapeJs('a\nb'),
+      cr:       escapeJs('a\rb'),
+      lt:       escapeJs('a<b'),
+      gt:       escapeJs('a>b'),
+      amp:      escapeJs('a&b'),
+      ls:       escapeJs('a b'),
+      ps:       escapeJs('a b'),
+      mix:      escapeJs("</scr" + "ipt><img onerror='alert(1)'>"),
+    }));
+    expect(cases.empty).toBe('');
+    expect(cases.nullVal).toBe('');
+    expect(cases.safe).toBe('abc-123_def');                  // chars sûrs intacts
+    expect(cases.single).toBe('a\\u0027b');
+    expect(cases.double).toBe('a\\u0022b');
+    expect(cases.backslash).toBe('a\\u005Cb');
+    expect(cases.newline).toBe('a\\u000Ab');
+    expect(cases.cr).toBe('a\\u000Db');
+    expect(cases.lt).toBe('a\\u003Cb');
+    expect(cases.gt).toBe('a\\u003Eb');
+    expect(cases.amp).toBe('a\\u0026b');
+    expect(cases.ls).toBe('a\\u2028b');
+    expect(cases.ps).toBe('a\\u2029b');
+    // Vecteur d'évasion classique : `</script>` ne peut plus fermer le bloc.
+    expect(cases.mix).not.toContain('</scr' + 'ipt>');
+    expect(cases.mix).not.toContain('<img');
+  });
+
+  test('escapeAttr neutralise les caractères dangereux dans une valeur d\'attribut', async ({ page }) => {
+    const cases = await page.evaluate(() => ({
+      empty:   escapeAttr(''),
+      nullVal: escapeAttr(null),
+      safe:    escapeAttr('c1'),
+      quote:   escapeAttr('a"b'),
+      lt:      escapeAttr('a<b'),
+      gt:      escapeAttr('a>b'),
+      amp:     escapeAttr('a&b'),
+      single:  escapeAttr("a'b"),
+      attack:  escapeAttr('" onerror="alert(1)" x="'),
+    }));
+    expect(cases.empty).toBe('');
+    expect(cases.nullVal).toBe('');
+    expect(cases.safe).toBe('c1');
+    expect(cases.quote).toBe('a&quot;b');
+    expect(cases.lt).toBe('a&lt;b');
+    expect(cases.gt).toBe('a&gt;b');
+    expect(cases.amp).toBe('a&amp;b');
+    expect(cases.single).toBe('a&#39;b');
+    // Le vecteur d'évasion d'attribut est intégralement neutralisé : aucun `"`
+    // littéral dans la sortie, donc impossible de fermer l'attribut hôte.
+    expect(cases.attack).not.toContain('"');
+    expect(cases.attack).not.toContain('<');
+    expect(cases.attack).not.toContain('>');
+  });
+
+  test('id de client malicieux ne s\'évade pas du onclick après injection directe (bypass normalize)', async ({ page }) => {
+    // Scénario : payload Gist qui contourne normalizeImportedState (régression
+    // future, type ajouté sans validation). On injecte directement dans state
+    // et on déclenche un render. Le onclick="switchClient('${escapeJs(id)}')"
+    // doit produire du JS valide qui ne s'évade pas de sa string literal.
+    const result = await page.evaluate(() => {
+      window.__sec_called_with = null;
+      // Hook switchClient pour observer ce que reçoit l'app après un click.
+      window.switchClient = (id) => { window.__sec_called_with = id; };
+      // Bypass normalize : on écrit directement dans state.
+      const malId = "c'1\"<scr" + "ipt>alert('XSS')</scr" + "ipt>";
+      state.clients = [{
+        id: malId,
+        name: 'Hostile',
+        key: 'HST',
+        counter: 0,
+        items: [],
+        sprints: [],
+        epics: [],
+      }];
+      state.activeClientId = malId;
+      render();
+      const item = document.querySelector('#clientList .side-item');
+      const html = item ? item.outerHTML : null;
+      if (item) item.click();
+      return {
+        html,
+        receivedId: window.__sec_called_with,
+        unexpectedScripts: Array.from(document.querySelectorAll('#clientList script')).length,
+        expectedId: malId,
+      };
+    });
+    // L'élément est rendu sans s'évader.
+    expect(result.html).toBeTruthy();
+    expect(result.html).not.toContain('<scr' + 'ipt>');
+    expect(result.html).not.toContain('onerror=');
+    // L'id est bien remonté tel quel au handler (escapeJs est idempotent au
+    // runtime : la string décodée vaut l'original).
+    expect(result.receivedId).toBe(result.expectedId);
+    expect(result.unexpectedScripts).toBe(0);
+  });
+
+  test('couleur malicieuse ne casse pas l\'attribut style (bypass normalize)', async ({ page }) => {
+    // normalizeImportedState valide les couleurs en regex hex. On bypasse pour
+    // vérifier que style="background:${escapeAttr(color)}" ne produit pas un
+    // attribut malformé qui s'évaderait : on inspecte les attributs DOM réels
+    // (le HTML stringifié peut contenir `onload=&quot;...&quot;` qui est juste
+    // du texte dans la valeur de `style`, pas un handler exécuté).
+    const result = await page.evaluate(() => {
+      state.clients = [{
+        id: 'c1',
+        name: 'C',
+        key: 'C',
+        color: '" onload="alert(1)" data-x="',  // tente d'évader l'attribut style
+        counter: 0,
+        items: [],
+        sprints: [],
+        epics: [],
+      }];
+      state.activeClientId = 'c1';
+      render();
+      const ico = document.querySelector('#clientList .side-item .ico');
+      if (!ico) return null;
+      return {
+        // Les attributs réellement rattachés à l'élément après parsing du HTML.
+        attrs: ico.getAttributeNames(),
+        hasOnload: ico.hasAttribute('onload'),
+        hasOnerror: ico.hasAttribute('onerror'),
+        hasDataX: ico.hasAttribute('data-x'),
+      };
+    });
+    expect(result).toBeTruthy();
+    // Aucun handler événement injecté, aucun attribut data-x parasite.
+    expect(result.hasOnload).toBe(false);
+    expect(result.hasOnerror).toBe(false);
+    expect(result.hasDataX).toBe(false);
+    // Seuls les attributs légitimes (class + style) sont présents.
+    expect(result.attrs.sort()).toEqual(['class', 'style']);
+  });
+
+  test('régression : un click sur un item normal continue d\'ouvrir la modale détail', async ({ page }) => {
+    // Sanity check post-patch : escapeJs sur un id alphanumérique normal ne
+    // change rien et le flow standard fonctionne toujours.
+    await createClient(page, { name: 'Acme', key: 'ACM' });
+    await createItemInline(page, { title: 'Item normal' });
+    await page.locator('.backlog-row', { hasText: 'Item normal' }).click();
+    await expect(page.locator('#itemModal')).toHaveClass(/show/);
+  });
+});
