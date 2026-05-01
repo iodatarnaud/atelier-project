@@ -20,6 +20,7 @@ If you ARE the owner:
 - Execute only that next phase.
 - Update `Status` and `Owner` in the WI header (Status Transition rule).
 - Write the section for the executed phase directly into the WI file.
+- **Timing** (depuis v2.2) : si tu finalises `Status: DONE` (notamment depuis `RETROSPECTIVE` en mode STANDARD), pose `Closed: <date FR>` via `date +'%d/%m/%Y %H:%M'` ET calcule `Duration` à partir de `Opened`/`Closed`. Voir `00_AI_SYSTEM.md` → `## TIMING (mandatory)`.
 - Output the strict 6-field contract block exactly as specified in `ai-system/00_AI_SYSTEM.md`.
 - Stop.
 
