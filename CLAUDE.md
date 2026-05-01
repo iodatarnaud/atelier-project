@@ -146,6 +146,12 @@ Effets :
 
 Render full via `render()` → sous-fonctions.
 
+Sécurité du rendu (depuis v0.17.1, défense en profondeur) :
+- Contenu textuel : `${escapeHtml(value)}`.
+- Valeur d'attribut HTML : `${escapeAttr(value)}` (alias d'`escapeHtml`).
+- String JS dans un `onclick="...'${...}'..."` : `${escapeJs(value)}` (encode en `\uHHHH`).
+- 1ʳᵉ ligne de défense : `normalizeImportedState` (regex hex couleurs, whitelist enum, IDs reconstruits).
+
 Mutation pattern obligatoire :
 
 ```txt
