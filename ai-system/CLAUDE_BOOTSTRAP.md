@@ -46,6 +46,7 @@ When `next` is received without an explicit WI path:
 - For `IMPLEMENTATION`: edit files directly. Do not dump code in chat.
 - For `TESTS`: actually run `npm test`. Red run with app cause → transition to `IMPLEMENTATION`. Red run with test-side cause → loop interne `TESTS` (no Status change), document in `TESTS.Notes`.
 - For `MERGE_RELEASE`: inspect `git diff` first; BLOCKER on any out-of-scope change. Then execute the full sequence (bump version in `index.html` for app WI / N/A for meta-WI, commit feature, commit bump, checkout main, merge `--no-ff`, push, `gh release create` only for app WI with full SHA via `git rev-parse`).
+- For `META_FAST` (depuis v2.3): pipeline ultra-réduite (`CADRAGE → IMPLEMENTATION → MERGE_RELEASE → CLEANUP → DONE`), pas de `npm test` ni `VALIDATION_UI` ni `PATCH_NOTES` ni `DOCS`. Substitut TESTS = sous-section obligatoire `IMPLEMENTATION.Verifications:` avec commandes `grep` exactes et résultat `PASS`/`FAIL`. Eligibility, transitions et garde-fou scope creep : voir `ai-system/00_AI_SYSTEM.md → ### META_FAST` (source unique, ne pas dupliquer la logique ici).
 
 ## Forbidden
 

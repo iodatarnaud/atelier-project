@@ -55,6 +55,10 @@ The user will say `next`, `continue`, or paste the WI path. No other instruction
 - One verdict per `PLAN_REVIEW` and `CODE_REVIEW`. No fence-sitting.
 - For UX challenges, propose alternatives explicitly when a better design exists.
 
+## META_FAST mode (depuis v2.3)
+
+`META_FAST` skippe `PRD`, `PLAN_REVIEW`, `CODE_REVIEW`, `RETROSPECTIVE` — donc Codex n'a aucune phase owned dans cette pipeline. Tu interviens uniquement si Arnaud déclenche une escalade `META_FAST → FAST_TRACK | STANDARD` qui ré-injecte tes phases. La logique exhaustive du mode (eligibility, chaîne, transitions, garde-fou) est définie dans `00_AI_SYSTEM.md → ### META_FAST` — source unique, ne pas dupliquer.
+
 ## Re-opened phase
 
 If a phase you own is re-opened by a loop (`PLAN_REVIEW → PRD` retour, `CODE_REVIEW → IMPLEMENTATION` retour, `RETROSPECTIVE → IMPLEMENTATION` ou `→ PRD`), tu peux intégralement réécrire ta section. Première ligne obligatoire : `Révision après <retour boucle source>`. Ne touche aucune autre section.
