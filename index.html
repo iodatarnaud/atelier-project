@@ -2378,6 +2378,21 @@ let syncConfig = {
 
 let _gistPushTimer = null;
 
+// === SYNC MULTI-INSTANCES (ATE-22, WI-004) ===
+// Détection d'écrasement entre 2 sessions ouvertes (Mac + Windows ou multi-onglets).
+// `_lastSyncedRemoteTs` = lastSavedAt du dernier payload remote synchronisé. Baseline
+//   du push-guard (boot, pull focus appliqué, push réussi, push forcé).
+// `_localDirtySinceTs` = première modif locale invalidant la baseline. null = pas de
+//   modif non pushée.
+// `_syncConflict` = { remote, remoteTs, detectedAt } quand un conflit est ouvert.
+//   Bloque tout push tant que non-null.
+// `_syncCheckInFlight` = verrou pour dédupliquer GET (focus ↔ visibilitychange ↔
+//   push-guard quasi-simultanés). Toujours relâché en `finally`.
+let _lastSyncedRemoteTs = 0;
+let _localDirtySinceTs = null;
+let _syncConflict = null;
+let _syncCheckInFlight = false;
+
 function loadConfig() {
   try {
     const raw = localStorage.getItem(CONFIG_KEY);
@@ -2735,20 +2750,308 @@ async function pushGist(payload) {
 function scheduleGistPush() {
   if (isTestMode()) return; // Mode test : aucune écriture distante
   if (!syncConfig.connected) return;
+  if (_syncConflict) return; // Conflit ouvert : aucun nouveau push tant que l'utilisateur n'a pas tranché
   if (_gistPushTimer) clearTimeout(_gistPushTimer);
   setSyncStatus('syncing', 'En attente…');
-  _gistPushTimer = setTimeout(async () => {
-    await pushGist({
-      clients: state.clients,
-      activeClientId: state.activeClientId,
-      lastSavedAt: Date.now()
-    });
+  _gistPushTimer = setTimeout(() => {
+    _gistPushTimer = null; // Reset avant exécution : `beforeunload` n'interprète plus ce timer comme "push pending"
+    runGuardedPush();
   }, 2500);
 }
 
-// Push avant fermeture de page si push en attente
+// Push-guard : GET → comparaison `remoteTs` vs `_lastSyncedRemoteTs` → PATCH ou conflit.
+// Si un autre GET est en vol (focus/visibility) au moment où le timer expire, on
+// re-planifie le push à courte échéance pour ne pas perdre la modif locale dirty
+// (cf. CODE_REVIEW P1 — runGuardedPush ne doit pas abandonner silencieusement).
+async function runGuardedPush() {
+  if (isTestMode() || !syncConfig.connected) return;
+  if (_syncConflict) return;
+  if (_syncCheckInFlight) {
+    // GET focus en vol : on retente après un court délai. Comme finally relâche
+    // toujours `_syncCheckInFlight`, ce retry converge.
+    if (_gistPushTimer) clearTimeout(_gistPushTimer);
+    _gistPushTimer = setTimeout(() => {
+      _gistPushTimer = null;
+      runGuardedPush();
+    }, 500);
+    return;
+  }
+  _syncCheckInFlight = true;
+  try {
+    let remote;
+    try {
+      remote = await fetchGist();
+    } catch (e) {
+      console.warn('Push-guard GET failed:', e);
+      setSyncStatus('error', 'Sync indisponible');
+      showToast('⚠ Sync indisponible — réessaie plus tard.');
+      return; // _gistPushTimer non re-armé : la prochaine modif user re-armera
+    }
+    const remoteTs = remote && typeof remote.lastSavedAt === 'number' ? remote.lastSavedAt : 0;
+    if (remoteTs > _lastSyncedRemoteTs) {
+      // Conflit détecté : on n'écrase pas, on alerte.
+      _syncConflict = { remote, remoteTs, detectedAt: Date.now() };
+      renderSyncConflictToast();
+      return;
+    }
+    // Pas de conflit : push normal. tsPushed capturé pour cohérence payload ↔ snapshot.
+    const tsPushed = Date.now();
+    const ok = await pushGist({
+      clients: state.clients,
+      activeClientId: state.activeClientId,
+      lastSavedAt: tsPushed
+    });
+    if (ok) {
+      _lastSyncedRemoteTs = tsPushed;
+      _localDirtySinceTs = null;
+    }
+  } finally {
+    _syncCheckInFlight = false;
+  }
+}
+
+// Push forcé (sans push-guard) — utilisé par l'action "Garder local" du toast conflit.
+// Distinct de runGuardedPush() pour éviter une boucle de conflit après décision user.
+async function pushGistForced() {
+  if (isTestMode() || !syncConfig.connected) return false;
+  const tsPushed = Date.now();
+  const ok = await pushGist({
+    clients: state.clients,
+    activeClientId: state.activeClientId,
+    lastSavedAt: tsPushed
+  });
+  if (ok) {
+    _lastSyncedRemoteTs = tsPushed;
+    _localDirtySinceTs = null;
+  }
+  return ok;
+}
+
+// Helper unique pour appliquer un payload remote (boot, focus pull, "Recharger" conflit, connectGist).
+async function applyRemoteState(remote, remoteTs, opts = {}) {
+  if (!remote || !remote.clients) return;
+  state = { ...state, clients: remote.clients, activeClientId: remote.activeClientId || remote.clients[0]?.id || null };
+  try {
+    await dbSet(STORAGE_KEY, {
+      clients: state.clients,
+      activeClientId: state.activeClientId,
+      lastSavedAt: remoteTs
+    });
+  } catch (e) {
+    console.warn('applyRemoteState dbSet failed:', e);
+  }
+  _lastSyncedRemoteTs = remoteTs;
+  _localDirtySinceTs = null;
+  if (typeof render === 'function') render();
+  if (opts.toast === 'info') showToast('↺ Données mises à jour (depuis une autre machine)');
+  else if (opts.toast === 'reloaded') showToast('↺ Synchronisé avec la version distante');
+}
+
+// Pull au focus / visibilitychange — détecte les modifs distantes pendant que l'app est ouverte.
+async function checkRemoteOnFocus() {
+  if (isTestMode() || !syncConfig.connected) return;
+  if (_syncConflict) return; // conflit déjà ouvert : pas de double signal
+  if (_syncCheckInFlight) return;
+  _syncCheckInFlight = true;
+  try {
+    let remote;
+    try {
+      remote = await fetchGist();
+    } catch (e) {
+      // Erreur réseau silencieuse au focus : pas de toast pour ne pas spammer
+      // (le push-guard alertera si l'utilisateur tente d'écrire).
+      console.warn('Focus sync GET failed:', e);
+      return;
+    }
+    const remoteTs = remote && typeof remote.lastSavedAt === 'number' ? remote.lastSavedAt : 0;
+    if (remoteTs <= _lastSyncedRemoteTs) return; // rien de neuf
+    if (_localDirtySinceTs !== null) {
+      // Local dirty + remote plus récent → conflit (même chemin que push-guard).
+      _syncConflict = { remote, remoteTs, detectedAt: Date.now() };
+      renderSyncConflictToast();
+      return;
+    }
+    // Pas de modif locale en attente → apply silencieux + toast info.
+    await applyRemoteState(remote, remoteTs, { toast: 'info' });
+  } finally {
+    _syncCheckInFlight = false;
+  }
+}
+
+// Listeners focus + visibilitychange (déduplication via `_syncCheckInFlight`).
+// Pas attachés en mode test (cohérent avec le no-op global).
+if (!isTestMode()) {
+  window.addEventListener('focus', () => { checkRemoteOnFocus(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkRemoteOnFocus();
+  });
+}
+
+// Toast conflit persistant — container DOM dédié, distinct de #toast.
+function renderSyncConflictToast() {
+  if (!_syncConflict) return;
+  let t = document.getElementById('syncConflictToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'syncConflictToast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#ffebe6;color:#172b4d;padding:12px 16px;border-radius:6px;font-size:13px;z-index:201;box-shadow:0 6px 16px rgba(0,0,0,0.18);border:1px solid var(--bug);max-width:560px;';
+    document.body.appendChild(t);
+  }
+  const ageMs = Date.now() - _syncConflict.remoteTs;
+  const rel = formatRelativeAge(ageMs);
+  t.innerHTML = `
+    <div style="margin-bottom:10px;font-weight:600;">⚠ Données distantes plus récentes — depuis ${escapeHtml(rel)}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-secondary" data-testid="sync-reload" onclick="resolveSyncConflict('reload')">Recharger</button>
+      <button class="btn btn-secondary" data-testid="sync-keep-local" onclick="resolveSyncConflict('keep')">Garder local</button>
+      <button class="btn btn-ghost" data-testid="sync-view-diff" onclick="openSyncDiffModal()">Voir diff</button>
+    </div>
+  `;
+  t.style.display = 'block';
+}
+
+function hideSyncConflictToast() {
+  const t = document.getElementById('syncConflictToast');
+  if (t) t.style.display = 'none';
+}
+
+function formatRelativeAge(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  if (s < 60) return `${s} s`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} h`;
+  const d = Math.round(h / 24);
+  return `${d} j`;
+}
+
+async function resolveSyncConflict(action) {
+  if (!_syncConflict) return;
+  if (action === 'reload') {
+    const { remote, remoteTs } = _syncConflict;
+    _syncConflict = null;
+    hideSyncConflictToast();
+    closeSyncDiffModal();
+    await applyRemoteState(remote, remoteTs, { toast: 'reloaded' });
+  } else if (action === 'keep') {
+    const ok = await pushGistForced();
+    if (ok) {
+      _syncConflict = null;
+      hideSyncConflictToast();
+      closeSyncDiffModal();
+      showToast('✓ Version locale poussée');
+    }
+    // En cas d'erreur push, le conflit reste ouvert (pushGist a déjà affiché un toast erreur).
+  }
+}
+
+// Construction lazy de la modale "Voir diff" pour éviter d'ajouter un overlay
+// au boot (un overlay vide en `display:none` mais en `position:fixed; inset:0`
+// peut intercepter des events de hit-testing pendant les tests E2E sur certaines
+// versions de Playwright/Chromium — observé sur calendrier-dnd AC3 en suite).
+function ensureSyncDiffModal() {
+  let modal = document.getElementById('syncDiffModal');
+  if (modal) return modal;
+  modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'syncDiffModal';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:640px;">
+      <div class="modal-head">
+        <h2 style="margin:0;font-size:16px;font-weight:600;">Conflit de sync — diff résumé</h2>
+        <button class="btn btn-ghost" onclick="closeSyncDiffModal()" aria-label="Fermer">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="syncDiffBody"></div>
+        <div class="modal-actions" style="margin-top:14px;">
+          <button class="btn btn-secondary" data-testid="sync-diff-reload" onclick="resolveSyncConflict('reload')">Recharger</button>
+          <button class="btn btn-primary" data-testid="sync-diff-keep-local" onclick="resolveSyncConflict('keep')">Garder local</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeSyncDiffModal();
+  });
+  return modal;
+}
+
+// Modale "Voir diff" — compteurs + items à titre divergent (max 10).
+function openSyncDiffModal() {
+  if (!_syncConflict) return;
+  const modal = ensureSyncDiffModal();
+  if (!modal) return;
+  const remote = _syncConflict.remote;
+  const local = { clients: state.clients };
+  const counts = (root) => {
+    const clients = root.clients || [];
+    let items = 0, sprints = 0, epics = 0;
+    clients.forEach(c => {
+      items += (c.items || []).length;
+      sprints += (c.sprints || []).length;
+      epics += (c.epics || []).length;
+    });
+    return { clients: clients.length, items, sprints, epics };
+  };
+  const lc = counts(local);
+  const rc = counts(remote);
+  const delta = (a, b) => {
+    const d = a - b;
+    if (d === 0) return '<span style="color:var(--text-mute);">=</span>';
+    const color = d > 0 ? 'var(--story)' : 'var(--bug)';
+    return `<span style="color:${color};">${d > 0 ? '+' : ''}${d}</span>`;
+  };
+  // Items dont l'id existe des 2 côtés mais avec un title différent (max 10).
+  const localItems = new Map();
+  (local.clients || []).forEach(c => (c.items || []).forEach(it => { if (it && it.id) localItems.set(it.id, it.title || ''); }));
+  const divergent = [];
+  (remote.clients || []).forEach(c => (c.items || []).forEach(it => {
+    if (it && it.id && localItems.has(it.id)) {
+      const localTitle = localItems.get(it.id);
+      const remoteTitle = it.title || '';
+      if (localTitle !== remoteTitle) divergent.push({ id: it.id, local: localTitle, remote: remoteTitle });
+    }
+  }));
+  divergent.sort((a, b) => a.local.localeCompare(b.local));
+  const top = divergent.slice(0, 10);
+  const body = document.getElementById('syncDiffBody');
+  body.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px;">
+      <thead><tr style="text-align:left;border-bottom:1px solid var(--border);">
+        <th style="padding:6px 8px;"></th><th style="padding:6px 8px;">Local</th><th style="padding:6px 8px;">Distant</th><th style="padding:6px 8px;">Δ</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding:6px 8px;">Clients</td><td style="padding:6px 8px;">${lc.clients}</td><td style="padding:6px 8px;">${rc.clients}</td><td style="padding:6px 8px;">${delta(lc.clients, rc.clients)}</td></tr>
+        <tr><td style="padding:6px 8px;">Items</td><td style="padding:6px 8px;">${lc.items}</td><td style="padding:6px 8px;">${rc.items}</td><td style="padding:6px 8px;">${delta(lc.items, rc.items)}</td></tr>
+        <tr><td style="padding:6px 8px;">Sprints</td><td style="padding:6px 8px;">${lc.sprints}</td><td style="padding:6px 8px;">${rc.sprints}</td><td style="padding:6px 8px;">${delta(lc.sprints, rc.sprints)}</td></tr>
+        <tr><td style="padding:6px 8px;">Epics</td><td style="padding:6px 8px;">${lc.epics}</td><td style="padding:6px 8px;">${rc.epics}</td><td style="padding:6px 8px;">${delta(lc.epics, rc.epics)}</td></tr>
+      </tbody>
+    </table>
+    <div style="font-weight:600;font-size:13px;margin-bottom:6px;">Items à titre divergent (top ${top.length}/${divergent.length})</div>
+    ${top.length === 0
+      ? '<div style="font-size:13px;color:var(--text-mute);">Aucun item dont le titre diffère.</div>'
+      : '<ul style="list-style:none;padding:0;margin:0;font-size:13px;">' + top.map(d => `<li style="padding:4px 0;border-bottom:1px solid var(--border);"><code style="background:var(--bg-mute);padding:1px 4px;border-radius:3px;">${escapeHtml(d.id)}</code> — local : « ${escapeHtml(d.local)} » / distant : « ${escapeHtml(d.remote)} »</li>`).join('') + '</ul>'
+    }
+  `;
+  modal.classList.add('show');
+}
+
+function closeSyncDiffModal() {
+  const modal = document.getElementById('syncDiffModal');
+  if (modal) modal.classList.remove('show');
+}
+// Note : Escape sur la modale est déjà géré par le handler keydown global
+// (voir ~line 5631 : `document.querySelectorAll('.modal-overlay.show').forEach(...)`).
+
+// Push avant fermeture de page si push en attente — inhibé si conflit ouvert
+// OU si un GET sync est en vol (push-guard / focus pull) : dans ce cas, on ne
+// peut pas savoir si un conflit est en cours d'instruction, donc on n'écrase pas
+// (CODE_REVIEW#2 P1 — beforeunload aveugle pendant la fenêtre de retry).
 window.addEventListener('beforeunload', () => {
   if (isTestMode()) return; // Mode test : aucune écriture distante
+  if (_syncConflict) return; // Conflit en cours : ne pas écraser
+  if (_syncCheckInFlight) return; // GET en vol : on ne connaît pas encore le verdict
   if (_gistPushTimer && syncConfig.connected) {
     try {
       fetch(`https://api.github.com/gists/${syncConfig.gistId}`, {
@@ -2825,8 +3128,8 @@ async function loadState() {
     setSyncStatus('syncing', 'Chargement…');
     try {
       const remote = await fetchGist();
+      const localTs = (await dbGet(STORAGE_KEY))?.lastSavedAt || 0;
       if (remote && remote.clients) {
-        const localTs = (await dbGet(STORAGE_KEY))?.lastSavedAt || 0;
         const remoteTs = remote.lastSavedAt || 0;
         // Si distant plus récent (ou si on n'a rien en local), prendre distant
         if (remoteTs > localTs || !state.clients || state.clients.length === 0) {
@@ -2836,14 +3139,24 @@ async function loadState() {
             activeClientId: state.activeClientId,
             lastSavedAt: remoteTs
           });
+          _lastSyncedRemoteTs = remoteTs;
+        } else {
+          // Local plus récent ou égal : on l'a conservé, baseline = ce qu'on a en local.
+          _lastSyncedRemoteTs = localTs;
         }
+      } else {
+        // Gist vide : baseline = local courant (probablement 0 si pas encore initialisé).
+        _lastSyncedRemoteTs = localTs;
       }
+      _localDirtySinceTs = null;
       syncConfig.connected = true;
       saveConfig();
       setSyncStatus('connected', 'GitHub');
     } catch (e) {
       console.warn('Gist load error:', e);
       syncConfig.connected = false;
+      _lastSyncedRemoteTs = 0; // pas de sync valide : push-guard détectera tout remote comme conflit
+      _localDirtySinceTs = null;
       setSyncStatus('error', 'Erreur connexion');
     }
   } else {
@@ -2874,6 +3187,10 @@ async function saveState() {
   // Mode test : no-op total. Les modifs restent en mémoire jusqu'au prochain
   // refresh (qui rechargera le seed propre).
   if (isTestMode()) return;
+  // Sync connectée : marquer la première modif locale non pushée pour le push-guard.
+  if (syncConfig.connected && _localDirtySinceTs === null) {
+    _localDirtySinceTs = Date.now();
+  }
   // Debounce : évite d'écrire 10 fois pendant un cycle de render
   if (_saveTimer) clearTimeout(_saveTimer);
   updateSaveIndicator('saving');
@@ -2958,6 +3275,7 @@ async function connectGist() {
     const localCount = state.clients.reduce((s, c) => s + (c.items?.length || 0), 0);
     const remoteCount = remote && remote.clients ? remote.clients.reduce((s, c) => s + (c.items?.length || 0), 0) : 0;
 
+    let tsApplied = 0;
     if (remote && remote.clients && remoteCount > 0) {
       if (localCount > 0 && localCount !== remoteCount) {
         const useRemote = confirm(
@@ -2970,25 +3288,33 @@ async function connectGist() {
         if (useRemote) {
           state.clients = remote.clients;
           state.activeClientId = remote.activeClientId || remote.clients[0]?.id;
-          await dbSet(STORAGE_KEY, { clients: state.clients, activeClientId: state.activeClientId, lastSavedAt: Date.now() });
+          // Préserve `remote.lastSavedAt` pour que la baseline reste alignée sur le payload remote (CODE_REVIEW P2).
+          tsApplied = (typeof remote.lastSavedAt === 'number' && remote.lastSavedAt > 0) ? remote.lastSavedAt : Date.now();
+          await dbSet(STORAGE_KEY, { clients: state.clients, activeClientId: state.activeClientId, lastSavedAt: tsApplied });
           status.innerHTML = '<span style="color:var(--story);">● Données distantes chargées</span>';
         } else {
-          await pushGist({ clients: state.clients, activeClientId: state.activeClientId, lastSavedAt: Date.now() });
+          tsApplied = Date.now();
+          await pushGist({ clients: state.clients, activeClientId: state.activeClientId, lastSavedAt: tsApplied });
           status.innerHTML = '<span style="color:var(--story);">● Données locales poussées</span>';
         }
       } else if (localCount === 0) {
         state.clients = remote.clients;
         state.activeClientId = remote.activeClientId || remote.clients[0]?.id;
-        await dbSet(STORAGE_KEY, { clients: state.clients, activeClientId: state.activeClientId, lastSavedAt: Date.now() });
+        tsApplied = (typeof remote.lastSavedAt === 'number' && remote.lastSavedAt > 0) ? remote.lastSavedAt : Date.now();
+        await dbSet(STORAGE_KEY, { clients: state.clients, activeClientId: state.activeClientId, lastSavedAt: tsApplied });
         status.innerHTML = '<span style="color:var(--story);">● Données distantes chargées</span>';
       } else {
+        tsApplied = remote.lastSavedAt || Date.now();
         status.innerHTML = '<span style="color:var(--story);">● Synchronisé</span>';
       }
     } else {
       // Gist vide : on pousse
-      await pushGist({ clients: state.clients, activeClientId: state.activeClientId, lastSavedAt: Date.now() });
+      tsApplied = Date.now();
+      await pushGist({ clients: state.clients, activeClientId: state.activeClientId, lastSavedAt: tsApplied });
       status.innerHTML = '<span style="color:var(--story);">● Données initiales poussées</span>';
     }
+    _lastSyncedRemoteTs = tsApplied;
+    _localDirtySinceTs = null;
 
     setSyncStatus('connected', 'GitHub');
     setTimeout(() => {
