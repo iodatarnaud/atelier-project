@@ -49,7 +49,7 @@ Decisions:
 
 ## MODE DECISION
 
-Chosen mode: <STANDARD | FAST_TRACK>
+Chosen mode: <STANDARD | FAST_TRACK | META_FAST>
 
 Justification:
 - ...
@@ -62,8 +62,18 @@ If FAST_TRACK:
 - éligibilité (toutes obligatoires) : `Risk: LOW`, scope < 50 lignes, pas de modif schéma de données, pas d'API publique modifiée.
 - chaîne : `CADRAGE → IMPLEMENTATION → TESTS → VALIDATION_UI → PATCH_NOTES → MERGE_RELEASE → DOCS → CLEANUP → DONE`.
 - skippées : `PRD`, `PLAN_REVIEW`, `CODE_REVIEW`, `RETROSPECTIVE`.
-- jamais skippables (n'importe quel mode) : `TESTS`, `MERGE_RELEASE`, `CLEANUP`.
+- jamais skippables (FAST_TRACK ou STANDARD) : `TESTS`, `MERGE_RELEASE`, `CLEANUP`.
 - escalade : si pendant `IMPLEMENTATION` le scope dépasse l'éligibilité → STOP, BLOCKER, `Status` retombe en `PRD`, `Mode` passe à `STANDARD`.
+
+If META_FAST:
+- éligibilité (toutes obligatoires) : `Risk: LOW`, modifs strictement dans `ai-system/` + WI courant uniquement, pas de bump version, scope diff `ai-system/` < 30 lignes (hors bookkeeping WI courant).
+- chaîne : `CADRAGE → IMPLEMENTATION → MERGE_RELEASE → CLEANUP → DONE`.
+- skippées : `PRD`, `PLAN_REVIEW`, `TESTS`, `CODE_REVIEW`, `VALIDATION_UI`, `PATCH_NOTES`, `DOCS`, `RETROSPECTIVE`.
+- jamais skippables (META_FAST) : `MERGE_RELEASE`, `CLEANUP`.
+- substitut TESTS : sous-section obligatoire `IMPLEMENTATION.Verifications:` listant les commandes `grep` exactes et leur résultat (`PASS`/`FAIL`) sur les fichiers `ai-system/` touchés.
+- contrat 6 champs inchangé. À `CLEANUP → DONE` : `NEXT_PHASE: none`, `NEXT_PHASE_OWNER: —`.
+- objectif retex : `Duration ≤ 8min` (cf. `## TIMING (mandatory)`). Pas un BLOCKER, juste une métrique de succès.
+- escalade : si pendant `IMPLEMENTATION` un fichier hors `ai-system/` ou le WI courant doit être touché OU diff > 30 lignes → STOP, BLOCKER, ré-évaluation du Mode (FAST_TRACK ou STANDARD selon ampleur). Voir `00_AI_SYSTEM.md → ### META_FAST`.
 
 ---
 

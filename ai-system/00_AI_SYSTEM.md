@@ -164,17 +164,17 @@ These are the ONLY valid tokens. Any phase token outside this enum (notably name
 
 | Status | Owner | Section éditable | Transition PASS | Transition FAIL/BLOCKER | Règle de ré-exécution |
 |---|---|---|---|---|---|
-| CADRAGE | Arnaud | `## CADRAGE` | `PRD` / Claude | — | Arnaud peut compléter `Decisions` à tout moment |
+| CADRAGE | Arnaud | `## CADRAGE` | `PRD` / Claude (STANDARD) ou `IMPLEMENTATION` / Claude (FAST_TRACK / META_FAST) | — | Arnaud peut compléter `Decisions` à tout moment |
 | PRD | Claude | `## PRD` | `PLAN_REVIEW` / Codex | — | Claude peut réécrire si retour `PLAN_REVIEW (re-cadrage)` |
 | PLAN_REVIEW | Codex | `## PLAN_REVIEW` | `IMPLEMENTATION` / Claude | `PRD` / Claude (re-cadrage) | Codex peut réécrire si retour boucle |
-| IMPLEMENTATION | Claude | `## IMPLEMENTATION` | `TESTS` / Claude | — | Claude peut réécrire si retour `TESTS`/`CODE_REVIEW`/`VALIDATION_UI` |
+| IMPLEMENTATION | Claude | `## IMPLEMENTATION` | `TESTS` / Claude (STANDARD / FAST_TRACK) ou `MERGE_RELEASE` / Claude (META_FAST) | — | Claude peut réécrire si retour `TESTS`/`CODE_REVIEW`/`VALIDATION_UI` |
 | TESTS | Claude | `## TESTS` | `CODE_REVIEW` / Codex | `IMPLEMENTATION` / Claude (cause app) ou loop interne `TESTS` (cause test-side, voir `TESTS red routing`) | Claude peut réécrire si nécessaire |
 | CODE_REVIEW | Codex | `## CODE_REVIEW` | `VALIDATION_UI` / Arnaud | `IMPLEMENTATION` / Claude (blockers) | Codex peut réécrire si retour boucle |
 | VALIDATION_UI | Arnaud | `## VALIDATION_UI` | `PATCH_NOTES` / Claude | `IMPLEMENTATION` / Claude (NOT OK) | Arnaud peut réécrire si retour boucle |
 | PATCH_NOTES | Claude | `## PATCH_NOTES` | `MERGE_RELEASE` / Claude | — | Claude peut réécrire |
-| MERGE_RELEASE | Claude | `## MERGE_RELEASE` | `DOCS` / Claude | BLOCKER si modifs hors-périmètre détectées | Claude peut réécrire |
+| MERGE_RELEASE | Claude | `## MERGE_RELEASE` | `DOCS` / Claude (STANDARD / FAST_TRACK) ou `CLEANUP` / Claude (META_FAST) | BLOCKER si modifs hors-périmètre détectées | Claude peut réécrire |
 | DOCS | Claude | `## DOCS` | `CLEANUP` / Claude | — | Peut être no-op explicite (`Files refreshed: N/A`) si pas d'impact user-facing |
-| CLEANUP | Claude | `## CLEANUP` | `RETROSPECTIVE` / Codex (STANDARD) ou `DONE` / `—` (FAST_TRACK) | — | — |
+| CLEANUP | Claude | `## CLEANUP` | `RETROSPECTIVE` / Codex (STANDARD) ou `DONE` / `—` (FAST_TRACK / META_FAST) | — | — |
 | RETROSPECTIVE | Codex | `## RETROSPECTIVE (STANDARD ONLY)` | `DONE` / `—` | `IMPLEMENTATION` / Claude (défaut protocole) ou `PRD` / Claude (défaut cadrage) | Codex peut réécrire si retour boucle |
 | DONE | — | — | — | — | — |
 
@@ -263,21 +263,22 @@ A justification line is still required (`Justification: meta-WI sans impact user
 
 ## Execution modes
 
-`Mode: STANDARD | FAST_TRACK` — chosen by Arnaud in CADRAGE, recorded in WI header.
+`Mode: STANDARD | FAST_TRACK | META_FAST` — chosen by Arnaud in CADRAGE, recorded in WI header.
 
 ### STANDARD
 
 Full pipeline (13 phases including `RETROSPECTIVE`).
 
-Use for: feature with UX impact, schema change, transverse refactor, meta-WI on the protocol itself.
+Use for: feature with UX impact, schema change, transverse refactor, meta-WI on the protocol itself when Codex review is needed.
 
 ### FAST_TRACK
 
 Reduced pipeline. Eligibility: `Risk: LOW` mandatory, scope < 50 lines, no data schema change, no public API change.
 
 Phases SKIPPED in FAST_TRACK: `PRD`, `PLAN_REVIEW`, `CODE_REVIEW`, `RETROSPECTIVE`.
-Phases NEVER skippable (any mode): `TESTS`, `MERGE_RELEASE`, `CLEANUP`.
-`RETROSPECTIVE`: skipped in FAST_TRACK, MANDATORY in STANDARD.
+Phases NEVER skippable in FAST_TRACK / STANDARD: `TESTS`, `MERGE_RELEASE`, `CLEANUP`.
+Phases NEVER skippable in META_FAST: `MERGE_RELEASE`, `CLEANUP` (TESTS skipped, substitué par `IMPLEMENTATION.Verifications` — voir `### META_FAST`).
+`RETROSPECTIVE`: skipped in FAST_TRACK / META_FAST, MANDATORY in STANDARD.
 
 FAST_TRACK chain:
 
@@ -291,6 +292,53 @@ If during FAST_TRACK execution a risk is discovered (scope dépasse, schema chan
 - STOP
 - write BLOCKERS
 - `Status` reverts to `PRD`, `Mode` switches to `STANDARD` (re-activates `PRD` / `PLAN_REVIEW` / `CODE_REVIEW` / `RETROSPECTIVE`).
+
+### META_FAST
+
+Pipeline ultra-réduite dédiée aux **micro-ajustements du protocole AI lui-même** (`ai-system/` uniquement) sans impact app. Cible mesurable : `Duration ≤ 8min` (cf. `## TIMING (mandatory)`).
+
+**Eligibility (toutes obligatoires)** :
+- `Risk: LOW`.
+- Modifs strictement dans `ai-system/` + le WI courant (`work-items/WI-<NNN>.md` du WI lui-même). Aucun autre fichier, en particulier : pas de `index.html`, `tests/`, `MANUEL.md`, `README.md`, `SMOKE-TEST.md`, `CLAUDE.md`, `package.json`, `playwright.config.js`, ni un autre WI.
+- Exception : un meta-WI explicitement dédié au template ou à la convention de WI peut toucher `ai-system/WI_TEMPLATE.md` ; cela reste sous `ai-system/`.
+- Pas de bump version `index.html` (pas de release GH).
+- Scope diff `ai-system/` < 30 lignes (compté **uniquement sur les fichiers protocole touchés**, hors bookkeeping mécanique du WI courant : `Status`, `Owner`, `TIMING`, sections de phase).
+
+**META_FAST chain** :
+
+```
+CADRAGE → IMPLEMENTATION → MERGE_RELEASE → CLEANUP → DONE
+```
+
+Phases SKIPPED in META_FAST: `PRD`, `PLAN_REVIEW`, `TESTS`, `CODE_REVIEW`, `VALIDATION_UI`, `PATCH_NOTES`, `DOCS`, `RETROSPECTIVE`.
+
+**Transitions table META_FAST** (strict) :
+
+| From → | To → | Owner |
+|---|---|---|
+| `CADRAGE` (Arnaud) | `IMPLEMENTATION` | Claude |
+| `IMPLEMENTATION` (Claude) | `MERGE_RELEASE` | Claude |
+| `MERGE_RELEASE` (Claude) | `CLEANUP` | Claude |
+| `CLEANUP` (Claude) | `DONE` | — |
+
+**Rules** :
+- META_FAST n'introduit AUCUN nouveau token de phase (pas de `CODEX_GATE`, etc.). L'enum canonique `Status` reste inchangé.
+- Output contract identique aux autres modes (6 champs strict). À la transition `CLEANUP → DONE`, `NEXT_PHASE: none` et `NEXT_PHASE_OWNER: —`.
+- `TESTS` étant skippée, une sous-section `IMPLEMENTATION.Verifications:` est OBLIGATOIRE avec la liste des commandes `grep` exactes exécutées sur les fichiers `ai-system/` touchés et leur résultat (`PASS`/`FAIL`). Un `FAIL` → STOP, BLOCKER, fix en boucle interne IMPLEMENTATION avant transition vers MERGE_RELEASE.
+- `MERGE_RELEASE` applique le degraded path meta-WI (cf. `## MERGE_RELEASE — meta-WI variant`) ET bloque si le worktree contient des changements hors scope du WI courant (`git diff` cumulé doit toucher uniquement `ai-system/` et `work-items/WI-<NNN>.md`).
+- Section `## TIMING (mandatory)` reste obligatoire (objectif ≤ 8min documenté en retex, pas un BLOCKER).
+
+**Escalade scope creep en cours d'exécution** :
+
+- Si pendant `IMPLEMENTATION` un fichier hors `ai-system/` (autre que le WI courant) doit être touché OU si le diff sur `ai-system/` dépasse 30 lignes (hors bookkeeping WI courant) :
+  - STOP
+  - write BLOCKER `meta-fast scope exceeded: <raison>`
+  - Re-évaluation du `Mode` :
+    - Scope reste raisonnable (< 50 lignes, pas de modif schéma/API) → escalade `Mode: META_FAST → FAST_TRACK`. `Status` revient à `IMPLEMENTATION` ; les phases ré-injectées (`TESTS`, `VALIDATION_UI`, `PATCH_NOTES`, `DOCS`) seront exécutées en FAST_TRACK chain.
+    - Sinon → escalade `Mode: META_FAST → STANDARD`. `Status` revient à `PRD` ; PRD/PLAN_REVIEW/CODE_REVIEW/RETROSPECTIVE ré-injectés.
+  - La nouvelle version de la section `## IMPLEMENTATION` mentionne sur sa première ligne `Révision après escalade META_FAST → <FAST_TRACK | STANDARD>` (Re-opened phase rule).
+
+Use for: ajout d'un champ dans `WI_TEMPLATE.md`, affinage d'une règle dans `00_AI_SYSTEM.md`, mise à jour de `*_BOOTSTRAP.md`, renommage d'une convention. Tout changement impactant le code app, les tests, ou la doc utilisateur (`MANUEL.md` etc.) → choisir `FAST_TRACK` ou `STANDARD`.
 
 ---
 
