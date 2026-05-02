@@ -2221,7 +2221,7 @@ function buildDemoSeed() {
           { id: 'demo-s2', name: 'Sprint 13 — Permissions', startDate: '2026-04-29', endDate: '2026-05-13', active: false, completed: false }
         ],
         items: [
-          { id: 'demo-c1-i1', num: 1, title: "Refondre l'écran de cadrage projet", type: 'story', priority: 2, status: 'done', estimate: 1.5, sprintId: 'demo-s1', epicId: 'demo-e1', createdAt: now - day*10, completedAt: now - day*2 },
+          { id: 'demo-c1-i1', num: 1, title: "Refondre l'écran de cadrage projet", type: 'story', priority: 2, status: 'done', estimate: 1.5, actualHours: 14, sprintId: 'demo-s1', epicId: 'demo-e1', createdAt: now - day*10, completedAt: now - day*2 },
           { id: 'demo-c1-i2', num: 2, title: 'Ajouter SSO Salesforce sur l\'admin', type: 'task', priority: 1, status: 'doing', estimate: 2, dueDate: '2026-04-30', sprintId: 'demo-s1', epicId: null, createdAt: now - day*5 },
           { id: 'demo-c1-i3', num: 3, title: 'Bug : validation email côté serveur ignorée', type: 'bug', priority: 1, status: 'todo', estimate: 0.5, dueDate: '2026-04-28', sprintId: 'demo-s1', epicId: null, createdAt: now - day*3 },
           { id: 'demo-c1-i4', num: 4, title: "Améliorer l'export CSV (encodage UTF-8 BOM)", type: 'task', priority: 3, status: 'todo', estimate: 0.25, sprintId: 'demo-s1', epicId: null, createdAt: now - day*3 },
@@ -2229,7 +2229,7 @@ function buildDemoSeed() {
           { id: 'demo-c1-i6', num: 6, title: 'Refactor du module de notifications', type: 'task', priority: 3, status: 'todo', estimate: 0.5, sprintId: null, epicId: 'demo-e1', createdAt: now - day*8 },
           { id: 'demo-c1-i7', num: 7, title: 'Migration des comptes legacy vers v2', type: 'story', priority: 1, status: 'todo', estimate: 3, sprintId: 'demo-s2', epicId: 'demo-e2', createdAt: now - day*6 },
           { id: 'demo-c1-i8', num: 8, title: 'Audit de perf : identifier les hot paths', type: 'task', priority: 2, status: 'todo', estimate: 0.5, sprintId: null, epicId: null, createdAt: now - day, description: '<p><strong>Objectif :</strong> identifier les 3 endpoints les plus lents.</p><ul><li>Activer logs de timing</li><li>Échantillon 24h prod</li><li>Top 3 et plan d\'attaque</li></ul>' },
-          { id: 'demo-c1-i9', num: 9, title: 'POC API webhook Stripe', type: 'task', priority: 2, status: 'done', estimate: 1, sprintId: null, epicId: null, createdAt: now - day*15, completedAt: now - day*7 },
+          { id: 'demo-c1-i9', num: 9, title: 'POC API webhook Stripe', type: 'task', priority: 2, status: 'done', estimate: 1, actualHours: 6, sprintId: null, epicId: null, createdAt: now - day*15, completedAt: now - day*7 },
           { id: 'demo-c1-i10', num: 10, title: 'Item sans estimate (cas limite)', type: 'task', priority: 3, status: 'todo', sprintId: null, epicId: null, createdAt: now - day }
         ]
       },
@@ -2244,7 +2244,7 @@ function buildDemoSeed() {
           { id: 'demo-s4', name: 'Sprint 3 — Cadrage', startDate: '2026-03-15', endDate: '2026-03-29', active: false, completed: true }
         ],
         items: [
-          { id: 'demo-c2-i1', num: 1, title: 'Cadrage architecture cible', type: 'story', priority: 1, status: 'done', estimate: 2, sprintId: 'demo-s4', epicId: null, createdAt: now - day*40, completedAt: now - day*30 },
+          { id: 'demo-c2-i1', num: 1, title: 'Cadrage architecture cible', type: 'story', priority: 1, status: 'done', estimate: 2, actualHours: 18, sprintId: 'demo-s4', epicId: null, createdAt: now - day*40, completedAt: now - day*30 },
           { id: 'demo-c2-i2', num: 2, title: 'Setup CI/CD GitHub Actions', type: 'task', priority: 2, status: 'done', estimate: 1, sprintId: 'demo-s4', epicId: null, createdAt: now - day*35, completedAt: now - day*25 },
           { id: 'demo-c2-i3', num: 3, title: 'Implémenter OAuth 2.0', type: 'story', priority: 1, status: 'doing', estimate: 2.5, dueDate: '2026-04-29', sprintId: 'demo-s3', epicId: 'demo-e3', createdAt: now - day*8 },
           { id: 'demo-c2-i4', num: 4, title: 'Endpoint /users/me', type: 'task', priority: 2, status: 'todo', estimate: 0.5, sprintId: 'demo-s3', epicId: 'demo-e4', createdAt: now - day*6 },
@@ -2278,7 +2278,7 @@ function buildDemoSeed() {
         items: [
           { id: 'demo-c4-i1', num: 1, title: 'Optimiser temps de chargement dashboard', type: 'task', priority: 1, status: 'doing', estimate: 1, dueDate: '2026-04-30', sprintId: null, epicId: 'demo-e6', createdAt: now - day*4 },
           { id: 'demo-c4-i2', num: 2, title: 'Bug : graphiques qui ne se rafraîchissent pas', type: 'bug', priority: 2, status: 'todo', estimate: 0.5, sprintId: null, epicId: null, createdAt: now - day*2 },
-          { id: 'demo-c4-i3', num: 3, title: 'Réduire taille du bundle JS', type: 'task', priority: 3, status: 'done', estimate: 0.5, sprintId: null, epicId: 'demo-e6', createdAt: now - day*10, completedAt: now - day*5 }
+          { id: 'demo-c4-i3', num: 3, title: 'Réduire taille du bundle JS', type: 'task', priority: 3, status: 'done', estimate: 0.5, actualHours: 5, sprintId: null, epicId: 'demo-e6', createdAt: now - day*10, completedAt: now - day*5 }
         ]
       }
     ]
@@ -2445,7 +2445,7 @@ const DEFAULT_EPIC_COLOR = '#0052cc';
 // d'un WI). Délibérément sans `description` (verbeux) ni `completedAt`
 // (calculé automatiquement quand status passe à done : on tracke la cause,
 // pas la conséquence).
-const TRACKED_FIELDS = new Set(['title', 'type', 'status', 'priority', 'estimate', 'dueDate', 'sprintId', 'epicId']);
+const TRACKED_FIELDS = new Set(['title', 'type', 'status', 'priority', 'estimate', 'actualHours', 'dueDate', 'sprintId', 'epicId']);
 const ACTIVITY_TYPE_VALUES = new Set(['comment', 'change']);
 const MAX_ACTIVITY_EVENTS_PER_ITEM = 500;
 const MAX_ACTIVITY_TEXT_LEN = 2000;
@@ -2524,6 +2524,10 @@ function _normalizeChangeFieldValue(field, v) {
       if (typeof v !== 'number' || !Number.isFinite(v)) return undefined;
       return (v < 0 || v > 1000) ? undefined : v;
     }
+    case 'actualHours': {
+      if (typeof v !== 'number' || !Number.isFinite(v)) return undefined;
+      return (v < 0 || v > 10000) ? undefined : v;
+    }
     case 'dueDate':
       return (typeof v === 'string' && ISO_DATE_PATTERN.test(v)) ? v : undefined;
     case 'sprintId':
@@ -2586,6 +2590,7 @@ function _normalizeItem(raw, validSprintIds, validEpicIds) {
     type: TYPE_VALUES.has(raw.type) ? raw.type : 'task',
     priority: PRIORITY_VALUES.has(raw.priority) ? raw.priority : 2,
     estimate: _clampNumber(raw.estimate, 0, 1000, 0),
+    actualHours: _clampNumber(raw.actualHours, 0, 10000, 0),
     status: STATUS_VALUES.has(raw.status) ? raw.status : 'todo',
     sprintId: (typeof raw.sprintId === 'string' && ID_PATTERN.test(raw.sprintId) && validSprintIds.has(raw.sprintId)) ? raw.sprintId : null,
     epicId: (typeof raw.epicId === 'string' && ID_PATTERN.test(raw.epicId) && validEpicIds.has(raw.epicId)) ? raw.epicId : null,
@@ -3561,7 +3566,15 @@ function updateActiveIndicator() {
 function renderStats() {
   const total = state.clients.reduce((s, c) => s + c.items.filter(i => i.status !== 'done').length, 0);
   const days = state.clients.reduce((s, c) => s + c.items.filter(i => i.status !== 'done').reduce((a, i) => a + (parseFloat(i.estimate) || 0), 0), 0);
-  document.getElementById('globalStats').innerHTML = `<strong>${total}</strong> items · <strong>${formatDays(days)}</strong> j à faire`;
+  // Comparaison réalisé vs estimé SUR LES ITEMS TERMINÉS uniquement (cohérence de périmètre).
+  // Réalisé = somme actualHours des done convertis en jours (8h/j). Estimé = somme estimate des done.
+  const realHoursDone = state.clients.reduce((s, c) => s + c.items.filter(i => i.status === 'done').reduce((a, i) => a + (parseFloat(i.actualHours) || 0), 0), 0);
+  const estDaysDone = state.clients.reduce((s, c) => s + c.items.filter(i => i.status === 'done').reduce((a, i) => a + (parseFloat(i.estimate) || 0), 0), 0);
+  const realDaysDone = realHoursDone / 8;
+  const donePart = (realHoursDone > 0 || estDaysDone > 0)
+    ? ` · <strong>${formatDays(realDaysDone)}</strong> j réalisés / <strong>${formatDays(estDaysDone)}</strong> j estimés (terminés)`
+    : '';
+  document.getElementById('globalStats').innerHTML = `<strong>${total}</strong> items · <strong>${formatDays(days)}</strong> j à faire${donePart}`;
 }
 
 function renderBreadcrumb() {
@@ -4393,6 +4406,7 @@ async function submitInlineForm(sectionId, sprintId, epicIdArg) {
     type: form.querySelector('.if-type').value,
     priority: parseInt(form.querySelector('.if-prio').value),
     estimate: parseFloat(form.querySelector('.if-est').value) || 0,
+    actualHours: 0,
     dueDate: form.querySelector('.if-due').value || null,
     status: 'todo',
     sprintId: sprintId || null,
@@ -4821,6 +4835,10 @@ function renderItemDetailModal(itemId, activeTab, editingCommentId) {
             <input type="number" id="ed_est" step="0.25" min="0" value="${escapeAttr(item.estimate || 0)}">
           </div>
           <div class="field-group">
+            <label>Durée réelle (heures)</label>
+            <input type="number" id="ed_actual" step="0.25" min="0" placeholder="${escapeAttr(item.status === 'done' ? '0' : 'à saisir à la fin du WI')}" value="${escapeAttr(item.actualHours || 0)}">
+          </div>
+          <div class="field-group">
             <label>Échéance</label>
             <input type="date" id="ed_due" value="${escapeAttr(item.dueDate || '')}">
           </div>
@@ -5024,6 +5042,7 @@ async function saveItemEdit(itemId) {
     item.type = document.getElementById('ed_type').value;
     item.priority = parseInt(document.getElementById('ed_prio').value);
     item.estimate = parseFloat(document.getElementById('ed_est').value) || 0;
+    item.actualHours = parseFloat(document.getElementById('ed_actual').value) || 0;
     item.dueDate = document.getElementById('ed_due').value || null;
     item.status = newStatus;
     item.sprintId = document.getElementById('ed_sprint').value || null;
@@ -5505,6 +5524,7 @@ const _ACTIVITY_FIELD_LABELS = {
   status: 'Statut',
   priority: 'Priorité',
   estimate: 'Estimation',
+  actualHours: 'Durée réelle',
   dueDate: 'Échéance',
   sprintId: 'Sprint',
   epicId: 'Epic'
@@ -5525,6 +5545,8 @@ function _formatActivityFieldValue(field, value, client) {
       return _ACTIVITY_PRIO_LABELS[value] || String(value);
     case 'estimate':
       return formatDays(value) + ' j';
+    case 'actualHours':
+      return formatDays(value) + ' h';
     case 'dueDate': {
       const d = new Date(value);
       if (isNaN(d.getTime())) return String(value);
