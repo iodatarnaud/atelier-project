@@ -35,7 +35,7 @@ L'indicateur en haut à droite affiche **`● Local`** : tes données sont stock
 | Élément | Description |
 |---|---|
 | **Projet** (ou client) | Un workspace isolé. Toutes les autres entités (items, sprints, epics) appartiennent à un projet. Identifié par un nom et une clé de 2-5 lettres (ex: `ACM`). |
-| **Item** | Unité de travail. Type (Build / TMA / Bug), priorité (P1 / P2 / P3), statut (À faire / En cours / Terminé), estimation en jours, date d'échéance optionnelle, description rich text. |
+| **Item** | Unité de travail. Type (Build / TMA / Bug), priorité (P1 / P2 / P3), statut (À faire / En cours / Terminé), estimation en jours, durée réelle en heures (saisie a posteriori), date d'échéance optionnelle, description rich text. |
 | **Sprint** | Itération avec dates de début et de fin. Lifecycle : *future* (créé) → *actif* (un seul à la fois par projet) → *terminé*. |
 | **Epic** | Grand chantier transverse, avec une couleur. Permet de regrouper des items autour d'un thème (ex: "Refonte UI"). |
 | **Backlog** | Liste de tous les items non terminés du projet, organisée par sprint et par epic. |
@@ -65,7 +65,7 @@ Le breadcrumb en haut indique le projet actif et la vue. Le titre de la vue est 
 Cliquer sur la ligne d'un item ouvre la modale de détail. Deux onglets :
 
 **Détails** (par défaut) :
-- Titre, type, priorité, statut, estimation, date d'échéance
+- Titre, type, priorité, statut, estimation, **durée réelle** (heures, saisie a posteriori), date d'échéance
 - **Sprint** : assigner / retirer d'un sprint
 - **Epic** : assigner / retirer d'un epic
 - **Description** : éditeur rich text (gras, italique, listes)
@@ -95,7 +95,7 @@ Chaque item a un onglet **Activité** dans la modale détail (à côté de l'ong
 
 Chaque modification d'un champ tracké de l'item génère automatiquement un event dans la timeline (chrono inverse, le plus récent en haut). Les champs trackés sont :
 
-- Titre, type, statut, priorité, estimation, échéance, sprint, epic.
+- Titre, type, statut, priorité, estimation, durée réelle, échéance, sprint, epic.
 
 Affichage type : *"Statut : À faire → En cours"*, *"Sprint : aucun → Sprint 3"*. Toutes les actions utilisateur sont couvertes : édition via la modale, drag & drop entre colonnes du board ou entre sprints, cycle du badge de statut, clôture d'un sprint, suppression d'un sprint/epic. Modifier la **description** ne génère **aucun event** (volontairement : trop verbeux).
 
@@ -273,6 +273,7 @@ Les raccourcis qui pourraient gêner la saisie sont **désactivés quand le focu
 - **Dark theme** : automatique selon le réglage de ton OS. Pas de toggle manuel.
 - **Stats par projet dans la sidebar** : trois pastilles colorées par projet (À faire / En cours / Terminé en nombre d'items) + jours à faire.
 - **Compteur de sprint** : `reste X j sur Y` dans le header du sprint, basé sur les estimations des items non-terminés. Tooltip au survol pour le détail (livrés / total).
+- **Comparaison réalisé / estimé (header global)** : depuis la v0.18.0, le topbar affiche `· X j réalisés / Y j estimés (terminés)` à côté du compteur "à faire" — comparaison cohérente sur les items terminés uniquement (1j = 8h). N'apparaît qu'à partir du moment où au moins un item terminé a une durée réelle ou estimation non nulle.
 - **Drag & drop multi-cible** : un item peut être glissé en une seule action vers un sprint, un epic, ou une autre section.
 - **Le sprint actif a un badge vert** dans le backlog pour le repérer immédiatement.
 - **Suppression de projet** : menu kebab `⋯` sur le projet dans la sidebar. Bloqué si le projet a encore des items ou des sprints (videz-le d'abord).
