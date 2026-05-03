@@ -2084,6 +2084,10 @@
           <input type="date" id="sprintEnd">
         </div>
       </div>
+      <div class="field-group">
+        <label>Couleur <span style="color:var(--text-faint);font-weight:400;">(optionnel)</span></label>
+        <div class="epic-colors" id="sprintColors"></div>
+      </div>
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeSprintModal()">Annuler</button>
         <button id="sprintModalSubmit" class="btn btn-primary" onclick="submitSprintForm()">Créer le sprint</button>
@@ -2286,8 +2290,8 @@ function buildDemoSeed() {
       {
         id: 'demo-c1', name: 'Acme', key: 'ACM', color: '#0052cc', counter: 10,
         epics: [
-          { id: 'demo-e1', name: 'Refonte UI', color: '#8777d9' },
-          { id: 'demo-e2', name: 'Migration data', color: '#36b37e' }
+          { id: 'demo-e1', name: 'Refonte UI', color: '#6a1b9a' },
+          { id: 'demo-e2', name: 'Migration data', color: '#2e7d32' }
         ],
         sprints: [
           { id: 'demo-s1', name: 'Sprint 12 — Refonte UI', startDate: '2026-04-15', endDate: '2026-04-29', active: true, completed: false },
@@ -2307,10 +2311,10 @@ function buildDemoSeed() {
         ]
       },
       {
-        id: 'demo-c2', name: 'Globex', key: 'GLB', color: '#36b37e', counter: 8,
+        id: 'demo-c2', name: 'Globex', key: 'GLB', color: '#2e7d32', counter: 8,
         epics: [
-          { id: 'demo-e3', name: 'Auth', color: '#e5493a' },
-          { id: 'demo-e4', name: 'API publique', color: '#4bade8' }
+          { id: 'demo-e3', name: 'Auth', color: '#d32f2f' },
+          { id: 'demo-e4', name: 'API publique', color: '#00838f' }
         ],
         sprints: [
           { id: 'demo-s3', name: 'Sprint 4 — Migration', startDate: '2026-04-15', endDate: '2026-04-29', active: true, completed: false },
@@ -2328,9 +2332,9 @@ function buildDemoSeed() {
         ]
       },
       {
-        id: 'demo-c3', name: 'Initech', key: 'INI', color: '#8777d9', counter: 4,
+        id: 'demo-c3', name: 'Initech', key: 'INI', color: '#6a1b9a', counter: 4,
         epics: [
-          { id: 'demo-e5', name: 'Cadrage initial', color: '#e9a83a' }
+          { id: 'demo-e5', name: 'Cadrage initial', color: '#f9a825' }
         ],
         sprints: [
           { id: 'demo-s5', name: 'Sprint 1 — Démarrage', startDate: '2026-05-01', endDate: '2026-05-15', active: false, completed: false }
@@ -2343,9 +2347,9 @@ function buildDemoSeed() {
         ]
       },
       {
-        id: 'demo-c4', name: 'Hooli', key: 'HOO', color: '#ff8b00', counter: 3,
+        id: 'demo-c4', name: 'Hooli', key: 'HOO', color: '#f57c00', counter: 3,
         epics: [
-          { id: 'demo-e6', name: 'Performance', color: '#cd1f1f' }
+          { id: 'demo-e6', name: 'Performance', color: '#d32f2f' }
         ],
         sprints: [],
         items: [
@@ -2508,6 +2512,27 @@ function setSyncStatus(status, label) {
 const ID_PATTERN = /^[a-z0-9_-]{1,64}$/i;
 const KEY_PATTERN = /^[A-Z0-9]{1,10}$/;
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+// Palette unique partagée par clients / epics / sprints (10 couleurs, WI-012).
+// Déclarée AVANT DEFAULT_EPIC_COLOR pour éviter toute TDZ ReferenceError au boot
+// (cf. PRD#2 AC1 P1#2 Codex).
+// Itération #2 (post-VALIDATION_UI Arnaud) : palette refondue pour maximiser
+// la distinction visuelle (un seul vert + un seul violet, teintes contrastées).
+// `#0052cc` reste premier pour préserver `DEFAULT_EPIC_COLOR` historique.
+const COLORS = ['#0052cc', '#2e7d32', '#f57c00', '#d32f2f', '#00838f', '#6a1b9a', '#c2185b', '#795548', '#455a64', '#f9a825'];
+// Migration legacy WI-012 itération #3 (post-CODE_REVIEW#2 Codex) : ancien hex
+// pré-itération #2 → canonique nouvelle palette. Préserve la couleur des
+// clients/epics existants en IndexedDB/Gist sans introduire de fallback bleu/null
+// silencieux. Strict allowlist : seulement les hex listés ici sont remappés
+// (les autres hors palette tombent toujours sur fallback). Clés en lowercase.
+const LEGACY_COLOR_MIGRATION = {
+  '#36b37e': '#2e7d32',  // vert historique → vert nouvelle palette
+  '#8777d9': '#6a1b9a',  // violet historique → violet nouvelle palette
+  '#ff8b00': '#f57c00',  // orange historique → orange nouvelle palette
+  '#e5493a': '#d32f2f',  // rouge historique → rouge nouvelle palette
+  '#4bade8': '#00838f',  // bleu clair historique → cyan profond
+  '#e9a83a': '#f9a825',  // jaune seed legacy → jaune ambré
+  '#cd1f1f': '#d32f2f',  // rouge seed legacy → rouge nouvelle palette
+};
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TYPE_VALUES = new Set(['story', 'task', 'bug']);
 const STATUS_VALUES = new Set(['todo', 'doing', 'done']);
@@ -2545,6 +2570,30 @@ function _clampNumber(v, min, max, fallback) {
   return (v < min || v > max) ? fallback : v;
 }
 
+// Normalise une couleur d'import en valeur canonique de la palette `COLORS`
+// (ou fallback). Comparaison case-insensitive avec stockage canonique :
+// `#F9A825` accepté → stocké `#f9a825`. Tout hex hors palette ou input
+// non-string tombe sur `opts.fallback` (ex. null pour sprint, DEFAULT_EPIC_COLOR
+// pour epic). Ferme la porte aux imports hostiles (XSS via attr) ET aux
+// couleurs hors palette (PRD#2 AC3 + tests sécurité AC6).
+function normalizePaletteColor(raw, opts) {
+  const fallback = (opts && Object.prototype.hasOwnProperty.call(opts, 'fallback')) ? opts.fallback : null;
+  const palette = (opts && Array.isArray(opts.palette)) ? opts.palette : COLORS;
+  if (typeof raw !== 'string' || !HEX_COLOR_PATTERN.test(raw)) return fallback;
+  const lower = raw.toLowerCase();
+  for (const c of palette) {
+    if (c.toLowerCase() === lower) return c;
+  }
+  // Migration legacy itération #3 : si la palette par défaut est utilisée et que
+  // l'hex appartient à `LEGACY_COLOR_MIGRATION`, on remappe sur le canonique
+  // nouvelle palette plutôt que de tomber sur fallback. Aucune ouverture pour
+  // les hex hors allowlist (ex. `#ff00ff` reste rejeté → fallback).
+  if (palette === COLORS && Object.prototype.hasOwnProperty.call(LEGACY_COLOR_MIGRATION, lower)) {
+    return LEGACY_COLOR_MIGRATION[lower];
+  }
+  return fallback;
+}
+
 function _normalizeSprint(raw) {
   if (!raw || typeof raw !== 'object') return null;
   if (typeof raw.id !== 'string' || !ID_PATTERN.test(raw.id)) return null;
@@ -2556,7 +2605,8 @@ function _normalizeSprint(raw) {
     startDate: (typeof raw.startDate === 'string' && ISO_DATE_PATTERN.test(raw.startDate)) ? raw.startDate : null,
     endDate: (typeof raw.endDate === 'string' && ISO_DATE_PATTERN.test(raw.endDate)) ? raw.endDate : null,
     active: raw.active === true,
-    completed: raw.completed === true
+    completed: raw.completed === true,
+    color: normalizePaletteColor(raw.color, { fallback: null })
   };
 }
 
@@ -2568,7 +2618,7 @@ function _normalizeEpic(raw) {
   return {
     id: raw.id,
     name,
-    color: (typeof raw.color === 'string' && HEX_COLOR_PATTERN.test(raw.color)) ? raw.color : DEFAULT_EPIC_COLOR
+    color: normalizePaletteColor(raw.color, { fallback: DEFAULT_EPIC_COLOR })
   };
 }
 
@@ -2741,8 +2791,9 @@ function _normalizeClient(raw) {
     sprints,
     epics
   };
-  if (typeof raw.color === 'string' && HEX_COLOR_PATTERN.test(raw.color)) {
-    result.color = raw.color;
+  const clientColor = normalizePaletteColor(raw.color, { fallback: null });
+  if (clientColor) {
+    result.color = clientColor;
   }
   return result;
 }
@@ -3557,8 +3608,7 @@ function renderSidebar() {
     const open = todo + progress;
     const days = c.items.filter(i => i.status !== 'done').reduce((a, i) => a + (parseFloat(i.estimate) || 0), 0);
     const initial = (c.key || c.name.substring(0,2)).substring(0,2).toUpperCase();
-    const colors = ['#0052cc', '#36b37e', '#8777d9', '#ff8b00', '#e5493a', '#4bade8'];
-    const color = c.color || colors[state.clients.indexOf(c) % colors.length];
+    const color = c.color || COLORS[state.clients.indexOf(c) % COLORS.length];
     return `
       <div class="side-item ${escapeAttr(c.id === state.activeClientId ? 'active' : '')}" data-client-id="${escapeAttr(c.id)}" onclick="switchClient('${escapeJs(c.id)}')">
         <div class="ico" style="background:${escapeAttr(color)}">${escapeHtml(initial)}</div>
@@ -3605,12 +3655,28 @@ function renderSidebar() {
       const items = client.items.filter(i => i.sprintId === s.id);
       const total = items.length;
       const done = items.filter(i => i.status === 'done').length;
-      const dotColor = s.active ? 'var(--story)' : (s.completed ? 'var(--text-faint)' : 'var(--text-mute)');
+      // WI-012 — dot sprint sidebar :
+      //   - couleur custom (sprint.color hex) → background = couleur, ring `--story`
+      //     OBLIGATOIRE si actif pour distinguer l'actif des autres sprints colorés
+      //     (AC4 P1#1 Codex). Terminé → opacity 0.55. Futur → plain.
+      //   - sans couleur (rétro-compat US3) → comportement legacy : background dépend
+      //     du statut (var(--story) actif / var(--text-mute) futur / var(--text-faint)
+      //     terminé). Pas de ring (la couleur du dot porte déjà le statut).
+      const hasCustom = typeof s.color === 'string' && s.color.length > 0;
+      let dotStyle;
+      if (hasCustom) {
+        const ring = s.active ? 'box-shadow:0 0 0 2px var(--story);' : '';
+        const opacity = s.completed ? 'opacity:0.55;' : '';
+        dotStyle = `background:${escapeAttr(s.color)};${ring}${opacity}`;
+      } else {
+        const dotColor = s.active ? 'var(--story)' : (s.completed ? 'var(--text-faint)' : 'var(--text-mute)');
+        dotStyle = `background:${escapeAttr(dotColor)};`;
+      }
       const nameStyle = s.completed ? 'opacity:0.55;text-decoration:line-through;' : '';
       const suffix = s.completed ? ' <span style="color:var(--text-faint);font-style:italic;">(terminé)</span>' : '';
       return `
         <div class="side-item" data-sprint-id="${escapeAttr(s.id)}" onclick="setActiveSprint('${escapeJs(s.id)}')" style="font-size:12px;">
-          <span style="width:6px;height:6px;border-radius:50%;background:${escapeAttr(dotColor)};"></span>
+          <span class="sprint-dot" style="width:6px;height:6px;border-radius:50%;${dotStyle}"></span>
           <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${escapeAttr(nameStyle)}">${escapeHtml(s.name)}${suffix}</span>
           <span class="count">${done}/${total}</span>
           <button class="side-action menu" onclick="event.stopPropagation();sprintActionMenu(this, '${escapeJs(s.id)}')" title="Options">⋯</button>
@@ -5109,6 +5175,9 @@ function openSprintModal(sprintId) {
   document.getElementById('sprintName').value = sprint ? sprint.name : '';
   document.getElementById('sprintStart').value = sprint ? sprint.startDate : today;
   document.getElementById('sprintEnd').value = sprint ? sprint.endDate : in2weeks;
+  // WI-012 : sprints sont nullable côté couleur (US3 rétro-compat). Sprint sans
+  // couleur custom → aucune swatch sélectionnée par défaut.
+  populateColorSwatches('sprintColors', sprint ? sprint.color : null, { nullable: true });
 
   document.getElementById('sprintModal').classList.add('show');
   setTimeout(() => document.getElementById('sprintName').focus(), 50);
@@ -5125,12 +5194,14 @@ async function submitSprintForm() {
   const client = getActiveClient();
   const startDate = document.getElementById('sprintStart').value;
   const endDate = document.getElementById('sprintEnd').value;
+  const selectedSwatch = document.querySelector('#sprintColors .epic-color-swatch.selected');
+  const color = selectedSwatch ? normalizePaletteColor(selectedSwatch.dataset.color, { fallback: null }) : null;
   if (_editingSprintId) {
     const sprint = client.sprints.find(s => s.id === _editingSprintId);
-    if (sprint) { sprint.name = name; sprint.startDate = startDate; sprint.endDate = endDate; }
+    if (sprint) { sprint.name = name; sprint.startDate = startDate; sprint.endDate = endDate; sprint.color = color; }
   } else {
     client.sprints.forEach(s => s.active = false);
-    client.sprints.push({ id: 's' + Date.now(), name, startDate, endDate, active: true });
+    client.sprints.push({ id: 's' + Date.now(), name, startDate, endDate, active: true, completed: false, color });
   }
   await saveState();
   closeSprintModal();
@@ -5168,8 +5239,35 @@ async function completeSprint(sprintId) {
 }
 
 // === EPIC ACTIONS ===
-const EPIC_COLORS = ['#0052cc', '#36b37e', '#8777d9', '#ff8b00', '#e5493a', '#4bade8'];
+// Alias historique conservé : code legacy + tests référencent EPIC_COLORS,
+// mais la source de vérité est `COLORS` (déclarée plus haut, ligne ~2511).
+const EPIC_COLORS = COLORS;
 let _editingEpicId = null;
+
+// Génère le markup des swatches pour un sélecteur de couleur (epic, client, sprint).
+// - `targetId` : id du div container (#epicColors / #clientColors / #sprintColors).
+// - `currentColor` : couleur sélectionnée par défaut (ou null).
+// - `opts.nullable` : si true, cliquer une swatch déjà sélectionnée la désélectionne
+//   (sprint). Si false, la sélection reste verrouillée (epic / client requièrent
+//   une couleur). Cf. PRD#2 AC2 / AC3.
+function populateColorSwatches(targetId, currentColor, opts) {
+  const nullable = !!(opts && opts.nullable);
+  const container = document.getElementById(targetId);
+  if (!container) return;
+  container.innerHTML = COLORS.map(c =>
+    `<button type="button" class="epic-color-swatch${escapeAttr(c === currentColor ? ' selected' : '')}" data-color="${escapeAttr(c)}" style="background:${escapeAttr(c)}"></button>`
+  ).join('');
+  container.querySelectorAll('.epic-color-swatch').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (nullable && btn.classList.contains('selected')) {
+        btn.classList.remove('selected');
+        return;
+      }
+      container.querySelectorAll('.epic-color-swatch').forEach(s => s.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+}
 
 function openEpicModal(epicId) {
   const client = getActiveClient();
@@ -5181,10 +5279,8 @@ function openEpicModal(epicId) {
   document.getElementById('epicModalSubmit').textContent = epic ? 'Enregistrer' : "Créer l'epic";
   document.getElementById('epicName').value = epic ? epic.name : '';
 
-  const currentColor = epic ? epic.color : EPIC_COLORS[0];
-  document.getElementById('epicColors').innerHTML = EPIC_COLORS.map(c =>
-    `<button type="button" class="epic-color-swatch${escapeAttr(c === currentColor ? ' selected' : '')}" data-color="${escapeAttr(c)}" style="background:${escapeAttr(c)}" onclick="selectEpicColor(this)"></button>`
-  ).join('');
+  const currentColor = epic ? epic.color : COLORS[0];
+  populateColorSwatches('epicColors', currentColor, { nullable: false });
 
   document.getElementById('epicModal').classList.add('show');
   setTimeout(() => document.getElementById('epicName').focus(), 50);
@@ -5195,6 +5291,8 @@ function closeEpicModal() {
   _editingEpicId = null;
 }
 
+// Compat legacy : ancien handler utilisé par d'autres surfaces. Conserve le
+// comportement non-nullable (epic/client) en interne.
 function selectEpicColor(btn) {
   btn.parentElement.querySelectorAll('.epic-color-swatch').forEach(s => s.classList.remove('selected'));
   btn.classList.add('selected');
@@ -5204,7 +5302,7 @@ async function saveEpic() {
   const name = document.getElementById('epicName').value.trim();
   if (!name) { document.getElementById('epicName').focus(); return; }
   const selected = document.querySelector('#epicColors .epic-color-swatch.selected');
-  const color = selected ? selected.dataset.color : EPIC_COLORS[0];
+  const color = selected ? selected.dataset.color : COLORS[0];
   const client = getActiveClient();
 
   if (_editingEpicId) {
@@ -5248,11 +5346,9 @@ function openClientModal(clientId) {
   document.getElementById('clientKey').disabled = !!client;
   document.getElementById('clientKeyNote').style.display = client ? 'block' : 'none';
 
-  const defaultColor = EPIC_COLORS[state.clients.length % EPIC_COLORS.length];
+  const defaultColor = COLORS[state.clients.length % COLORS.length];
   const currentColor = client ? (client.color || defaultColor) : defaultColor;
-  document.getElementById('clientColors').innerHTML = EPIC_COLORS.map(c =>
-    `<button type="button" class="epic-color-swatch${escapeAttr(c === currentColor ? ' selected' : '')}" data-color="${escapeAttr(c)}" style="background:${escapeAttr(c)}" onclick="selectEpicColor(this)"></button>`
-  ).join('');
+  populateColorSwatches('clientColors', currentColor, { nullable: false });
 
   document.getElementById('clientModal').classList.add('show');
   setTimeout(() => document.getElementById('clientName').focus(), 50);
@@ -5279,7 +5375,7 @@ async function submitClientForm() {
   const name = document.getElementById('clientName').value.trim();
   if (!name) { document.getElementById('clientName').focus(); return; }
   const selected = document.querySelector('#clientColors .epic-color-swatch.selected');
-  const color = selected ? selected.dataset.color : EPIC_COLORS[0];
+  const color = selected ? selected.dataset.color : COLORS[0];
   if (_editingClientId) {
     const client = state.clients.find(c => c.id === _editingClientId);
     if (client) { client.name = name; client.color = color; }
@@ -5799,6 +5895,23 @@ function initSidebarResize() {
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
+  });
+}
+
+// WI-012 — exposition test-mode des validators palette pour les tests E2E
+// (security hostile import, palette stricte, helper canonicalisation). Gated
+// strictement test-mode / __SKIP_SEED__ comme le bloc module bridge ligne ~2249.
+if (isTestMode() || window.__SKIP_SEED__) {
+  window.__atelierInternals = window.__atelierInternals || {};
+  Object.assign(window.__atelierInternals, {
+    COLORS,
+    DEFAULT_EPIC_COLOR,
+    LEGACY_COLOR_MIGRATION,
+    normalizePaletteColor,
+    _normalizeSprint,
+    _normalizeEpic,
+    _normalizeClient,
+    normalizeImportedState,
   });
 }
 

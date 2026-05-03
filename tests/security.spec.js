@@ -319,7 +319,7 @@ test.describe('Sécurité — validation des données importées', () => {
         clients: [{
           id: 'c1', name: 'Acme', key: 'ACM', counter: 2,
           sprints: [{ id: 's1', name: 'S1', startDate: '2026-04-01', endDate: '2026-04-15', active: true }],
-          epics: [{ id: 'e1', name: 'E1', color: '#36b37e' }],
+          epics: [{ id: 'e1', name: 'E1', color: '#2e7d32' }],
           items: [
             { id: 'i1', num: 1, title: 'Story livrée', type: 'story', priority: 1, status: 'done', estimate: 1.5, sprintId: 's1', epicId: 'e1', createdAt: 1000, completedAt: 2000 },
             // Champs minimum : doit ressortir avec les défauts
@@ -346,7 +346,7 @@ test.describe('Sécurité — validation des données importées', () => {
     expect(result.clientName).toBe('Acme');
     expect(result.clientKey).toBe('ACM');
     expect(result.sprint).toMatchObject({ id: 's1', name: 'S1', active: true });
-    expect(result.epic).toEqual({ id: 'e1', name: 'E1', color: '#36b37e' });
+    expect(result.epic).toEqual({ id: 'e1', name: 'E1', color: '#2e7d32' });
     expect(result.item1).toMatchObject({
       id: 'i1', num: 1, title: 'Story livrée',
       type: 'story', priority: 1, status: 'done', estimate: 1.5,
