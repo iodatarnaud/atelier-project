@@ -59,7 +59,14 @@ async function simulateDnd(page, sourceSelector, targetSelector) {
     target.dispatchEvent(new DragEvent('drop', opts));
     source.dispatchEvent(new DragEvent('dragend', opts));
   }, { s: sourceSelector, t: targetSelector });
-  await page.waitForTimeout(120); // saveState + render async
+  // WI-010 AC2 (itération #8) : tente l'attente déterministe via `__appStateVersion` (mutation détectée),
+  // fallback silencieux 200ms si DnD non-mutateur (drop invalide → pas de render).
+  const v0 = await page.evaluate(() => window.__appStateVersion || 0);
+  await page.waitForFunction(
+    (b) => typeof window.__appStateVersion === 'number' && window.__appStateVersion > b,
+    v0,
+    { timeout: 200 }
+  ).catch(() => {});
 }
 
 // === Golden path ===
