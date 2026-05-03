@@ -78,6 +78,45 @@ async function openSidebarItemAction(page, row, action) {
   await expect(page.locator('#actionMenu')).not.toBeVisible();
 }
 
+// Helpers déterministes WI-010 AC2 — remplacent les waitForTimeout(150/120) arbitraires.
+// Utilisent les marqueurs test-only `window.__appStateVersion` (incrément à chaque render)
+// et `window.__lastSaveCompletedAt` (timestamp au save async terminé) gated test-mode dans index.html.
+//
+// Pattern d'usage :
+//   const v0 = await snapshotRender(page);
+//   await action(page); // déclenche un render
+//   await waitForRender(page, { from: v0 });
+//
+//   const t0 = await snapshotSave(page);
+//   await action(page); // déclenche un save
+//   await waitForSave(page, { from: t0 });
+
+async function snapshotRender(page) {
+  return page.evaluate(() => window.__appStateVersion || 0);
+}
+
+async function snapshotSave(page) {
+  return page.evaluate(() => window.__lastSaveCompletedAt || 0);
+}
+
+async function waitForRender(page, { from } = {}) {
+  const baseline = (typeof from === 'number') ? from : 0;
+  await page.waitForFunction(
+    (b) => typeof window.__appStateVersion === 'number' && window.__appStateVersion > b,
+    baseline,
+    { timeout: 5000 }
+  );
+}
+
+async function waitForSave(page, { from } = {}) {
+  const baseline = (typeof from === 'number') ? from : 0;
+  await page.waitForFunction(
+    (b) => typeof window.__lastSaveCompletedAt === 'number' && window.__lastSaveCompletedAt > b,
+    baseline,
+    { timeout: 5000 }
+  );
+}
+
 module.exports = {
   test,
   expect,
@@ -88,4 +127,8 @@ module.exports = {
   openItemDetailByTitle,
   closeItemDetail,
   openSidebarItemAction,
+  snapshotRender,
+  snapshotSave,
+  waitForRender,
+  waitForSave,
 };

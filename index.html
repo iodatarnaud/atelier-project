@@ -1922,7 +1922,7 @@
     <div class="logo">
       <div class="logo-mark">A</div>
       Atelier
-      <span class="version">v0.18.0</span>
+      <span class="version">v0.19.0</span>
     </div>
     <div class="topbar-search">
       <input type="text" id="searchInput" placeholder="Rechercher un item…">
@@ -2185,6 +2185,52 @@
   </div>
 </div>
 
+<!-- Bridge ES module → shell index.html (WI-010 AC10 GO).
+     Charge avant le <script> inline pour que les expositions window.* soient prêtes au boot.
+     Stratégie (cf. docs/spike-modules.md) :
+       - exposition window.* pour compat avec le code inline existant (factory utilisée par submitInlineForm, etc.).
+       - exposition window.__atelierInternals gated par mode test / __SKIP_SEED__ pour les tests Playwright. -->
+<script type="module">
+import { buildItem, itemDefaults, spikeProbe } from './js/items.js';
+import { startDrag, endDrag, getDragItemId, getCalendarDragItem, didDragJustHappen, peekDragContext, _resetDragState } from './js/drag-drop.js';
+import { localDateKey, buildMonthCells, buildCalendarItems, indexCalendarItems } from './js/calendar.js';
+
+// Compat shell : les fonctions sont accessibles depuis le <script> inline classique
+// (qui s'exécute après ce module en defer-by-default des modules).
+window._buildItem = buildItem;
+window._itemDefaults = itemDefaults;
+window._startDrag = startDrag;
+window._endDrag = endDrag;
+window._getDragItemId = getDragItemId;
+window._getCalendarDragItem = getCalendarDragItem;
+window._didDragJustHappen = didDragJustHappen;
+// Calendar helpers — exposés sans préfixe `_` pour conserver la compat avec les tests
+// (calendrier.spec.js + calendrier-dnd.spec.js appellent `localDateKey` directement via page.evaluate).
+window.localDateKey = localDateKey;
+window.buildMonthCells = buildMonthCells;
+window.buildCalendarItems = buildCalendarItems;
+window.indexCalendarItems = indexCalendarItems;
+
+// Test-mode gating : ne polluer __atelierInternals qu'en mode test ou __SKIP_SEED__.
+// Note : mode test stocke '1' (cohérent avec isTestMode() ligne 2228), pas 'true'.
+const isTestMode = (() => {
+  try {
+    return localStorage.getItem('atelier-mode-test') === '1' || window.__SKIP_SEED__ === true;
+  } catch (_) { return false; }
+})();
+
+if (isTestMode) {
+  window.__atelierInternals = window.__atelierInternals || {};
+  Object.assign(window.__atelierInternals, {
+    buildItem, itemDefaults, spikeProbe,
+    startDrag, endDrag, getDragItemId, getCalendarDragItem, didDragJustHappen, peekDragContext, _resetDragState,
+    localDateKey, buildMonthCells, buildCalendarItems, indexCalendarItems,
+  });
+  // Marqueur de boot module — gated test-mode pour éviter pollution `window` en prod (P2 Checkpoint #1).
+  window.__atelierModuleSpike = { loaded: true, ts: Date.now() };
+}
+</script>
+
 <script>
 // ============================================================
 // STATE
@@ -2414,7 +2460,12 @@ function setSyncStatus(status, label) {
   lbl.textContent = label;
 }
 
-// === VALIDATION (normalisation des données externes) ===
+// === VALIDATION (normalisation des données externes) + ITEM HELPERS (shell) ===
+// NB (WI-010 AC5) : la factory canonique `buildItem()` et `itemDefaults()` sont extraites
+// dans `js/items.js` (bridged sur `window._buildItem` / `window._itemDefaults`).
+// Le shell conserve `_normalizeItem`, `_clampNumber/Int/String`, `_normalizeChangeFieldValue`
+// (validation à l'import — couplage fort avec STATUS_VALUES, TRACKED_FIELDS, ID_PATTERN
+// définis en haut du `<script>` ; non extrait pour limiter le scope WI-010).
 //
 // Tout state qui arrive d'une source externe (import JSON, premier pull Gist)
 // passe par normalizeImportedState() avant d'atterrir dans `state.clients`.
@@ -3189,9 +3240,13 @@ async function loadState() {
 }
 
 async function saveState() {
-  // Mode test : no-op total. Les modifs restent en mémoire jusqu'au prochain
-  // refresh (qui rechargera le seed propre).
-  if (isTestMode()) return;
+  // Mode test : no-op total côté persistence, mais on pose le marqueur AC2 (WI-010)
+  // pour que `waitForSave()` Playwright puisse attendre le "save logique" même en mode test.
+  // Save logique = instantané/no-op donc le marqueur est posé immédiatement.
+  if (isTestMode()) {
+    if (window.__SKIP_SEED__) window.__lastSaveCompletedAt = Date.now();
+    return;
+  }
   // Sync connectée : marquer la première modif locale non pushée pour le push-guard.
   if (syncConfig.connected && _localDirtySinceTs === null) {
     _localDirtySinceTs = Date.now();
@@ -3207,6 +3262,11 @@ async function saveState() {
         lastSavedAt: Date.now()
       });
       updateSaveIndicator('saved');
+      // Marqueur test-only AC2 (WI-010) après save IndexedDB réel — utile si __SKIP_SEED__
+      // actif sans mode test (cas Playwright qui veut tester la persistence réelle).
+      if (window.__SKIP_SEED__ || isTestMode()) {
+        window.__lastSaveCompletedAt = Date.now();
+      }
       // Push vers Gist en arrière-plan (debounced plus longuement)
       scheduleGistPush();
     } catch (e) {
@@ -3442,6 +3502,12 @@ function render() {
   renderStats();
   renderBreadcrumb();
   renderView();
+  // Marqueur test-only AC2 (WI-010) : permet aux helpers Playwright `waitForRender(page, { from })`
+  // d'attendre déterministiquement un nouveau cycle de render au lieu de `waitForTimeout(150)`.
+  // Strictement gated test-mode / __SKIP_SEED__ pour ne pas polluer la prod (AC2 + R-C).
+  if (isTestMode() || window.__SKIP_SEED__) {
+    window.__appStateVersion = (window.__appStateVersion || 0) + 1;
+  }
 }
 
 let _prevClientStats = {};
@@ -4049,7 +4115,11 @@ async function doDelete() {
   render();
 }
 
-// === CALENDAR (vue mensuelle multi-projets) ===
+// === CALENDAR (vue mensuelle multi-projets) — view-model pur dans `js/calendar.js` (WI-010 AC4) ===
+// Le shell conserve `renderCalendar()` (DOM rendering), `attachCalendarDragDrop()` (DnD listeners),
+// `applyCalendarDrop()` (mutation drop), `ensureCalendarMonth()` (state init), `setCalendarMonth/Filter*`
+// (handlers UI). Les fonctions pures (`localDateKey`, `buildMonthCells`, `buildCalendarItems`,
+// `indexCalendarItems`) sont dans `js/calendar.js`, exposées sur `window.*` par le bridge module.
 //
 // Vue calendrier multi-projets avec section "En retard", grille mensuelle
 // (lundi-first FR), section "Non planifiés" repliable, et 4 filtres
@@ -4059,12 +4129,11 @@ async function doDelete() {
 // getMonth/getDate. NE PAS utiliser toISOString() qui décale d'un jour
 // en Europe/Paris selon l'heure UTC (bug subtil chopé par Codex).
 
-function localDateKey(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
+// localDateKey() / buildMonthCells() / getAllCalendarItems() (renommé buildCalendarItems) /
+// filterCalendarItems() / indexCalendarItems() — extraites en `js/calendar.js` (WI-010 AC4).
+// Le bridge module les expose sur `window.*` (compat shell + tests Playwright qui les appellent
+// directement via `page.evaluate(() => localDateKey(...))`). Les définitions inline historiques
+// sont supprimées ici — source unique = `js/calendar.js`.
 
 function ensureCalendarMonth() {
   if (!state.calendarMonth) {
@@ -4073,72 +4142,8 @@ function ensureCalendarMonth() {
   }
 }
 
-function buildMonthCells(year, month) {
-  const first = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  const offset = (first.getDay() + 6) % 7; // Lundi = 0
-  const cells = [];
-  for (let i = offset; i > 0; i--) {
-    cells.push({ date: new Date(year, month, 1 - i), inMonth: false });
-  }
-  for (let d = 1; d <= lastDay; d++) {
-    cells.push({ date: new Date(year, month, d), inMonth: true });
-  }
-  while (cells.length % 7 !== 0) {
-    const next = cells.length - (offset + lastDay) + 1;
-    cells.push({ date: new Date(year, month + 1, next), inMonth: false });
-  }
-  return cells;
-}
-
-function getAllCalendarItems() {
-  const items = [];
-  for (const c of state.clients) {
-    for (const it of (c.items || [])) {
-      const epic = it.epicId ? (c.epics || []).find(e => e.id === it.epicId) : null;
-      items.push({
-        ...it,
-        clientId: c.id,
-        clientName: c.name,
-        clientColor: c.color,
-        epicColor: epic ? epic.color : null,
-        epicName: epic ? epic.name : null
-      });
-    }
-  }
-  return items;
-}
-
-function filterCalendarItems(items) {
-  return items.filter(it => {
-    // Le calendrier est une vue de charge à venir : on exclut les items terminés
-    // (l'Archive existe déjà pour l'historique). Décision produit cf. Codex.
-    if (it.status === 'done') return false;
-    if (state.calendarFilterProject && it.clientId !== state.calendarFilterProject) return false;
-    if (state.calendarFilterType && it.type !== state.calendarFilterType) return false;
-    if (state.calendarFilterPrio && it.priority !== parseInt(state.calendarFilterPrio)) return false;
-    // Epic appliqué seulement si on est sur un projet précis (sinon ambigu en multi-projets, cf. Codex)
-    if (state.calendarFilterProject && state.calendarFilterEpic && it.epicId !== state.calendarFilterEpic) return false;
-    return true;
-  });
-}
-
-// Pré-indexation pour lookup O(1) par cellule (perf — Codex point 8).
-function indexCalendarItems(items) {
-  const byDate = new Map();
-  const unplanned = [];
-  const overdue = [];
-  const todayKey = localDateKey(new Date());
-  for (const it of items) {
-    if (!it.dueDate) { unplanned.push(it); continue; }
-    if (it.dueDate < todayKey && it.status !== 'done') overdue.push(it);
-    if (!byDate.has(it.dueDate)) byDate.set(it.dueDate, []);
-    byDate.get(it.dueDate).push(it);
-  }
-  overdue.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  unplanned.sort((a, b) => a.priority - b.priority);
-  return { byDate, unplanned, overdue };
-}
+// (Définitions de buildMonthCells, getAllCalendarItems, filterCalendarItems, indexCalendarItems
+// retirées du shell → source unique dans `js/calendar.js`, cf. WI-010 AC4.)
 
 const _CAL_MONTH_NAMES = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const _CAL_DAY_HEADERS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
@@ -4154,8 +4159,14 @@ function renderCalendar(container) {
     return;
   }
 
-  const allItems = getAllCalendarItems();
-  const filtered = filterCalendarItems(allItems);
+  // WI-010 AC4 : view-model calendrier extrait dans `js/calendar.js` (fonctions pures).
+  // `buildCalendarItems(state, filters)` combine l'ancien getAllCalendarItems + filterCalendarItems.
+  const filtered = buildCalendarItems(state, {
+    projectId: state.calendarFilterProject || null,
+    type: state.calendarFilterType || null,
+    priority: state.calendarFilterPrio ? parseInt(state.calendarFilterPrio) : null,
+    epicId: state.calendarFilterEpic || null,
+  });
   const { byDate, unplanned, overdue } = indexCalendarItems(filtered);
   const cells = buildMonthCells(year, month);
   const todayKey = localDateKey(new Date());
@@ -4342,7 +4353,7 @@ function toggleCalendarUnplanned() {
 
 function openItemFromCalendar(clientId, itemId) {
   // Bloque le click capturé juste après un drag (pattern partagé avec board/backlog).
-  if (dragJustHappened) return;
+  if (_didDragJustHappen()) return;
   if (state.activeClientId !== clientId) {
     switchClient(clientId);  // ne reset pas activeView (vérifié par Codex)
   }
@@ -4399,20 +4410,18 @@ async function submitInlineForm(sectionId, sprintId, epicIdArg) {
     epicId = epicSelect ? (epicSelect.value || null) : null;
   }
   client.counter = (client.counter || 0) + 1;
-  client.items.push({
-    id: 'i' + Date.now(),
+  // Factory item canonique (WI-010 AC1) : garantit que tous les champs trackables sont
+  // définis (jamais undefined) → pas de phantom event d'activité au premier saveItemEdit.
+  client.items.push(_buildItem({
     num: client.counter,
     title,
     type: form.querySelector('.if-type').value,
     priority: parseInt(form.querySelector('.if-prio').value),
     estimate: parseFloat(form.querySelector('.if-est').value) || 0,
-    actualHours: 0,
     dueDate: form.querySelector('.if-due').value || null,
-    status: 'todo',
     sprintId: sprintId || null,
     epicId,
-    createdAt: Date.now()
-  });
+  }));
   await saveState();
   render();
 }
@@ -4429,15 +4438,15 @@ function quickAdd() {
   }
 }
 
-// === DRAG & DROP (BOARD) ===
-let dragItemId = null;
-let dragJustHappened = false;
-// Variable dédiée au D&D calendrier (WI-001) : payload riche { clientId, itemId }
-// car le calendrier est multi-projets et `dragItemId` global n'est pas un
-// contrat suffisant pour identifier l'item à muter cross-projet. Sert aussi de
-// flag aux handlers existants (board/sidebar/backlog) qui doivent ignorer un
-// drop d'origine calendrier.
-let calendarDragItem = null;
+// === DRAG & DROP (BOARD / BACKLOG / CALENDRIER) ===
+// WI-010 AC3 : state DnD unifié dans `js/drag-drop.js` via `_dragContext = { source, itemId, clientId, ... }`.
+// Les call-sites du shell utilisent les helpers exposés sur window par le bridge module :
+//   - window._startDrag({ source, itemId, clientId? })
+//   - window._endDrag()
+//   - window._getDragItemId() (compat ancien `dragItemId`)
+//   - window._getCalendarDragItem() (compat ancien `calendarDragItem`)
+//   - window._didDragJustHappen() (compat ancien `dragJustHappened`)
+// Source unique = module ; les anciens `let` (dragItemId/calendarDragItem/dragJustHappened) sont supprimés.
 
 function findInsertTarget(container, clientY, cardSelector) {
   const cards = [...container.querySelectorAll(cardSelector)].filter(c => !c.classList.contains('dragging'));
@@ -4468,24 +4477,23 @@ function attachDragDrop() {
   // Cartes
   board.querySelectorAll('.card[draggable="true"]').forEach(card => {
     card.addEventListener('dragstart', (e) => {
-      dragItemId = card.dataset.id;
+      const itemId = card.dataset.id;
+      _startDrag({ source: 'board', itemId });
       card.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', dragItemId);
+      e.dataTransfer.setData('text/plain', itemId);
     });
 
     card.addEventListener('dragend', () => {
       card.classList.remove('dragging');
-      dragItemId = null;
+      // _endDrag() clear _dragContext ET arme _dragJustHappened pendant 100ms (anti-click post-drop).
+      _endDrag();
       document.querySelectorAll('.board-col').forEach(c => c.classList.remove('drag-over'));
-      // Empêche le clic post-drop d'ouvrir le modal
-      dragJustHappened = true;
-      setTimeout(() => { dragJustHappened = false; }, 100);
     });
 
     // Bloque l'ouverture du modal si on vient de drag
     card.addEventListener('click', (e) => {
-      if (dragJustHappened) {
+      if (_didDragJustHappen()) {
         e.stopPropagation();
         e.preventDefault();
       }
@@ -4509,10 +4517,10 @@ function attachDragDrop() {
 
     col.addEventListener('drop', async (e) => {
       // Garde anti-cross-feature : ignorer un drag d'origine calendrier.
-      if (calendarDragItem) return;
+      if (_getCalendarDragItem()) return;
       e.preventDefault();
       col.classList.remove('drag-over');
-      const itemId = e.dataTransfer.getData('text/plain') || dragItemId;
+      const itemId = e.dataTransfer.getData('text/plain') || _getDragItemId();
       const newStatus = col.dataset.status;
       if (!itemId || !newStatus) return;
 
@@ -4542,7 +4550,7 @@ function attachDragDrop() {
 function attachSidebarDropTargets() {
   document.querySelectorAll('.sidebar .side-item[data-sprint-id], .sidebar .side-item[data-epic-id]').forEach(el => {
     el.addEventListener('dragover', (e) => {
-      if (!dragItemId) return;
+      if (!_getDragItemId()) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       el.classList.add('drag-over');
@@ -4552,11 +4560,11 @@ function attachSidebarDropTargets() {
     });
     el.addEventListener('drop', async (e) => {
       // Garde anti-cross-feature : ignorer un drag d'origine calendrier.
-      if (calendarDragItem) return;
+      if (_getCalendarDragItem()) return;
       e.preventDefault();
       e.stopPropagation();
       el.classList.remove('drag-over');
-      const itemId = e.dataTransfer.getData('text/plain') || dragItemId;
+      const itemId = e.dataTransfer.getData('text/plain') || _getDragItemId();
       if (!itemId) return;
       const client = getActiveClient();
       if (!client) return;
@@ -4582,22 +4590,21 @@ function attachBacklogDragDrop() {
 
   container.querySelectorAll('.backlog-row[draggable="true"]').forEach(row => {
     row.addEventListener('dragstart', (e) => {
-      dragItemId = row.dataset.id;
+      const itemId = row.dataset.id;
+      _startDrag({ source: 'backlog', itemId });
       row.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', dragItemId);
+      e.dataTransfer.setData('text/plain', itemId);
     });
 
     row.addEventListener('dragend', () => {
       row.classList.remove('dragging');
-      dragItemId = null;
+      _endDrag();
       document.querySelectorAll('.backlog-section').forEach(s => s.classList.remove('drag-over'));
-      dragJustHappened = true;
-      setTimeout(() => { dragJustHappened = false; }, 100);
     });
 
     row.addEventListener('click', (e) => {
-      if (dragJustHappened) {
+      if (_didDragJustHappen()) {
         e.stopPropagation();
         e.preventDefault();
       }
@@ -4619,11 +4626,11 @@ function attachBacklogDragDrop() {
 
     section.addEventListener('drop', async (e) => {
       // Garde anti-cross-feature : ignorer un drag d'origine calendrier.
-      if (calendarDragItem) return;
+      if (_getCalendarDragItem()) return;
       e.preventDefault();
       e.stopPropagation();
       section.classList.remove('drag-over');
-      const itemId = e.dataTransfer.getData('text/plain') || dragItemId;
+      const itemId = e.dataTransfer.getData('text/plain') || _getDragItemId();
       if (!itemId) return;
 
       const client = getActiveClient();
@@ -4669,13 +4676,14 @@ function attachBacklogDragDrop() {
   });
 }
 
-// === DRAG & DROP (CALENDAR) — WI-001 ===
+// === DRAG & DROP (CALENDAR) — WI-001 / WI-010 AC3 ===
 //
-// Pattern dédié au calendrier multi-projets. Payload riche { clientId, itemId }
-// car `dragItemId` global ne suffit pas pour identifier un item cross-projet
-// (handlers existants résolvent via getActiveClient()). Les handlers existants
-// (board/sidebar/backlog) ignorent les drops dont la source est calendrier
-// via la garde `if (calendarDragItem) return;` au début de leur callback drop.
+// Pattern dédié au calendrier multi-projets. Le contexte `_dragContext` (module js/drag-drop.js)
+// porte une source explicite ('calendar') + clientId + itemId, suffisant pour identifier
+// un item cross-projet (les handlers backlog/board résolvent via getActiveClient() qui
+// ignore le clientId du drag calendrier). Les handlers existants (board/sidebar/backlog)
+// ignorent les drops dont la source est calendrier via la garde
+// `if (_getCalendarDragItem()) return;` au début de leur callback drop.
 
 function attachCalendarDragDrop() {
   const root = document.querySelector('.calendar-view');
@@ -4687,27 +4695,24 @@ function attachCalendarDragDrop() {
       const clientId = itemEl.dataset.clientId;
       const itemId = itemEl.dataset.itemId;
       if (!clientId || !itemId) return;
-      calendarDragItem = { clientId, itemId };
+      _startDrag({ source: 'calendar', itemId, clientId });
       itemEl.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
-      // Redondance défensive : payload aussi dans dataTransfer (si la variable
-      // est perdue par hasard, le drop peut récupérer le payload).
-      try { e.dataTransfer.setData('atelier/calendar', JSON.stringify(calendarDragItem)); } catch (_) {}
+      // Redondance défensive : payload aussi dans dataTransfer (si le contexte
+      // est perdu par hasard, le drop peut récupérer le payload).
+      try { e.dataTransfer.setData('atelier/calendar', JSON.stringify({ clientId, itemId })); } catch (_) {}
     });
     itemEl.addEventListener('dragend', () => {
       itemEl.classList.remove('dragging');
-      calendarDragItem = null;
+      _endDrag();
       root.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-      // Bloque le click capturé post-dragend (pattern partagé board/backlog)
-      dragJustHappened = true;
-      setTimeout(() => { dragJustHappened = false; }, 100);
     });
   });
 
   // Drop targets : cellules du mois courant uniquement (pas .other-month)
   root.querySelectorAll('.cal-cell:not(.other-month)').forEach(cell => {
     cell.addEventListener('dragover', (e) => {
-      if (!calendarDragItem) return;
+      if (!_getCalendarDragItem()) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       cell.classList.add('drag-over');
@@ -4716,13 +4721,14 @@ function attachCalendarDragDrop() {
       if (!cell.contains(e.relatedTarget)) cell.classList.remove('drag-over');
     });
     cell.addEventListener('drop', async (e) => {
-      if (!calendarDragItem) return;
+      const calendarDrag = _getCalendarDragItem();
+      if (!calendarDrag) return;
       e.preventDefault();
       e.stopPropagation();
       cell.classList.remove('drag-over');
       const targetDate = cell.dataset.date;
       if (!targetDate) return;
-      await applyCalendarDrop(calendarDragItem, targetDate);
+      await applyCalendarDrop(calendarDrag, targetDate);
     });
   });
 
@@ -4730,7 +4736,7 @@ function attachCalendarDragDrop() {
   const unplanned = root.querySelector('.calendar-unplanned');
   if (unplanned) {
     unplanned.addEventListener('dragover', (e) => {
-      if (!calendarDragItem) return;
+      if (!_getCalendarDragItem()) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       unplanned.classList.add('drag-over');
@@ -4739,11 +4745,12 @@ function attachCalendarDragDrop() {
       if (!unplanned.contains(e.relatedTarget)) unplanned.classList.remove('drag-over');
     });
     unplanned.addEventListener('drop', async (e) => {
-      if (!calendarDragItem) return;
+      const calendarDrag = _getCalendarDragItem();
+      if (!calendarDrag) return;
       e.preventDefault();
       e.stopPropagation();
       unplanned.classList.remove('drag-over');
-      await applyCalendarDrop(calendarDragItem, null);
+      await applyCalendarDrop(calendarDrag, null);
     });
   }
   // Section "En retard" et cellules other-month : pas de listeners → drop natif refusé.

@@ -63,7 +63,8 @@ test.describe('Calendrier — affichage et navigation', () => {
     await page.reload();
     await page.waitForLoadState('domcontentloaded');
     await page.locator('#syncIndicator').waitFor({ state: 'visible' });
-    await page.waitForTimeout(150);
+    // Attente déterministe d'un premier render après reload (WI-010 AC2).
+    await page.waitForFunction(() => typeof window.__appStateVersion === 'number' && window.__appStateVersion > 0, null, { timeout: 5000 });
     await gotoCalendar(page);
     await expect(page.locator('.empty-title')).toContainText('Aucun projet');
   });

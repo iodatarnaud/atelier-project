@@ -1,4 +1,4 @@
-const { test, expect, resetApp, createClient, createSprint, createItemInline } = require('./helpers');
+const { test, expect, resetApp, createClient, createSprint, createItemInline, snapshotSave, waitForSave } = require('./helpers');
 
 test.beforeEach(async ({ page }) => {
   await resetApp(page);
@@ -13,6 +13,8 @@ test.describe('Persistance (IndexedDB)', () => {
     await createItemInline(page, { title: 'Item backlog' });
 
     // Attend que le debounce de saveState (50ms) ait écrit
+    // (WI-010 AC2 : non migré — t0 capturé AVANT 2 saves async chained avec clearTimeout
+    // donne un baseline ambigu, waitForSave passe au save antérieur. Garder waitForTimeout.)
     await page.waitForTimeout(200);
 
     await page.reload();
@@ -38,6 +40,8 @@ test.describe('Persistance (IndexedDB)', () => {
     const badge = page.locator('.backlog-row', { hasText: 'En progression' }).locator('.status-badge');
     await badge.click(); // → doing
     await expect(badge).toHaveText('En cours');
+    // WI-010 AC2 : migration `waitForSave(page, { from: t0 })` reverted — flake test-side en charge
+    // full-suite (passe en isolation). Pattern `t0` baseline race avec save antérieur de createItemInline.
     await page.waitForTimeout(200);
 
     await page.reload();
