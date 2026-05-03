@@ -30,12 +30,16 @@ export function startDrag(ctx) {
 }
 
 // endDrag() — termine un drag (au dragend), clear le contexte et arme le flag anti-click.
-// Le flag `_dragJustHappened` reste true pendant 100ms pour bloquer le click post-drop.
+// Le flag `_dragJustHappened` reste true brièvement pour bloquer le click post-drop.
 export function endDrag() {
   _dragContext = null;
   _dragJustHappened = true;
   if (_dragJustHappenedTimer) clearTimeout(_dragJustHappenedTimer);
-  _dragJustHappenedTimer = setTimeout(() => { _dragJustHappened = false; }, 100);
+  // WI-011 IMPLEMENTATION : passé 100ms → 150ms. Avec le nouveau layout flex `.main.view-board`,
+  // les events drag/drop sont plus rapides en `dragTo()` Playwright et le click post-dragend
+  // tombait dans la fenêtre 100ms (faux positif anti-click). 150ms donne une marge de sécurité
+  // sans dégrader l'UX humaine. Scope-creep mineur documenté.
+  _dragJustHappenedTimer = setTimeout(() => { _dragJustHappened = false; }, 150);
 }
 
 // getDragItemId() — itemId du drag courant si source backlog/board, null sinon.
@@ -53,7 +57,7 @@ export function getCalendarDragItem() {
   return { clientId: _dragContext.clientId, itemId: _dragContext.itemId };
 }
 
-// didDragJustHappen() — true si un drag s'est terminé dans les 100ms (anti-click post-drop).
+// didDragJustHappen() — true si un drag vient de se terminer (anti-click post-drop).
 export function didDragJustHappen() {
   return _dragJustHappened;
 }
