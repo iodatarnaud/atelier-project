@@ -23,11 +23,11 @@ Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fic
 
 ## Stack
 
-- HTML / CSS / JavaScript vanilla, ~3760 lignes dans un seul `index.html`
-- Aucune dépendance runtime (juste la police Inter via CDN)
+- HTML / CSS / JavaScript vanilla, shell mono-fichier `index.html` (~5640 lignes) + **3 modules ES natifs** dans `js/` (items, drag-drop, calendar — depuis v0.19.0, voir `docs/architecture.md`)
+- Aucun bundler, aucun framework, aucune dépendance runtime (juste la police Inter via CDN)
 - IndexedDB pour le cache local, fallback `localStorage`
 - API REST GitHub pour la synchronisation Gist (optionnelle)
-- Playwright pour les tests end-to-end (118 tests répartis sur 11 fichiers, dont sécurité XSS, activité, calendrier et raccourcis)
+- Playwright pour les tests end-to-end (167 tests répartis sur 13 fichiers, dont sécurité XSS, activité, calendrier, raccourcis et stabilisation modules)
 
 ## Lancer en local
 
@@ -47,19 +47,21 @@ Suite end-to-end Playwright qui valide les fonctionnalités principales avant ch
 ```bash
 npm install
 npx playwright install     # installe Chromium headless (une seule fois)
-npm test                   # 118 tests, ~2min
+npm test                   # 167 tests, ~3min
 npm run test:headed        # voir le navigateur pendant les tests
 npm run test:ui            # mode interactif avec replay
 ```
 
-Les specs vivent dans [`tests/`](tests/), un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`, `security`, `activite`, `calendrier`, `calendrier-dnd`.
+Les specs vivent dans [`tests/`](tests/), un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`, `security`, `activite`, `calendrier`, `calendrier-dnd`, `duree-reelle`, `spike-modules`.
 
 ## Documentation
 
 - [`MANUEL.md`](MANUEL.md) — manuel utilisateur (concepts, vues, sync, mode test)
 - [`SMOKE-TEST.md`](SMOKE-TEST.md) — plan de validation manuel pour vérifier tout le périmètre avant un déploiement
 - [`CLAUDE.md`](CLAUDE.md) — détails techniques (architecture, persistance, conventions)
-- [`AI.md`](AI.md) + [`ai-system/`](ai-system/) — protocole d'orchestration multi-agents (Claude / Codex / Arnaud), v2.1
+- [`docs/architecture.md`](docs/architecture.md) — frontière shell `index.html` ↔ 3 modules ES natifs (items, drag-drop, calendar) + invariants d'extension (depuis v0.19.0)
+- [`docs/agent-context.md`](docs/agent-context.md) — carte des fichiers/ranges précis pour Claude/Codex selon le type de WI (factory item, DnD, calendrier, etc.) + 8 invariants transverses obligatoires (depuis v0.19.0)
+- [`AI.md`](AI.md) + [`ai-system/`](ai-system/) — protocole d'orchestration multi-agents (Claude / Codex / Arnaud), v2.3 (mode META_FAST disponible pour micro-ajustements `ai-system/` depuis WI-007)
 - [`work-items/`](work-items/) — Work Items (WI) : un fichier par chantier, source unique de vérité d'une feature
 
 ## Workflow de développement (multi-agents)

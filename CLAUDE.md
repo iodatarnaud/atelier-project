@@ -119,7 +119,14 @@ Pas de toolchain de build/lint pour l'app : `index.html` reste autonome et drop-
 
 ## Architecture
 
-App mono-fichier `index.html` (~4500 lignes) avec HTML + CSS + JS embarqués. Navigation via commentaires `=== NOM ===`.
+Shell mono-fichier `index.html` (~5640 lignes) avec HTML + CSS + JS embarqués + bridge `<script type="module">` qui importe **3 modules ES natifs** depuis `js/` (depuis v0.19.0 / WI-010) :
+- `js/items.js` — factory item canonique (`buildItem`, `itemDefaults`).
+- `js/drag-drop.js` — contexte DnD unifié (`startDrag`, `endDrag`, `getDragItemId`, `getCalendarDragItem`, `didDragJustHappen`).
+- `js/calendar.js` — view-model calendrier pur (`localDateKey`, `buildMonthCells`, `buildCalendarItems`, `indexCalendarItems`).
+
+Le bridge expose les primitives sur `window.*` (compat shell historique) + `window.__atelierInternals.*` (test-mode-gated pour `page.evaluate` Playwright). Aucun bundler, aucun framework — ES modules natifs uniquement, app reste autonome drop-in pour GitHub Pages.
+
+Navigation shell via commentaires `=== NOM ===` (ancres). Frontière shell ↔ modules + invariants d'extension détaillés dans [`docs/architecture.md`](docs/architecture.md). Carte agent (fichiers/ranges précis pour Claude/Codex selon le type de WI) dans [`docs/agent-context.md`](docs/agent-context.md).
 
 ### Stockage / sync
 
