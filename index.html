@@ -469,6 +469,29 @@
     background: var(--bg-app);
   }
 
+  /* WI-011 (ATE-30) — Vue board uniquement : scroll context déplacé sur `.board-col-body`,
+     `.main` ne scrolle plus verticalement. Layout flex column pour que `.board` prenne la
+     hauteur restante après `.sprint-header`. Aucun magic number de hauteur (P2#5 Codex).
+     Strictement préfixé `.main.view-board` pour ne pas impacter backlog/archive/calendar. */
+  .main.view-board {
+    overflow-y: hidden;
+    display: grid;
+    grid-template-rows: auto auto auto 1fr;
+  }
+  .main.view-board #viewContent {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .main.view-board .sprint-header {
+    flex: 0 0 auto;
+  }
+  .main.view-board .board {
+    flex: 1 1 0;
+    min-height: 0;
+    align-items: stretch;
+  }
+
   .breadcrumb {
     padding: 16px 32px 0;
     font-size: 12px;
@@ -587,7 +610,11 @@
     border-radius: 3px;
     min-width: 280px;
     flex: 1;
-    max-height: calc(100vh - 220px);
+    /* WI-011 AC4 : `max-height: calc(100vh - 220px)` retiré (magic number, P2#5 Codex).
+       Hauteur héritée du flex parent `.board` (lui-même `flex: 1` du layout `.main.view-board`
+       → `#viewContent` → `.sprint-header + .board`). `min-height: 0` est requis pour que le flex
+       child puisse se réduire et laisser `overflow-y: auto` du `.board-col-body` enfant fonctionner. */
+    min-height: 0;
     display: flex;
     flex-direction: column;
   }
@@ -1922,7 +1949,7 @@
     <div class="logo">
       <div class="logo-mark">A</div>
       Atelier
-      <span class="version">v0.19.0</span>
+      <span class="version">v0.20.0</span>
     </div>
     <div class="topbar-search">
       <input type="text" id="searchInput" placeholder="Rechercher un item…">
@@ -3651,6 +3678,12 @@ function renderBreadcrumb() {
 }
 
 function renderView() {
+  // WI-011 AC4 : pose la classe `.view-board` sur `.main` quand vue board active.
+  // Permet d'isoler les règles CSS scroll/layout au scope strict du board (pas de fuite vers
+  // backlog/archive/calendar). Retrait inverse quand on quitte la vue.
+  const mainEl = document.querySelector('.main');
+  if (mainEl) mainEl.classList.toggle('view-board', state.activeView === 'board');
+
   document.querySelectorAll('.side-nav-item').forEach(n => {
     n.classList.toggle('active', n.dataset.view === state.activeView);
   });

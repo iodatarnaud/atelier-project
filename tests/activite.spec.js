@@ -1,4 +1,4 @@
-const { test, expect, resetApp, createClient, createSprint, createItemInline, openItemDetailByTitle, closeItemDetail } = require('./helpers');
+const { test, expect, resetApp, createClient, createSprint, createItemInline, openItemDetailByTitle, closeItemDetail, snapshotRender, waitForRender } = require('./helpers');
 
 // === Helpers locaux ===
 
@@ -167,10 +167,17 @@ test.describe('Activité — tracking des changes', () => {
     await createItemInline(page, { sectionId, title: 'À déplacer' });
 
     await page.locator('.side-nav-item[data-view="board"]').click();
-    const card = page.locator('.card', { hasText: 'À déplacer' });
+    const card = page.locator('.card[draggable="true"]', { hasText: 'À déplacer' });
+    await expect(card).toBeVisible();
+    const renderBeforeDrop = await snapshotRender(page);
     await card.dragTo(page.locator('.board-col[data-status="doing"] .board-col-body'));
+    await waitForRender(page, { from: renderBeforeDrop });
+    await expect(page.locator('.board-col[data-status="doing"] .card', { hasText: 'À déplacer' })).toBeVisible();
+    // Ce test vérifie le tracking d'activité, pas le garde anti-click post-drag.
+    // On reset le contexte DnD test-only avant d'ouvrir la modale pour éviter une attente timer flaky.
+    await page.evaluate(() => window.__atelierInternals?._resetDragState?.());
 
-    await page.locator('.card', { hasText: 'À déplacer' }).click();
+    await page.locator('.board-col[data-status="doing"] .card', { hasText: 'À déplacer' }).click();
     await switchToActivityTab(page);
     await expect(page.locator('.timeline-event.change')).toHaveCount(1);
     await expect(page.locator('.timeline-event.change')).toContainText('Statut');
