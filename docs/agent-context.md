@@ -90,7 +90,17 @@ Pour tout WI : **lire le module ciblé + le contrat partagé** (`docs/architectu
 
 **Lire** :
 - `index.html` lignes 3477-3608 — `renderSidebar`, `renderStats`, `renderBreadcrumb` (header global, projets, sprints, epics).
-- `index.html` lignes 3613-3650 — `renderView` (router vue active : backlog/board/archive/calendar).
+- `index.html` lignes 3613-3680 — `renderView` (router vue active : backlog/board/archive/calendar) + pose/retrait de la classe contexte `.view-board` sur `.main` (depuis WI-011 v0.20.0).
+
+### Pour les WI **layout vue board / scroll Kanban**
+
+**Lire** :
+- `index.html` lignes 470-500 — règles CSS `.main.view-board` (depuis WI-011 v0.20.0) : grid layout `auto auto auto 1fr` + flex column sur `#viewContent` → `.sprint-header + .board`. Strictement préfixé `.main.view-board` (zéro fuite vers backlog/archive/calendar).
+- `index.html` lignes 585-620 — `.board-col` + `.board-col-body` (overflow-y: auto status quo, magic number `max-height` retiré WI-011).
+- `index.html` lignes 3653-3680 — `renderView()` pose/retrait de `.view-board` sur `.main`.
+- `tests/board-scroll.spec.js` (4 tests : AC4 scope classe + AC7 layout/scroll + 2 boundary par Codex pattern 2 sprint vide + aller-retour board↔backlog).
+
+**Pattern type** : nouveau changement scroll/layout board → ajouter règle CSS préfixée `.main.view-board ...`, vérifier que `getBoundingClientRect` reste cohérent + DnD préservé via tests `tests/board.spec.js` + `tests/calendrier-dnd.spec.js` cage.
 
 ### Pour les WI **mode test / seed démo**
 
