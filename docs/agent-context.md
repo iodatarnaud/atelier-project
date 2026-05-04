@@ -108,12 +108,28 @@ Pour tout WI : **lire le module ciblé + le contrat partagé** (`docs/architectu
 - `index.html` lignes 2242-2360 — anchor `=== MODE TEST ===` (flag + seed démo + skip seed).
 - `tests/test-mode.spec.js` + `tests/helpers.js` (fixture `__SKIP_SEED__`).
 
+### Pour les WI **palette / couleurs (clients / epics / sprints)**
+
+**Lire** :
+- `index.html` ligne ~2510 — `COLORS` (10 hex canoniques lowercase, source unique partagée clients/epics/sprints depuis WI-012 v0.21.0). Déclarée AVANT `DEFAULT_EPIC_COLOR` (TDZ-safe). Ordre : `#0052cc` `#2e7d32` `#f57c00` `#d32f2f` `#00838f` `#6a1b9a` `#c2185b` `#795548` `#455a64` `#f9a825`.
+- `index.html` ligne ~2520 — `LEGACY_COLOR_MIGRATION` (table de remap stricte ancien hex → canonique nouvelle palette, 7 entrées). Allowlist : seuls les hex listés sont remappés ; tout autre hex hors `COLORS` ET hors legacy → fallback.
+- `index.html` ligne ~2560 — `normalizePaletteColor(raw, { fallback, palette })` : helper case-insensitive + stockage canonique + branche migration legacy quand palette = `COLORS`. Utilisé par `_normalizeSprint` / `_normalizeEpic` / `_normalizeClient`.
+- `index.html` ligne ~2580 — `_normalizeSprint` ajoute le champ `color` via le helper (fallback `null`).
+- `index.html` ligne ~5180 — `populateColorSwatches(targetId, currentColor, { nullable })` : helper factorisé pour les 3 modales. `nullable: true` → re-clic désélectionne (sprint), `nullable: false` → sélection verrouillée (epic/client).
+- `index.html` ligne ~5210 — `openEpicModal` (utilise `populateColorSwatches`).
+- `index.html` ligne ~5275 — `openClientModal` (utilise `populateColorSwatches`).
+- `index.html` ligne ~5125 — `openSprintModal` + `submitSprintForm` (sprint avec couleur nullable, valide via `normalizePaletteColor` à la sauvegarde).
+- `index.html` ligne ~3608 — `renderSidebar` sprint dot : branche couleur custom (`background: <hex>` + ring `--story` actif obligatoire + opacity terminé) vs branche legacy (var(--story) / --text-mute / --text-faint pour sprints sans couleur).
+- `tests/palette-couleurs.spec.js` (9 tests : T1 count×3 modales + T2 fallback statut + T3 sélection/désélection + T4 actif coloré ring + T5/T6 sécurité + T7/T8 boundary Codex + T9 migration legacy).
+
+**Pattern type** : nouvelle teinte → modifier le tableau `COLORS` + ajouter l'éventuelle migration dans `LEGACY_COLOR_MIGRATION` si on remplace une couleur historique + remap seed démo si nécessaire + recalibrer T1 `EXPECTED_COLORS` et tests T3/T4/T6/T8 si les hex utilisés disparaissent. **Allowlist stricte** : les hex hors palette + hors migration tombent toujours sur fallback (test T6 garde-fou).
+
 ## Test infrastructure (WI-010 AC2 + spike modules)
 
 Pour tout WI qui ajoute des tests E2E :
 
 - **Helpers déterministes** : `tests/helpers.js` exporte `snapshotRender(page)`, `snapshotSave(page)`, `waitForRender(page, { from })`, `waitForSave(page, { from })` qui s'appuient sur les marqueurs test-only `window.__appStateVersion` (incrément à chaque render) et `window.__lastSaveCompletedAt` (timestamp save async terminé). Ces marqueurs sont **gated mode test / `__SKIP_SEED__`** — invisibles en production. À privilégier sur `waitForTimeout(N)` arbitraires.
-- **Internals test-mode** : `window.__atelierInternals.*` expose les primitives des modules (`buildItem`, `itemDefaults`, `startDrag`, `endDrag`, `getDragItemId`, `getCalendarDragItem`, `didDragJustHappen`, `peekDragContext`, `_resetDragState`, `localDateKey`, `buildMonthCells`, `buildCalendarItems`, `indexCalendarItems`, `spikeProbe`). Utilisable via `page.evaluate(() => window.__atelierInternals.foo(...))`.
+- **Internals test-mode** : `window.__atelierInternals.*` expose les primitives des modules (`buildItem`, `itemDefaults`, `startDrag`, `endDrag`, `getDragItemId`, `getCalendarDragItem`, `didDragJustHappen`, `peekDragContext`, `_resetDragState`, `localDateKey`, `buildMonthCells`, `buildCalendarItems`, `indexCalendarItems`, `spikeProbe`) **et les validators palette** (`COLORS`, `DEFAULT_EPIC_COLOR`, `LEGACY_COLOR_MIGRATION`, `normalizePaletteColor`, `_normalizeSprint`, `_normalizeEpic`, `_normalizeClient`, `normalizeImportedState` depuis WI-012). Utilisable via `page.evaluate(() => window.__atelierInternals.foo(...))`.
 - **Helpers de scénario** : `tests/helpers.js` exporte aussi `resetApp`, `createClient`, `createSprint`, `createItemInline`, `openItemDetailByTitle`, `closeItemDetail`, `openSidebarItemAction`. Utiliser pour simplifier l'arrangement des tests.
 
 ## Méta-WI protocole : à éviter dans un WI app

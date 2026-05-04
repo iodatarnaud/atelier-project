@@ -27,7 +27,7 @@ Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fic
 - Aucun bundler, aucun framework, aucune dépendance runtime (juste la police Inter via CDN)
 - IndexedDB pour le cache local, fallback `localStorage`
 - API REST GitHub pour la synchronisation Gist (optionnelle)
-- Playwright pour les tests end-to-end (171 tests répartis sur 14 fichiers, dont sécurité XSS, activité, calendrier, raccourcis, stabilisation modules et layout vue board)
+- Playwright pour les tests end-to-end (180 tests répartis sur 15 fichiers, dont sécurité XSS, activité, calendrier, raccourcis, stabilisation modules, layout vue board et palette couleurs)
 
 ## Lancer en local
 
@@ -47,12 +47,12 @@ Suite end-to-end Playwright qui valide les fonctionnalités principales avant ch
 ```bash
 npm install
 npx playwright install     # installe Chromium headless (une seule fois)
-npm test                   # 171 tests, ~3min
+npm test                   # 180 tests, ~3min
 npm run test:headed        # voir le navigateur pendant les tests
 npm run test:ui            # mode interactif avec replay
 ```
 
-Les specs vivent dans [`tests/`](tests/), un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`, `security`, `activite`, `calendrier`, `calendrier-dnd`, `duree-reelle`, `spike-modules`, `board-scroll`.
+Les specs vivent dans [`tests/`](tests/), un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`, `security`, `activite`, `calendrier`, `calendrier-dnd`, `duree-reelle`, `spike-modules`, `board-scroll`, `palette-couleurs`.
 
 ## Documentation
 

@@ -105,7 +105,7 @@ L'historique vit avec l'item : il est synchronisé via le Gist comme le reste, a
 
 ### Créer un sprint
 
-Bouton **+** à côté du label **Sprints** dans la sidebar → modale qui demande un nom et des dates de début/fin optionnelles. Si aucun sprint n'est actif, le sprint vient d'être créé devient automatiquement actif.
+Bouton **+** à côté du label **Sprints** dans la sidebar → modale qui demande un nom, des dates de début/fin optionnelles, et **une couleur optionnelle** (palette de 10 swatches partagée avec projets/epics, depuis v0.21.0). Si aucun sprint n'est actif, le sprint qui vient d'être créé devient automatiquement actif. Avec une couleur custom, le dot du sprint dans la sidebar prend cette couleur ; le sprint actif garde un anneau vert distinctif autour du dot pour rester reconnaissable au coup d'œil.
 
 ### Activer un sprint
 
@@ -132,7 +132,7 @@ Menu kebab `⋯` à droite du sprint dans la sidebar → **Supprimer**. Le compo
 
 ### Créer un epic
 
-Bouton **+** à côté du label **Epics** dans la sidebar → modale qui demande un nom et une couleur (palette de 6 couleurs prédéfinies).
+Bouton **+** à côté du label **Epics** dans la sidebar → modale qui demande un nom et une couleur (palette de 10 couleurs prédéfinies, partagée avec projets et sprints depuis v0.21.0).
 
 ### Renommer / changer la couleur
 
