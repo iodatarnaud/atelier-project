@@ -43,13 +43,16 @@ test.describe('Backlog — CRUD items', () => {
     await expect(row.locator('.status-badge')).toHaveText('En cours');
   });
 
-  test('cycle de statut via le badge inline (todo → doing → done → archive)', async ({ page }) => {
+  test('cycle de statut via le badge inline (todo → … → done → archive)', async ({ page }) => {
     await createItemInline(page, { title: 'Task X' });
     const backlogBadge = page.locator('[data-section="backlog"] .backlog-row', { hasText: 'Task X' }).locator('.status-badge');
 
     await expect(backlogBadge).toHaveText('À faire');
-    await backlogBadge.click();
-    await expect(backlogBadge).toHaveText('En cours');
+    // Les stages intermédiaires restent visibles dans le backlog (status !== done)
+    for (const label of ['En cours', 'DEV', 'UAT', 'Go live']) {
+      await backlogBadge.click();
+      await expect(backlogBadge).toHaveText(label);
+    }
 
     // Click suivant : passe en "Terminé" → l'item disparaît du backlog (filtré)
     await backlogBadge.click();

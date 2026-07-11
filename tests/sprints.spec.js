@@ -1,4 +1,4 @@
-const { test, expect, resetApp, createClient, createSprint, createItemInline, openItemDetailByTitle, openSidebarItemAction } = require('./helpers');
+const { test, expect, resetApp, createClient, createSprint, createItemInline, openItemDetailByTitle, openSidebarItemAction, setStatusViaBadge } = require('./helpers');
 
 test.beforeEach(async ({ page }) => {
   await resetApp(page);
@@ -72,11 +72,9 @@ test.describe('Sprints', () => {
     await createItemInline(page, { sectionId, title: 'À finir' });
     await createItemInline(page, { sectionId, title: 'Terminé' });
 
-    // Marque "Terminé" comme done en cliquant 2x sur le badge (todo→doing→done)
+    // Marque "Terminé" comme done via le badge (cycle 6 états : todo→doing→dev→uat→golive→done)
     const doneRow = page.locator('.backlog-row', { hasText: 'Terminé' });
-    await doneRow.locator('.status-badge').click();
-    await doneRow.locator('.status-badge').click();
-    await expect(doneRow.locator('.status-badge')).toHaveText('Terminé');
+    await setStatusViaBadge(doneRow, 'Terminé');
 
     // Va sur la vue Board pour utiliser "Terminer le sprint"
     await page.locator('.side-nav-item[data-view="board"]').click();
@@ -174,11 +172,9 @@ test.describe('Sprints — suppression', () => {
     await createItemInline(page, { sectionId, title: 'Livré 1' });
     await createItemInline(page, { sectionId, title: 'Livré 2' });
 
-    // Marque les 2 items comme done (2 clicks chacun : todo → doing → done)
+    // Marque les 2 items comme done via le badge (cycle 6 états)
     for (const title of ['Livré 1', 'Livré 2']) {
-      const badge = page.locator('.backlog-row', { hasText: title }).locator('.status-badge');
-      await badge.click();
-      await badge.click();
+      await setStatusViaBadge(page.locator('.backlog-row', { hasText: title }), 'Terminé');
     }
 
     // Clôture le sprint

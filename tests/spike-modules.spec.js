@@ -336,10 +336,14 @@ test.describe('Calendar view-model pur (AC4)', () => {
     await createClient(page, { name: 'Acme', key: 'ACM' });
     await createItemInline(page, { title: 'Item ouvert' });
     await createItemInline(page, { title: 'Item terminé' });
-    // Passe l'item 1 en done via cycle 2x du badge.
+    // Passe l'item 1 en done via le badge (cycle 6 états ; les stages intermédiaires restent dans le backlog).
     const badge = page.locator('.backlog-row', { hasText: 'Item terminé' }).locator('.status-badge');
-    await badge.click(); // doing
-    await badge.click(); // done
+    for (const label of ['En cours', 'DEV', 'UAT', 'Go live']) {
+      await badge.click();
+      await expect(badge).toHaveText(label);
+    }
+    await badge.click(); // Go live → done : l'item quitte le backlog
+    await expect(page.locator('.backlog-row', { hasText: 'Item terminé' })).toHaveCount(0);
     const items = await page.evaluate(() => window.__atelierInternals.buildCalendarItems(state, {}));
     expect(items.length).toBe(1);
     expect(items[0].title).toBe('Item ouvert');
