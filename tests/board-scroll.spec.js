@@ -92,12 +92,12 @@ test.describe('Board scroll layout — vue Sprint actif (WI-011 / ATE-30)', () =
     });
 
     expect(layout.mainScrollHeight).toBeLessThanOrEqual(layout.mainClientHeight + 1);
-    expect(layout.cols).toHaveLength(3);
+    expect(layout.cols).toHaveLength(6);
     for (const col of layout.cols) {
       expect(col.height).toBeGreaterThan(100);
       expect(col.bodyHeight).toBeGreaterThan(50);
     }
-    await expect(page.locator('.board-col-body', { hasText: 'Vide' })).toHaveCount(3);
+    await expect(page.locator('.board-col-body', { hasText: 'Vide' })).toHaveCount(6);
   });
 
   test('Boundary — aller-retour board → backlog → board garde `.view-board` cohérente', async ({ page }) => {
@@ -118,5 +118,29 @@ test.describe('Board scroll layout — vue Sprint actif (WI-011 / ATE-30)', () =
     });
     expect(mainScroll.scrollHeight).toBeLessThanOrEqual(mainScroll.clientHeight + 1);
     expect(mainScroll.scrollTop).toBe(0);
+  });
+
+  test('WI-013 AC5 — 6 colonnes ≥ 280px, board scroll horizontal, pas de scroll horizontal de la page', async ({ page }) => {
+    await page.locator('.side-nav-item[data-view="board"]').click();
+    await expect(page.locator('#kanbanBoard')).toBeVisible();
+
+    const m = await page.evaluate(() => {
+      const board = document.querySelector('#kanbanBoard');
+      const main = document.querySelector('.main');
+      const widths = Array.from(document.querySelectorAll('.board-col')).map(c => c.getBoundingClientRect().width);
+      return {
+        colCount: widths.length,
+        minColWidth: Math.min(...widths),
+        boardScrollsX: board.scrollWidth > board.clientWidth + 1,
+        mainNoScrollX: main.scrollWidth <= main.clientWidth + 1,
+        bodyNoScrollX: document.body.scrollWidth <= document.documentElement.clientWidth + 1,
+      };
+    });
+
+    expect(m.colCount).toBe(6);
+    expect(m.minColWidth).toBeGreaterThanOrEqual(279);   // min-width 280px (tolérance sub-pixel)
+    expect(m.boardScrollsX).toBe(true);                  // 6×280 + gaps > largeur board sur 1440px → scroll interne
+    expect(m.mainNoScrollX).toBe(true);                  // le débordement reste dans `.board`, pas dans `.main`
+    expect(m.bodyNoScrollX).toBe(true);                  // ni dans la page
   });
 });

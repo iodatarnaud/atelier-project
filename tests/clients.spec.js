@@ -142,8 +142,12 @@ test.describe('Sidebar — compteurs par projet', () => {
     await expect(progress).toHaveText('1');
     await expect(done).toHaveText('0');
 
-    // 2e clic : doing → done
-    await badge.click();
+    // Défile jusqu'à "Terminé" : dev → uat → golive (restent dans le backlog), puis done
+    for (const label of ['DEV', 'UAT', 'Go live']) {
+      await badge.click();
+      await expect(badge).toHaveText(label);
+    }
+    await badge.click(); // Go live → Terminé : l'item quitte le backlog
     await expect(todo).toHaveText('0');
     await expect(progress).toHaveText('0');
     await expect(done).toHaveText('1');

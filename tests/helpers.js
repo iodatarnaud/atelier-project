@@ -70,6 +70,20 @@ async function closeItemDetail(page) {
 
 // Ouvre le menu kebab d'une ligne sidebar (projet/sprint/epic) et clique une action
 // (ex: 'Modifier', 'Supprimer'). Le menu est rendu dans document.body.
+// WI-013 : clique le badge de statut d'une ligne/carte jusqu'au libellé cible.
+// Robuste au nombre d'états du cycle (todo→doing→dev→uat→golive→done).
+// À n'utiliser que si l'item reste visible au statut cible (sinon inliner la boucle).
+async function setStatusViaBadge(rowOrCard, targetLabel) {
+  const badge = rowOrCard.locator('.status-badge');
+  for (let i = 0; i < 6; i++) {
+    const current = (await badge.textContent() || '').trim();
+    if (current === targetLabel) break;
+    await badge.click();
+    await expect(badge).not.toHaveText(current);
+  }
+  await expect(badge).toHaveText(targetLabel);
+}
+
 async function openSidebarItemAction(page, row, action) {
   await row.hover();
   await row.locator('.side-action.menu').click({ force: true });
@@ -126,6 +140,7 @@ module.exports = {
   createItemInline,
   openItemDetailByTitle,
   closeItemDetail,
+  setStatusViaBadge,
   openSidebarItemAction,
   snapshotRender,
   snapshotSave,
