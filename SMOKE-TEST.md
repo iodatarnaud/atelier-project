@@ -30,7 +30,7 @@ Cocher au fur et à mesure ; le plan est conçu pour être linéaire (les sectio
 - [ ] **2.1** Vue Backlog → cliquer **+ Créer un item** dans la section *Backlog* d'Acme → formulaire inline visible. Remplir titre / type / priorité / estimation et valider. L'item apparaît avec une clé `ACM-X`.
 - [ ] **2.2** Cliquer sur un item → modale détail. Modifier titre, ajouter une description rich text avec gras / italique / liste, ajouter une date d'échéance, sauvegarder. Vérifier que tout est conservé en re-ouvrant.
 - [ ] **2.2-bis** (ATE-17) Coller le contenu d'un `.md` long (par ex. un PRD) dans la description : le rich-editor wrap proprement, **ni le rich-editor ni la modale ne débordent horizontalement** (pas de scroll horizontal sur la modale).
-- [ ] **2.3** Sur une ligne de backlog, cliquer le badge de statut (à gauche du titre) : `À faire → En cours → Terminé → À faire`. Les pastilles de la sidebar pulsent à chaque changement.
+- [ ] **2.3** Sur une ligne de backlog, cliquer le badge de statut (à gauche du titre) : `À faire → En cours → DEV → UAT → Go live → Terminé → À faire` (6 états). Les pastilles de la sidebar pulsent à chaque changement.
 - [ ] **2.4** Modale détail → bouton **Supprimer** → modale de confirmation → l'item disparaît.
 - [ ] **2.5** Raccourci `Ctrl+C` (ou `Cmd+C`) avec focus hors input → ouvre directement le formulaire inline du backlog.
 - [ ] **2.6** Date d'échéance dans le passé → la pastille est rouge avec mention `J+N`. Date proche (≤ 3 j) → orange avec `J-N`. Date "Aujourd'hui" → mention explicite.
@@ -39,7 +39,7 @@ Cocher au fur et à mesure ; le plan est conçu pour être linéaire (les sectio
 
 - [ ] **3.1** Bouton **+** à côté du label *Sprints* → modale, créer `Sprint X` avec dates → apparaît dans la sidebar avec dot vert (actif si premier sprint du projet).
 - [ ] **3.2** Header du sprint dans la vue Backlog → format `reste X j sur Y` aligné avec la vue Sprint actif. Tooltip au survol précise livrés / total.
-- [ ] **3.3** Vue **Sprint actif** → kanban 3 colonnes À faire / En cours / Terminé. Drag d'un item entre colonnes change son statut.
+- [ ] **3.3** Vue **Sprint actif** → kanban **6 colonnes** pipeline : À faire / En cours / DEV / UAT / Go live / Terminé. Drag d'un item entre colonnes change son statut. Si les 6 colonnes dépassent la largeur → **scroll horizontal du board**, le **header du sprint reste fixe** (ne défile pas avec les colonnes).
 - [ ] **3.4** Vue Sprint actif → barre de progression : si tous les items à 0.25 done, doit afficher `reste 0 / 0.25 j · 100% terminé`. Si rien fait, `reste 0.25 / 0.25 j · 0% terminé`.
 - [ ] **3.5** Bouton **Terminer le sprint** → modale confirm. Items à `Terminé` partent en Archive, items non-terminés reviennent au backlog (sans rattachement de sprint).
 - [ ] **3.6** Sprint terminé visible dans la sidebar avec suffixe `(terminé)` et apparence barrée.
@@ -65,7 +65,7 @@ Cocher au fur et à mesure ; le plan est conçu pour être linéaire (les sectio
 - [ ] **5.2** Vue Backlog → glisser un item dans une même section pour le réordonner → l'ordre est conservé après reload.
 - [ ] **5.3** Glisser un item depuis le backlog sur la ligne d'un sprint dans la sidebar → l'item est assigné au sprint.
 - [ ] **5.4** Glisser un item sur la ligne d'un epic dans la sidebar → l'item est assigné à l'epic.
-- [ ] **5.5** Vue Sprint actif → glisser un item entre les colonnes À faire / En cours / Terminé → le statut est mis à jour.
+- [ ] **5.5** Vue Sprint actif → glisser un item entre les 6 colonnes (À faire / En cours / DEV / UAT / Go live / Terminé) → le statut est mis à jour.
 - [ ] **5.6** Vue Sprint actif → glisser pour réordonner dans une même colonne → ordre conservé.
 
 ## 6. Filtres et recherche

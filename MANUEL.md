@@ -35,7 +35,7 @@ L'indicateur en haut à droite affiche **`● Local`** : tes données sont stock
 | Élément | Description |
 |---|---|
 | **Projet** (ou client) | Un workspace isolé. Toutes les autres entités (items, sprints, epics) appartiennent à un projet. Identifié par un nom et une clé de 2-5 lettres (ex: `ACM`). |
-| **Item** | Unité de travail. Type (Build / TMA / Bug), priorité (P1 / P2 / P3), statut (À faire / En cours / Terminé), estimation en jours, durée réelle en heures (saisie a posteriori), date d'échéance optionnelle, description rich text. |
+| **Item** | Unité de travail. Type (Build / TMA / Bug), priorité (P1 / P2 / P3), statut (À faire / En cours / DEV / UAT / Go live / Terminé), estimation en jours, durée réelle en heures (saisie a posteriori), date d'échéance optionnelle, description rich text. |
 | **Sprint** | Itération avec dates de début et de fin. Lifecycle : *future* (créé) → *actif* (un seul à la fois par projet) → *terminé*. |
 | **Epic** | Grand chantier transverse, avec une couleur. Permet de regrouper des items autour d'un thème (ex: "Refonte UI"). |
 | **Backlog** | Liste de tous les items non terminés du projet, organisée par sprint et par epic. |
@@ -48,7 +48,7 @@ Les items ont une clé visible de la forme `ACM-12` (clé du projet + numéro au
 Trois vues principales, accessibles dans la barre latérale :
 
 - **Backlog** — vue de planification. Toutes les sections (sprint actif, sprints futurs, backlog général, sections par epic) avec leurs items. C'est ici qu'on déplace les items entre sprints.
-- **Sprint actif** — vue d'exécution kanban (colonnes À faire / En cours / Terminé). Affiche le sprint en cours du projet actif. Permet de suivre la progression jour après jour.
+- **Sprint actif** — vue d'exécution kanban à **6 colonnes** formant le pipeline de livraison Salesforce : **À faire → En cours → DEV → UAT → Go live → Terminé** (Go live = recetté client, prêt pour la prod ; Terminé = déployé en prod). Si les 6 colonnes dépassent la largeur, le board scrolle horizontalement — le header du sprint reste fixe. Affiche le sprint en cours du projet actif. Permet de suivre la progression jour après jour.
 - **Archive** — historique des items terminés.
 
 Le breadcrumb en haut indique le projet actif et la vue. Le titre de la vue est cliquable pour revenir au backlog.
@@ -73,7 +73,7 @@ Cliquer sur la ligne d'un item ouvre la modale de détail. Deux onglets :
 
 **Activité** : commentaires + historique des changes du WI. Voir [Activité du WI](#activité-du-wi-commentaires--historique).
 
-Le badge de statut (à gauche du titre dans la liste) est cliquable pour cycler `À faire → En cours → Terminé → À faire`.
+Le badge de statut (à gauche du titre dans la liste) est cliquable pour cycler `À faire → En cours → DEV → UAT → Go live → Terminé → À faire` (6 états).
 
 ### Description rich text
 
@@ -165,7 +165,7 @@ Les filtres se combinent (intersection). Pour tout retirer, cliquer sur les chip
 ## Glisser-déposer
 
 - **Vue Backlog** : déplacer un item d'une section à l'autre (sprint → backlog, sprint → autre sprint, etc.).
-- **Vue Sprint actif** : déplacer un item entre les colonnes À faire / En cours / Terminé. Le statut est mis à jour.
+- **Vue Sprint actif** : déplacer un item entre les 6 colonnes du pipeline (À faire / En cours / DEV / UAT / Go live / Terminé). Le statut est mis à jour.
 - **Vue Calendrier** : déplacer un item entre cellules pour replanifier sa `dueDate`, depuis la section "Non planifiés" vers une cellule pour planifier en 1 geste, ou depuis une cellule vers "Non planifiés" pour dé-planifier. Voir [Vue Calendrier](#vue-calendrier).
 - **Sur la sidebar** : déposer un item sur un sprint l'assigne à ce sprint, sur un epic l'assigne à cet epic.
 - **Réordonnement manuel** : dans une même section ou colonne, glisser pour changer l'ordre. L'ordre est persisté.

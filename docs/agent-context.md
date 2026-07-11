@@ -95,10 +95,11 @@ Pour tout WI : **lire le module ciblé + le contrat partagé** (`docs/architectu
 ### Pour les WI **layout vue board / scroll Kanban**
 
 **Lire** :
-- `index.html` lignes 470-500 — règles CSS `.main.view-board` (depuis WI-011 v0.20.0) : grid layout `auto auto auto 1fr` + flex column sur `#viewContent` → `.sprint-header + .board`. Strictement préfixé `.main.view-board` (zéro fuite vers backlog/archive/calendar).
+- `index.html` lignes 470-500 — règles CSS `.main.view-board` (depuis WI-011 v0.20.0) : grid layout `auto auto auto 1fr` + flex column sur `#viewContent` → `.sprint-header + .board`. Strictement préfixé `.main.view-board` (zéro fuite vers backlog/archive/calendar). **WI-013 v0.22.0** : `min-width:0` sur `.main`/`#viewContent`/`.board` → le scroll horizontal des 6 colonnes est contenu par `.board` (le header sprint reste fixe), symétrique du `min-height:0` vertical.
 - `index.html` lignes 585-620 — `.board-col` + `.board-col-body` (overflow-y: auto status quo, magic number `max-height` retiré WI-011).
 - `index.html` lignes 3653-3680 — `renderView()` pose/retrait de `.view-board` sur `.main`.
-- `tests/board-scroll.spec.js` (4 tests : AC4 scope classe + AC7 layout/scroll + 2 boundary par Codex pattern 2 sprint vide + aller-retour board↔backlog).
+- `tests/board-scroll.spec.js` (5 tests : AC4 scope classe + AC7 layout/scroll + 2 boundary sprint vide/aller-retour + **WI-013 AC5** : 6 colonnes ≥280px, scroll horizontal `.board`, page fixe).
+- **Domaine statuts (WI-013 v0.22.0)** : `STATUS_ORDER = ['todo','doing','dev','uat','golive','done']` (~`index.html:2386`) = source d'ordre canonique **unique**, réutilisée par le rendu board (boucle 6 colonnes, fin des blocs en dur), `cycleStatus()`, la modale `#ed_status` et `STATUS_VALUES = new Set(STATUS_ORDER)`. Ajouter un statut = éditer `STATUS_ORDER` + `STATUS_LABELS` + classe CSS `.status-<key>` + tokens couleur clair/dark. `done` reste le seul statut terminal (`completedAt`/archive/exclusion calendrier).
 
 **Pattern type** : nouveau changement scroll/layout board → ajouter règle CSS préfixée `.main.view-board ...`, vérifier que `getBoundingClientRect` reste cohérent + DnD préservé via tests `tests/board.spec.js` + `tests/calendrier-dnd.spec.js` cage.
 

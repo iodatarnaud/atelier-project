@@ -10,7 +10,7 @@ Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fic
 - Items typés (Build / TMA / Bug), priorisés (P1 / P2 / P3), avec estimations en jours, dates d'échéance et description rich text
 - **Activité par item** : commentaires datés (édition / suppression avec trace) + timeline historique des changes (statut, sprint, priorité, etc.) trackés automatiquement
 - Epics colorés (CRUD, filtrage, assignement)
-- Vues **Backlog**, **Sprint actif** (kanban), **Archive** et **Calendrier** (mensuel multi-projets avec section "En retard", filtres projet/type/prio/epic, et drag & drop pour replanifier la `dueDate` en 1 geste)
+- Vues **Backlog**, **Sprint actif** (kanban pipeline 6 colonnes : À faire → En cours → DEV → UAT → Go live → Terminé), **Archive** et **Calendrier** (mensuel multi-projets avec section "En retard", filtres projet/type/prio/epic, et drag & drop pour replanifier la `dueDate` en 1 geste)
 - Sprints avec lifecycle (future → actif → terminé), suppression sécurisée
 - Drag & drop : items entre sprints, depuis la sidebar, et réordonnement manuel
 - Filtres (type, priorité, epic), recherche plein-texte, groupement par sprint ou par epic
@@ -27,7 +27,7 @@ Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fic
 - Aucun bundler, aucun framework, aucune dépendance runtime (juste la police Inter via CDN)
 - IndexedDB pour le cache local, fallback `localStorage`
 - API REST GitHub pour la synchronisation Gist (optionnelle)
-- Playwright pour les tests end-to-end (180 tests répartis sur 15 fichiers, dont sécurité XSS, activité, calendrier, raccourcis, stabilisation modules, layout vue board et palette couleurs)
+- Playwright pour les tests end-to-end (185 tests répartis sur 15 fichiers, dont sécurité XSS, activité, calendrier, raccourcis, stabilisation modules, layout vue board (pipeline 6 colonnes) et palette couleurs)
 
 ## Lancer en local
 
