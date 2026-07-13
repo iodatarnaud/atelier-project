@@ -188,6 +188,24 @@
   }
   .app.resizing { user-select: none; cursor: col-resize; }
 
+  /* WI-014 — sidebar repliable (collapse total via chevron) */
+  .app.sidebar-collapsed { grid-template-columns: 0 1fr; }
+  .app.sidebar-collapsed .sidebar { overflow: hidden; }
+  .app.sidebar-collapsed .sidebar-resizer { display: none; }
+  .sidebar-toggle {
+    position: fixed; top: 70px; left: var(--sidebar-width);
+    transform: translateX(-50%); z-index: 51;
+    width: 20px; height: 20px; padding: 0; border-radius: 50%;
+    background: var(--bg-app); border: 1px solid var(--border); color: var(--text-mute);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; line-height: 1; cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .sidebar-toggle::before { content: '‹'; }
+  .sidebar-toggle:hover { background: var(--hover-strong); color: var(--text); border-color: var(--primary); }
+  .app.sidebar-collapsed .sidebar-toggle { left: 0; transform: translateX(0); }
+  .app.sidebar-collapsed .sidebar-toggle::before { content: '›'; }
+
   /* === TOPBAR === */
   .topbar {
     grid-area: topbar;
@@ -1949,8 +1967,9 @@
 
   /* === RESPONSIVE === */
   @media (max-width: 900px) {
-    .app { grid-template-columns: 1fr; grid-template-areas: "topbar" "main"; }
+    .app, .app.sidebar-collapsed { grid-template-columns: 1fr; grid-template-areas: "topbar" "main"; }
     .sidebar { display: none; }
+    .sidebar-toggle { display: none; }
     .modal-body { grid-template-columns: 1fr; }
   }
 </style>
@@ -2035,6 +2054,7 @@
   </aside>
 
   <div class="sidebar-resizer" id="sidebarResizer" title="Glisser pour redimensionner"></div>
+  <button class="sidebar-toggle" id="sidebarToggle" title="Replier / déplier la barre latérale" aria-label="Replier ou déplier la barre latérale"></button>
 
   <!-- MAIN -->
   <main class="main">
@@ -5903,6 +5923,25 @@ function initSidebarResize() {
   });
 }
 
+// WI-014 — sidebar repliable (collapse total via chevron)
+const SIDEBAR_COLLAPSED_KEY = 'atelier-sidebar-collapsed';
+function applySidebarCollapsed(collapsed) {
+  const app = document.querySelector('.app');
+  if (app) app.classList.toggle('sidebar-collapsed', collapsed);
+}
+function loadSidebarCollapsed() {
+  applySidebarCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1');
+}
+function initSidebarToggle() {
+  const btn = document.getElementById('sidebarToggle');
+  const app = document.querySelector('.app');
+  if (!btn || !app) return;
+  btn.addEventListener('click', () => {
+    const collapsed = app.classList.toggle('sidebar-collapsed');
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
+  });
+}
+
 // WI-012 — exposition test-mode des validators palette pour les tests E2E
 // (security hostile import, palette stricte, helper canonicalisation). Gated
 // strictement test-mode / __SKIP_SEED__ comme le bloc module bridge ligne ~2249.
@@ -5923,6 +5962,7 @@ if (isTestMode() || window.__SKIP_SEED__) {
 // === INIT ===
 (async () => {
   loadSidebarWidth();
+  loadSidebarCollapsed();
   // Affiche le banner avant le load (au cas où loadState fail, le user voit qu'il est en mode test)
   if (isTestMode()) {
     const banner = document.getElementById('testModeBanner');
@@ -5931,6 +5971,7 @@ if (isTestMode() || window.__SKIP_SEED__) {
   await loadState();
   render();
   initSidebarResize();
+  initSidebarToggle();
   // Garde l'indicateur aligné quand la fenêtre/font change de taille
   window.addEventListener('resize', updateActiveIndicator);
   if (document.fonts && document.fonts.ready) {
