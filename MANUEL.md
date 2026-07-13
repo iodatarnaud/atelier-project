@@ -270,6 +270,7 @@ Les raccourcis qui pourraient gêner la saisie sont **désactivés quand le focu
 ## Astuces
 
 - **Sidebar redimensionnable** : tirer la bordure droite de la sidebar (curseur `↔`). La largeur est persistée par navigateur.
+- **Sidebar repliable** (depuis v0.23.0) : cliquer le **chevron** sur la frontière de la sidebar (`‹` replier / `›` déplier) la replie totalement pour libérer de la largeur. L'état est mémorisé par navigateur et la largeur d'avant est restaurée à la ré-ouverture.
 - **Dark theme** : automatique selon le réglage de ton OS. Pas de toggle manuel.
 - **Stats par projet dans la sidebar** : trois pastilles colorées par projet (À faire / En cours / Terminé en nombre d'items) + jours à faire.
 - **Compteur de sprint** : `reste X j sur Y` dans le header du sprint, basé sur les estimations des items non-terminés. Tooltip au survol pour le détail (livrés / total).

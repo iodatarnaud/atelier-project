@@ -19,7 +19,7 @@ Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fic
 - Export / import JSON manuel (sauvegarde de secours)
 - **Mode test** : bac à sable isolé avec jeu de données démo, aucune écriture vers tes vraies données
 - Dark theme automatique selon le mode OS
-- Sidebar redimensionnable, raccourcis clavier (`Ctrl+C` quick add, `Ctrl+Entrée` valider partout, `Échap` fermer un modal)
+- Sidebar redimensionnable et **repliable** (chevron), raccourcis clavier (`Ctrl+C` quick add, `Ctrl+Entrée` valider partout, `Échap` fermer un modal)
 
 ## Stack
 
@@ -27,7 +27,7 @@ Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fic
 - Aucun bundler, aucun framework, aucune dépendance runtime (juste la police Inter via CDN)
 - IndexedDB pour le cache local, fallback `localStorage`
 - API REST GitHub pour la synchronisation Gist (optionnelle)
-- Playwright pour les tests end-to-end (185 tests répartis sur 15 fichiers, dont sécurité XSS, activité, calendrier, raccourcis, stabilisation modules, layout vue board (pipeline 6 colonnes) et palette couleurs)
+- Playwright pour les tests end-to-end (190 tests répartis sur 16 fichiers, dont sécurité XSS, activité, calendrier, raccourcis, stabilisation modules, layout vue board (pipeline 6 colonnes), sidebar repliable et palette couleurs)
 
 ## Lancer en local
 
@@ -52,7 +52,7 @@ npm run test:headed        # voir le navigateur pendant les tests
 npm run test:ui            # mode interactif avec replay
 ```
 
-Les specs vivent dans [`tests/`](tests/), un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`, `security`, `activite`, `calendrier`, `calendrier-dnd`, `duree-reelle`, `spike-modules`, `board-scroll`, `palette-couleurs`.
+Les specs vivent dans [`tests/`](tests/), un fichier par feature : `clients`, `backlog`, `board`, `sprints`, `persistance`, `raccourcis`, `test-mode`, `security`, `activite`, `calendrier`, `calendrier-dnd`, `duree-reelle`, `spike-modules`, `board-scroll`, `palette-couleurs`, `sidebar-collapse`.
 
 ## Documentation
 

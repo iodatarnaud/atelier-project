@@ -177,6 +177,7 @@ Pré-requis : 2 onglets ouverts sur le même Gist (même PAT/Gist ID), ou Mac + 
 ## 14. Sidebar / responsive
 
 - [ ] **14.1** Tirer la bordure droite de la sidebar → largeur change (curseur `↔`). Reload → largeur conservée.
+- [ ] **14.1-bis** Cliquer le **chevron** sur la frontière de la sidebar → elle se replie totalement (`‹` → `›`). Re-cliquer → elle se déplie à la largeur d'avant. Reload en position repliée → reste repliée. La poignée de resize disparaît quand replié.
 - [ ] **14.2** Dark theme : changer le réglage OS (clair / sombre) → l'app suit automatiquement (les couleurs s'adaptent).
 - [ ] **14.3** Réduire la fenêtre sous 900 px → la sidebar est masquée, layout responsive.
 
