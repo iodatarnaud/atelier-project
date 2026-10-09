@@ -58,15 +58,15 @@ Les specs vivent dans [`tests/`](tests/), un fichier par feature : `clients`, `b
 
 - [`MANUEL.md`](MANUEL.md) — manuel utilisateur (concepts, vues, sync, mode test)
 - [`SMOKE-TEST.md`](SMOKE-TEST.md) — plan de validation manuel pour vérifier tout le périmètre avant un déploiement
-- [`CLAUDE.md`](CLAUDE.md) — détails techniques (architecture, persistance, conventions)
+- [`AGENTS.md`](AGENTS.md) — point d'entrée des agents + détails techniques (architecture, persistance, conventions) ; [`CLAUDE.md`](CLAUDE.md) n'est qu'un routeur qui l'importe
 - [`docs/architecture.md`](docs/architecture.md) — frontière shell `index.html` ↔ 3 modules ES natifs (items, drag-drop, calendar) + invariants d'extension (depuis v0.19.0)
 - [`docs/agent-context.md`](docs/agent-context.md) — carte des fichiers/ranges précis pour Claude/Codex selon le type de WI (factory item, DnD, calendrier, etc.) + 8 invariants transverses obligatoires (depuis v0.19.0)
-- [`AI.md`](AI.md) + [`ai-system/`](ai-system/) — protocole d'orchestration multi-agents (Claude / Codex / Arnaud), v2.3 (mode META_FAST disponible pour micro-ajustements `ai-system/` depuis WI-007)
+- [`AGENTS.md`](AGENTS.md) + [`ai-system/`](ai-system/) — protocole d'orchestration multi-agents (Claude / Codex / Arnaud), v2.3 (mode META_FAST disponible pour micro-ajustements `ai-system/` depuis WI-007)
 - [`work-items/`](work-items/) — Work Items (WI) : un fichier par chantier, source unique de vérité d'une feature
 
 ## Workflow de développement (multi-agents)
 
-Toute évolution non triviale passe par un **Work Item** (WI) suivant le `AI Orchestration Protocol v2.1` documenté dans [`ai-system/00_AI_SYSTEM.md`](ai-system/00_AI_SYSTEM.md). Trois acteurs collaborent :
+Toute évolution non triviale passe par un **Work Item** (WI) suivant le `AI Orchestration Protocol v2.3` documenté dans [`ai-system/00_AI_SYSTEM.md`](ai-system/00_AI_SYSTEM.md). Trois acteurs collaborent :
 
 - **Arnaud** (humain) : cadre la demande (`CADRAGE`), valide en pré-merge (`VALIDATION_UI`).
 - **Claude** : code (`IMPLEMENTATION`), tests (`TESTS`), release notes (`PATCH_NOTES`), merge (`MERGE_RELEASE`), docs (`DOCS`).
@@ -136,7 +136,7 @@ L'app est conçue pour fonctionner sans serveur tiers. Quelques choix conscients
 
 ## Architecture
 
-Voir [`CLAUDE.md`](CLAUDE.md) pour le détail des couches de stockage, du flow de synchronisation et des conventions.
+Voir [`AGENTS.md`](AGENTS.md) pour le détail des couches de stockage, du flow de synchronisation et des conventions.
 
 En résumé : `index.html` contient le HTML, le CSS (dans `<style>`) et le JS (dans `<script>`), navigables via les commentaires `=== NOM ===`. Trois couches de persistance : mémoire → IndexedDB → Gist (last-write-wins).
 

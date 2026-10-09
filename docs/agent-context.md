@@ -135,7 +135,7 @@ Pour tout WI qui ajoute des tests E2E :
 
 ## Méta-WI protocole : à éviter dans un WI app
 
-Si une évolution touche durablement les bootstraps protocole (`AI.md`, `ai-system/CLAUDE_BOOTSTRAP.md`, `ai-system/CODEX_BOOTSTRAP.md`, `ai-system/00_AI_SYSTEM.md`), **ne pas le faire dans un WI app** : ouvrir un **méta-WI protocole dédié**. Ce document `agent-context.md` peut au contraire évoluer librement dans un WI app si la frontière est mieux comprise.
+Si une évolution touche durablement les bootstraps protocole (`AGENTS.md`, `CLAUDE.md`, `ai-system/CLAUDE_BOOTSTRAP.md`, `ai-system/CODEX_BOOTSTRAP.md`, `ai-system/00_AI_SYSTEM.md`), **ne pas le faire dans un WI app** : ouvrir un **méta-WI protocole dédié**. Ce document `agent-context.md` peut au contraire évoluer librement dans un WI app si la frontière est mieux comprise.
 
 ## Maintien de cette doc
 

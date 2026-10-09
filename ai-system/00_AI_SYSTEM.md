@@ -1,4 +1,4 @@
-# AI SYSTEM — EXECUTION PROTOCOL v2.1
+# AI SYSTEM — EXECUTION PROTOCOL v2.3
 
 ---
 
@@ -18,7 +18,7 @@ Your job is to execute ONE phase correctly.
 
 The system is defined ONLY by:
 
-1. `/AI.md`
+1. `/AGENTS.md`
 2. `/ai-system/00_AI_SYSTEM.md`
 3. the current WI file (`work-items/WI-<NNN>.md`)
 4. the current repository state (files + `git diff` if needed)
@@ -77,7 +77,7 @@ No explanation. No discussion. No anticipation.
 Before ANY execution:
 
 1. Ignore conversation assumptions
-2. Reload `/AI.md`
+2. Reload `/AGENTS.md`
 3. Reload `/ai-system/00_AI_SYSTEM.md`
 4. Resolve and reload current WI file (force-read header via `head -8 work-items/WI-<NNN>.md` — never trust the editor cache or message snapshots)
 5. Inspect relevant source files if needed
@@ -255,7 +255,7 @@ If the WI header indicates `Target version: système v...` (or otherwise no app 
 
 ## DOCS — conditional execution
 
-`DOCS` is a systematic phase but MAY be a no-op explicit `Files refreshed: N/A` if the WI introduces no new user-facing behavior (no change to `README.md`, `MANUEL.md`, `SMOKE-TEST.md`, `CLAUDE.md`).
+`DOCS` is a systematic phase but MAY be a no-op explicit `Files refreshed: N/A` if the WI introduces no new user-facing behavior (no change to `README.md`, `MANUEL.md`, `SMOKE-TEST.md`, `AGENTS.md`, `CLAUDE.md`).
 
 A justification line is still required (`Justification: meta-WI sans impact user-facing` par exemple).
 
@@ -299,7 +299,7 @@ Pipeline ultra-réduite dédiée aux **micro-ajustements du protocole AI lui-mê
 
 **Eligibility (toutes obligatoires)** :
 - `Risk: LOW`.
-- Modifs strictement dans `ai-system/` + le WI courant (`work-items/WI-<NNN>.md` du WI lui-même). Aucun autre fichier, en particulier : pas de `index.html`, `tests/`, `MANUEL.md`, `README.md`, `SMOKE-TEST.md`, `CLAUDE.md`, `package.json`, `playwright.config.js`, ni un autre WI.
+- Modifs strictement dans `ai-system/` + le WI courant (`work-items/WI-<NNN>.md` du WI lui-même). Aucun autre fichier, en particulier : pas de `index.html`, `tests/`, `MANUEL.md`, `README.md`, `SMOKE-TEST.md`, `AGENTS.md`, `CLAUDE.md`, `package.json`, `playwright.config.js`, ni un autre WI.
 - Exception : un meta-WI explicitement dédié au template ou à la convention de WI peut toucher `ai-system/WI_TEMPLATE.md` ; cela reste sous `ai-system/`.
 - Pas de bump version `index.html` (pas de release GH).
 - Scope diff `ai-system/` < 30 lignes (compté **uniquement sur les fichiers protocole touchés**, hors bookkeeping mécanique du WI courant : `Status`, `Owner`, `TIMING`, sections de phase).
