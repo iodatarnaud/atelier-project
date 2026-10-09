@@ -26,11 +26,11 @@ Le wrapper relit les vars d'env du registre Windows à chaque appel et les injec
 ```
 clients                                Liste les clients du Gist
 list      --client <key|name>          Items du client (hors done par défaut)
-          [--status todo|doing|done] [--type story|task|bug]
+          [--status todo|doing|dev|uat|golive|done] [--type story|task|bug]
           [--epic <id|name>] [--sprint <id|name>] [--all]
 show      --client <key> --id <id|KEY-NUM>
 create    --client <key> --title "..."
-          [--type task|story|bug] [--priority 1|2|3] [--status todo|doing|done]
+          [--type task|story|bug] [--priority 1|2|3] [--status todo|doing|dev|uat|golive|done]
           [--estimate <h>] [--due YYYY-MM-DD]
           [--sprint <id|name>] [--epic <id|name>] [--desc "..."]
 update    --client <key> --id <id|KEY-NUM> [n'importe quel champ create]

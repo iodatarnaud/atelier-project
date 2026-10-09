@@ -29,7 +29,9 @@ const GIST_ID_ENV_VARS = ['ATELIER_GIST_ID', 'Atelier Gist ID'];
 const TOKEN_ENV_VARS = ['ATELIER_GIST_TOKEN', 'GIST_TOKEN', 'GitHub Gist Token'];
 
 const TYPE_VALUES = new Set(['story', 'task', 'bug']);
-const STATUS_VALUES = new Set(['todo', 'doing', 'done']);
+// Aligné sur le pipeline canonique de l'app (index.html STATUS_ORDER) :
+// todo → doing → dev → uat → golive → done. Le CLI était resté sur les 3 statuts historiques.
+const STATUS_VALUES = new Set(['todo', 'doing', 'dev', 'uat', 'golive', 'done']);
 const PRIORITY_VALUES = new Set([1, 2, 3]);
 const TRACKED_FIELDS = new Set([
   'title', 'type', 'status', 'priority', 'estimate', 'actualHours',
@@ -279,7 +281,7 @@ async function cmdList(args) {
     const epicName = it.epicId ? (client.epics?.find(e => e.id === it.epicId)?.name ?? '?') : '-';
     const sprintName = it.sprintId ? (client.sprints?.find(s => s.id === it.sprintId)?.name ?? '?') : '-';
     const due = it.dueDate ? ` due ${it.dueDate}` : '';
-    console.log(`  ${shortRef(client, it).padEnd(8)} [${it.status.padEnd(5)}] P${it.priority} ${it.type.padEnd(5)} | ${epicName} / ${sprintName}${due} | ${it.title}`);
+    console.log(`  ${shortRef(client, it).padEnd(8)} [${it.status.padEnd(6)}] P${it.priority} ${it.type.padEnd(5)} | ${epicName} / ${sprintName}${due} | ${it.title}`);
   }
 }
 
@@ -522,11 +524,11 @@ Usage : node scripts/ticket-cli.mjs <command> [opts]
 Commands :
   clients                                Liste les clients du Gist
   list      --client <key|name>          Liste les items (hors done par défaut)
-            [--status todo|doing|done] [--type story|task|bug]
+            [--status todo|doing|dev|uat|golive|done] [--type story|task|bug]
             [--epic <id|name>] [--sprint <id|name>] [--all]
   show      --client <key> --id <id|KEY-NUM>
   create    --client <key> --title "..."
-            [--type task|story|bug] [--priority 1|2|3] [--status todo|doing|done]
+            [--type task|story|bug] [--priority 1|2|3] [--status todo|doing|dev|uat|golive|done]
             [--estimate <h>] [--due YYYY-MM-DD] [--sprint <id|name>] [--epic <id|name>]
             [--desc "..."]
   update    --client <key> --id <id|KEY-NUM> [n'importe quel champ create]
