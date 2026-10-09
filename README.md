@@ -10,7 +10,7 @@ Pas de backend, pas d'inscription, pas de tracking. L'app tient dans un seul fic
 - Items typés (Build / TMA / Bug), priorisés (P1 / P2 / P3), avec estimations en jours, dates d'échéance et description rich text
 - **Activité par item** : commentaires datés (édition / suppression avec trace) + timeline historique des changes (statut, sprint, priorité, etc.) trackés automatiquement
 - Epics colorés (CRUD, filtrage, assignement)
-- Vues **Backlog**, **Sprint actif** (kanban pipeline 6 colonnes : À faire → En cours → DEV → UAT → Go live → Terminé), **Archive** et **Calendrier** (mensuel multi-projets avec section "En retard", filtres projet/type/prio/epic, et drag & drop pour replanifier la `dueDate` en 1 geste)
+- Vues **Backlog**, **Sprint actif** (kanban pipeline 6 colonnes : À faire → En cours → DEV → UAT → READY → Terminé), **Archive** et **Calendrier** (mensuel multi-projets avec section "En retard", filtres projet/type/prio/epic, et drag & drop pour replanifier la `dueDate` en 1 geste)
 - Sprints avec lifecycle (future → actif → terminé), suppression sécurisée
 - Drag & drop : items entre sprints, depuis la sidebar, et réordonnement manuel
 - Filtres (type, priorité, epic), recherche plein-texte, groupement par sprint ou par epic

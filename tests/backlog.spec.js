@@ -49,7 +49,7 @@ test.describe('Backlog — CRUD items', () => {
 
     await expect(backlogBadge).toHaveText('À faire');
     // Les stages intermédiaires restent visibles dans le backlog (status !== done)
-    for (const label of ['En cours', 'DEV', 'UAT', 'Go live']) {
+    for (const label of ['En cours', 'DEV', 'UAT', 'READY']) {
       await backlogBadge.click();
       await expect(backlogBadge).toHaveText(label);
     }

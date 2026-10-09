@@ -338,11 +338,11 @@ test.describe('Calendar view-model pur (AC4)', () => {
     await createItemInline(page, { title: 'Item terminé' });
     // Passe l'item 1 en done via le badge (cycle 6 états ; les stages intermédiaires restent dans le backlog).
     const badge = page.locator('.backlog-row', { hasText: 'Item terminé' }).locator('.status-badge');
-    for (const label of ['En cours', 'DEV', 'UAT', 'Go live']) {
+    for (const label of ['En cours', 'DEV', 'UAT', 'READY']) {
       await badge.click();
       await expect(badge).toHaveText(label);
     }
-    await badge.click(); // Go live → done : l'item quitte le backlog
+    await badge.click(); // READY → done : l'item quitte le backlog
     await expect(page.locator('.backlog-row', { hasText: 'Item terminé' })).toHaveCount(0);
     const items = await page.evaluate(() => window.__atelierInternals.buildCalendarItems(state, {}));
     expect(items.length).toBe(1);

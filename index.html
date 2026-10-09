@@ -2426,7 +2426,7 @@ const TYPE_LABELS = { story: 'Build', task: 'TMA', bug: 'Bug' };
 const TYPE_LETTERS = { story: 'U', task: 'T', bug: 'B' };
 // WI-013 : ordre canonique du pipeline (source unique réutilisée par board / cycleStatus / modale statut / STATUS_VALUES).
 const STATUS_ORDER = ['todo', 'doing', 'dev', 'uat', 'golive', 'done'];
-const STATUS_LABELS = { todo: 'À faire', doing: 'En cours', dev: 'DEV', uat: 'UAT', golive: 'Go live', done: 'Terminé' };
+const STATUS_LABELS = { todo: 'À faire', doing: 'En cours', dev: 'DEV', uat: 'UAT', golive: 'READY', done: 'Terminé' };
 
 // === STORAGE LAYER (IndexedDB + fallback localStorage) ===
 let _db = null;

@@ -24,7 +24,7 @@ test.describe('Board (Kanban)', () => {
     // Libellés des nouveaux stages
     await expect(page.locator('.board-col[data-status="dev"] .board-col-head')).toContainText('DEV');
     await expect(page.locator('.board-col[data-status="uat"] .board-col-head')).toContainText('UAT');
-    await expect(page.locator('.board-col[data-status="golive"] .board-col-head')).toContainText('Go live');
+    await expect(page.locator('.board-col[data-status="golive"] .board-col-head')).toContainText('READY');
 
     // Compteurs à 0
     await expect(page.locator('.board-col[data-status="todo"] .num')).toHaveText('0');
@@ -85,7 +85,7 @@ test.describe('Board (Kanban)', () => {
 
     const badge = page.locator('.backlog-row', { hasText: 'Cycle' }).locator('.status-badge');
     await expect(badge).toHaveText('À faire');
-    for (const label of ['En cours', 'DEV', 'UAT', 'Go live', 'Terminé', 'À faire']) {
+    for (const label of ['En cours', 'DEV', 'UAT', 'READY', 'Terminé', 'À faire']) {
       await badge.click();
       await expect(badge).toHaveText(label);
     }
